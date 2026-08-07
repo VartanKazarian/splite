@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Check, CreditCard, Smartphone, Apple, ArrowLeft } from "lucide-react";
 import { LangToggle } from "@/components/LangToggle";
@@ -26,7 +26,7 @@ type Mode = "all" | "items" | "even" | "custom";
 function GuestBill() {
   const { tableId } = Route.useParams();
   const { t, lang } = useI18n();
-  const table = getTable(tableId)!;
+  const table = getTable(tableId) ?? getTable("15")!;
 
   const [mode, setMode] = useState<Mode>("all");
   const [picked, setPicked] = useState<string[]>([]);

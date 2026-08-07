@@ -17,12 +17,9 @@ export const Route = createFileRoute("/t/$tableId")({
       { property: "og:description", content: "Divide la cuenta, deja propina y paga desde tu móvil." },
     ],
   }),
-  loader: ({ params }) => {
-    if (!getTable(params.tableId)) throw notFound();
-    return null;
-  },
   component: GuestBill,
 });
+
 
 type Mode = "all" | "items" | "even" | "custom";
 

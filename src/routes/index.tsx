@@ -8,16 +8,16 @@ import { restaurant } from "@/lib/mock-data";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Mesa — Divide y paga la cuenta del restaurante con un QR" },
+      { title: "Divide y paga la cuenta del restaurante con un QR" },
       {
         name: "description",
         content:
-          "Pay at table para restaurantes en Venezuela: QR por mesa, división de cuenta, propina y pago con Pago Móvil o tarjeta.",
+          "Pay at table para restaurantes: QR por mesa, división de cuenta, propina y pago con Pago Móvil o tarjeta.",
       },
-      { property: "og:title", content: "Mesa — Pay at table por QR" },
+      { property: "og:title", content: "Divide y paga la cuenta del restaurante con un QR" },
       {
         property: "og:description",
-        content: "QR por mesa, división de cuenta, propina y pago en 30 segundos.",
+        content: "Pay at table para restaurantes: QR por mesa, división de cuenta, propina y pago con Pago Móvil o tarjeta.",
       },
     ],
   }),

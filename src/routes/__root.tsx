@@ -80,14 +80,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Mesa — Pago y división de cuentas por QR" },
+      { title: "Divide y paga la cuenta del restaurante con un QR" },
       {
         name: "description",
         content:
-          "Mesa permite a los comensales escanear un QR, dividir la cuenta, dejar propina y pagar sin esperar al mesonero.",
+          "Pay at table para restaurantes: QR por mesa, división de cuenta, propina y pago con Pago Móvil o tarjeta.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:title", content: "Divide y paga la cuenta del restaurante con un QR" },
+      { name: "twitter:title", content: "Divide y paga la cuenta del restaurante con un QR" },
+      { property: "og:description", content: "Pay at table para restaurantes: QR por mesa, división de cuenta, propina y pago con Pago Móvil o tarjeta." },
+      { name: "twitter:description", content: "Pay at table para restaurantes: QR por mesa, división de cuenta, propina y pago con Pago Móvil o tarjeta." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c4684a029351a50ab7525e855f2d9221/id-preview-5cab6856--b2c5c7ee-96f5-4253-b5fb-e4d39f958e9d.lovable.app-1786127887508.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c4684a029351a50ab7525e855f2d9221/id-preview-5cab6856--b2c5c7ee-96f5-4253-b5fb-e4d39f958e9d.lovable.app-1786127887508.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

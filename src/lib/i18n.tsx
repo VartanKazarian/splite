@@ -128,6 +128,16 @@ const dict = {
     backToBill: "Back to bill",
     yourShare: "Your share",
     selectSome: "Select at least one item",
+    taxBase: "Taxable base",
+    service: "Service (10%)",
+    iva: "VAT (16%)",
+    igtf: "IGTF (3%)",
+    igtfNote: "Applies when paying in foreign currency",
+    tipNote: "Tip is voluntary and is not taxed",
+    vesEquivalent: "Equivalent in Bs.",
+    bcvRate: "BCV rate",
+    settlementNote: "Settlement happens in bolívares at the rate locked when the bill opened.",
+    breakdown: "Breakdown",
   },
 } as const;
 

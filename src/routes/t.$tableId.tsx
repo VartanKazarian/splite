@@ -48,8 +48,12 @@ function GuestBill() {
     return Number.isFinite(n) && n > 0 ? Math.min(n, billTotal) : 0;
   }, [mode, billTotal, unpaid, picked, people, shares, customAmount]);
 
-  const tip = (base * tipPct) / 100;
-  const total = base + tip;
+  const foreign = payMethod === "card-usd" || payMethod === "apple" || payMethod === "google";
+  const b = useMemo(
+    () => computeBreakdown({ base, tipBps: tipPct * 100, foreignCurrency: foreign }),
+    [base, tipPct, foreign],
+  );
+  const total = Number(b.total) / 100;
 
   if (done) {
     return (

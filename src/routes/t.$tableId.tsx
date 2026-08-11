@@ -4,6 +4,7 @@ import { Check, CreditCard, Smartphone, Apple, ArrowLeft } from "lucide-react";
 import { LangToggle } from "@/components/LangToggle";
 import { useI18n } from "@/lib/i18n";
 import { getTable, restaurant } from "@/lib/mock-data";
+import { computeBreakdown, fmt, fmtVes, BCV_RATE } from "@/lib/fiscal";
 
 export const Route = createFileRoute("/t/$tableId")({
   head: () => ({
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/t/$tableId")({
 
 
 type Mode = "all" | "items" | "even" | "custom";
+type PayMethod = "mobile" | "card-ves" | "card-usd" | "apple" | "google";
 
 function GuestBill() {
   const { tableId } = Route.useParams();
@@ -34,6 +36,7 @@ function GuestBill() {
   const [shares, setShares] = useState(1);
   const [customAmount, setCustomAmount] = useState("10");
   const [tipPct, setTipPct] = useState(10);
+  const [payMethod, setPayMethod] = useState<PayMethod>("mobile");
   const [done, setDone] = useState<null | string>(null);
 
   const unpaid = table.items.filter((i) => !i.paid);

@@ -1,10 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Check, CreditCard, Smartphone, Apple, ArrowLeft } from "lucide-react";
+import { Check, CreditCard, Smartphone, Banknote, ArrowLeftRight, ArrowLeft } from "lucide-react";
 import { LangToggle } from "@/components/LangToggle";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Key } from "@/lib/i18n";
 import { getTable, restaurant } from "@/lib/mock-data";
-import { computeBreakdown, fmt, fmtVes, BCV_RATE } from "@/lib/fiscal";
+import {
+  CURRENCY_SYMBOL,
+  applyRate,
+  computeBreakdown,
+  fmt,
+  fmtVes,
+  parseRate,
+  quoteReference,
+  splitEvenly,
+  type PaymentMethod,
+  type TenderCurrency,
+} from "@/lib/fiscal";
 
 export const Route = createFileRoute("/t/$tableId")({
   head: () => ({
@@ -21,14 +32,21 @@ export const Route = createFileRoute("/t/$tableId")({
   component: GuestBill,
 });
 
-
 type Mode = "all" | "items" | "even" | "custom";
-type PayMethod = "mobile" | "card-ves" | "card-usd" | "apple" | "google";
+type Tender = { method: PaymentMethod; currency: TenderCurrency; labelKey: Key; icon: typeof Smartphone };
+
+const TENDERS: Tender[] = [
+  { method: "PAGO_MOVIL", currency: "VES", labelKey: "methodPAGO_MOVIL", icon: Smartphone },
+  { method: "CARD", currency: "VES", labelKey: "methodCARD", icon: CreditCard },
+  { method: "TRANSFER", currency: "VES", labelKey: "methodTRANSFER", icon: ArrowLeftRight },
+  { method: "CASH", currency: "USD", labelKey: "methodCASH", icon: Banknote },
+];
 
 function GuestBill() {
   const { tableId } = Route.useParams();
   const { t, lang } = useI18n();
   const table = getTable(tableId) ?? getTable("15")!;
+  const bill = table.bill;
 
   const [mode, setMode] = useState<Mode>("all");
   const [picked, setPicked] = useState<string[]>([]);
@@ -36,27 +54,58 @@ function GuestBill() {
   const [shares, setShares] = useState(1);
   const [customAmount, setCustomAmount] = useState("10");
   const [tipPct, setTipPct] = useState(10);
-  const [payMethod, setPayMethod] = useState<PayMethod>("mobile");
-  const [done, setDone] = useState<null | string>(null);
+  const [tenderIdx, setTenderIdx] = useState(0);
+  const [done, setDone] = useState<null | { ves: bigint; key: string }>(null);
 
-  const unpaid = table.items.filter((i) => !i.paid);
-  const paidTotal = table.items.filter((i) => i.paid).reduce((a, i) => a + i.price, 0);
-  const billTotal = unpaid.reduce((a, i) => a + i.price, 0);
+  const sym = CURRENCY_SYMBOL[restaurant.menuCurrency];
+  const scaledRate = bill?.fxRateVesPerUnit ? parseRate(bill.fxRateVesPerUnit) : null;
+  const items = bill?.items ?? [];
+  const unpaid = items.filter((i) => !i.paid);
+  const paidMinor = items.filter((i) => i.paid).reduce((a, i) => a + i.priceMinor, 0n);
+  const dueMinor = unpaid.reduce((a, i) => a + i.priceMinor, 0n);
+  const toVes = (minor: bigint) => (scaledRate ? applyRate(minor, scaledRate) : minor);
+  const dueVes = toVes(dueMinor);
 
-  const base = useMemo(() => {
-    if (mode === "all") return billTotal;
-    if (mode === "items") return unpaid.filter((i) => picked.includes(i.id)).reduce((a, i) => a + i.price, 0);
-    if (mode === "even") return (billTotal / people) * shares;
+  const tender = TENDERS[tenderIdx]!;
+
+  /** La base se calcula en céntimos VES: la liquidación es siempre en bolívares. */
+  const baseVes = useMemo(() => {
+    if (mode === "all") return dueVes;
+    if (mode === "items")
+      return toVes(unpaid.filter((i) => picked.includes(i.id)).reduce((a, i) => a + i.priceMinor, 0n));
+    if (mode === "even") {
+      const parts = splitEvenly(dueVes, people);
+      return parts.slice(0, shares).reduce((a, b) => a + b, 0n);
+    }
     const n = Number(customAmount.replace(",", "."));
-    return Number.isFinite(n) && n > 0 ? Math.min(n, billTotal) : 0;
-  }, [mode, billTotal, unpaid, picked, people, shares, customAmount]);
+    if (!Number.isFinite(n) || n <= 0) return 0n;
+    const asked = toVes(BigInt(Math.round(n * 100)));
+    return asked > dueVes ? dueVes : asked;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, dueVes, picked, people, shares, customAmount]);
 
-  const foreign = payMethod === "card-usd" || payMethod === "apple" || payMethod === "google";
   const b = useMemo(
-    () => computeBreakdown({ base, tipBps: tipPct * 100, foreignCurrency: foreign }),
-    [base, tipPct, foreign],
+    () => computeBreakdown({ baseVes, tipBps: tipPct * 100, tenderCurrency: tender.currency }),
+    [baseVes, tipPct, tender.currency],
   );
-  const total = Number(b.total) / 100;
+
+  const totalRef = quoteReference(b.total, scaledRate);
+
+  if (!bill || bill.status !== "OPEN") {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-5 text-center">
+        <div className="surface max-w-sm p-9">
+          <h1 className="text-3xl">
+            {t("table")} {table.number}
+          </h1>
+          <p className="mt-3 text-sm text-muted-foreground">{t("free")} — {t("oneOpenBill")}.</p>
+          <Link to="/" className="mt-6 inline-block rounded-full border border-border px-5 py-3 text-sm">
+            {t("brand")}
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (done) {
     return (
@@ -67,8 +116,14 @@ function GuestBill() {
           </div>
           <h1 className="mt-5 text-4xl">{t("thanks")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{t("thanksSub")}</p>
-          <p className="mt-6 font-display text-4xl">${done}</p>
-          <p className="mt-2 text-xs text-muted-foreground">{t("receipt")}</p>
+          <p className="mt-6 font-display text-4xl">Bs. {fmtVes(done.ves)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("payStatusSUCCEEDED")} · {t("payerGUEST")}
+          </p>
+          <p className="mt-4 break-all text-[11px] text-muted-foreground">
+            {t("idemKey")}: {done.key}
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{t("idemNote")}</p>
           <button
             onClick={() => setDone(null)}
             className="mt-7 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
@@ -88,7 +143,7 @@ function GuestBill() {
   ];
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-md px-5 pb-40">
+    <div className="mx-auto min-h-screen w-full max-w-md px-5 pb-52">
       <header className="flex items-center justify-between py-5">
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> {t("brand")}
@@ -101,9 +156,13 @@ function GuestBill() {
         <h1 className="mt-1 text-3xl">
           {t("table")} {table.number} · {t("yourBill")}
         </h1>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("quotedIn")} {restaurant.menuCurrency} · {t("frozenRate")}: {bill.fxRateVesPerUnit} Bs./
+          {restaurant.menuCurrency} ({t("valueDate")} {bill.fxValueDate})
+        </p>
 
         <ul className="mt-5 space-y-3 border-t border-border pt-4 text-sm">
-          {table.items.map((item) => {
+          {items.map((item) => {
             const selectable = mode === "items" && !item.paid;
             const isPicked = picked.includes(item.id);
             return (
@@ -115,9 +174,7 @@ function GuestBill() {
                   }
                   className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
                     selectable ? "hover:bg-secondary" : ""
-                  } ${isPicked && selectable ? "bg-primary/15" : ""} ${
-                    item.paid ? "opacity-45" : ""
-                  }`}
+                  } ${isPicked && selectable ? "bg-primary/15" : ""} ${item.paid ? "opacity-45" : ""}`}
                 >
                   <span className="flex items-center gap-2">
                     {selectable && (
@@ -131,7 +188,13 @@ function GuestBill() {
                     )}
                     <span className={item.paid ? "line-through" : ""}>{item.name[lang]}</span>
                   </span>
-                  <span>${item.price.toFixed(2)}</span>
+                  <span className="text-right">
+                    Bs. {fmtVes(toVes(item.priceMinor))}
+                    <span className="block text-[10px] text-muted-foreground">
+                      {sym}
+                      {fmt(item.priceMinor)}
+                    </span>
+                  </span>
                 </button>
               </li>
             );
@@ -139,15 +202,15 @@ function GuestBill() {
         </ul>
 
         <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
-          {paidTotal > 0 && (
+          {paidMinor > 0n && (
             <div className="flex justify-between">
               <span>{t("alreadyPaid")}</span>
-              <span className="text-success">${paidTotal.toFixed(2)}</span>
+              <span className="text-success">Bs. {fmtVes(toVes(paidMinor))}</span>
             </div>
           )}
           <div className="flex justify-between">
             <span>{t("remaining")}</span>
-            <span className="text-foreground">${billTotal.toFixed(2)}</span>
+            <span className="text-foreground">Bs. {fmtVes(dueVes)}</span>
           </div>
         </div>
       </div>
@@ -173,22 +236,28 @@ function GuestBill() {
           <div className="mt-5 space-y-3 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">{t("people")}</span>
-              <Stepper value={people} min={2} max={12} onChange={(v) => {
-                setPeople(v);
-                if (shares > v) setShares(v);
-              }} />
+              <Stepper
+                value={people}
+                min={2}
+                max={12}
+                onChange={(v) => {
+                  setPeople(v);
+                  if (shares > v) setShares(v);
+                }}
+              />
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">{t("yourShare")}</span>
               <Stepper value={shares} min={1} max={people} onChange={setShares} />
             </div>
+            <p className="text-[11px] text-muted-foreground">{t("largestRemainder")}.</p>
           </div>
         )}
 
         {mode === "custom" && (
           <div className="mt-5">
             <div className="flex items-center gap-2 rounded-lg border border-input bg-secondary px-4 py-3">
-              <span className="text-muted-foreground">$</span>
+              <span className="text-muted-foreground">{sym}</span>
               <input
                 inputMode="decimal"
                 value={customAmount}
@@ -223,43 +292,27 @@ function GuestBill() {
         </div>
 
         <div className="mt-6 space-y-1 border-t border-border pt-4 text-sm">
-          <p className="pb-1 text-xs uppercase tracking-widest text-muted-foreground">
-            {t("breakdown")}
-          </p>
-          <div className="flex justify-between text-muted-foreground">
-            <span>{t("taxBase")}</span>
-            <span>${fmt(b.base)}</span>
-          </div>
-          <div className="flex justify-between text-muted-foreground">
-            <span>{t("service")}</span>
-            <span>${fmt(b.service)}</span>
-          </div>
-          <div className="flex justify-between text-muted-foreground">
-            <span>{t("iva")}</span>
-            <span>${fmt(b.iva)}</span>
-          </div>
-          {b.igtf > 0n && (
-            <div className="flex justify-between text-muted-foreground">
-              <span>{t("igtf")}</span>
-              <span>${fmt(b.igtf)}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-muted-foreground">
-            <span>{t("tip")}</span>
-            <span>${fmt(b.tip)}</span>
-          </div>
+          <p className="pb-1 text-xs uppercase tracking-widest text-muted-foreground">{t("breakdown")}</p>
+          <Row label={t("taxBase")} value={fmtVes(b.base)} />
+          <Row label={t("service")} value={fmtVes(b.service)} />
+          <Row label={t("iva")} value={fmtVes(b.iva)} />
+          {b.igtf > 0n && <Row label={t("igtf")} value={fmtVes(b.igtf)} />}
+          <Row label={t("tip")} value={fmtVes(b.tip)} />
           <div className="flex items-baseline justify-between pt-2">
             <span>{t("total")}</span>
-            <span className="font-display text-3xl">${fmt(b.total)}</span>
+            <span className="font-display text-3xl">Bs. {fmtVes(b.total)}</span>
           </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>
-              {t("vesEquivalent")} · {t("bcvRate")} {BCV_RATE.toFixed(2)}
-            </span>
-            <span>Bs. {fmtVes(b.totalVes)}</span>
-          </div>
+          {totalRef && (
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{t("reference")}</span>
+              <span>
+                {sym}
+                {totalRef}
+              </span>
+            </div>
+          )}
           <p className="pt-2 text-[11px] leading-relaxed text-muted-foreground">
-            {t("settlementNote")} {t("tipNote")}.
+            {t("settlementVes")}. {t("settlementNote")} {t("tipNote")}.
           </p>
         </div>
       </div>
@@ -268,36 +321,51 @@ function GuestBill() {
         <div className="mx-auto w-full max-w-md px-5 py-4">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">{t("payWith")}</p>
           <div className="mt-2 grid grid-cols-4 gap-2">
-            {([
-              { id: "mobile", icon: Smartphone, label: t("mobile") },
-              { id: "card-ves", icon: CreditCard, label: `${t("card")} Bs.` },
-              { id: "apple", icon: Apple, label: "Apple Pay" },
-              { id: "google", icon: CreditCard, label: "Google Pay" },
-            ] as { id: PayMethod; icon: typeof Smartphone; label: string }[]).map((m) => (
+            {TENDERS.map((m, i) => (
               <button
-                key={m.id}
-                onClick={() => setPayMethod(m.id)}
+                key={m.method}
+                onClick={() => setTenderIdx(i)}
                 className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 text-[10px] transition-colors ${
-                  payMethod === m.id
+                  tenderIdx === i
                     ? "border-primary bg-primary/15 text-foreground"
                     : "border-border text-muted-foreground hover:bg-secondary"
                 }`}
               >
                 <m.icon className="h-4 w-4" />
-                <span className="truncate">{m.label}</span>
+                <span className="truncate">{t(m.labelKey)}</span>
+                <span className="text-[9px] opacity-70">{m.currency}</span>
               </button>
             ))}
           </div>
-          {foreign && <p className="mt-2 text-[11px] text-muted-foreground">{t("igtfNote")}</p>}
+          {tender.currency !== "VES" && (
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              {t("igtfNote")} · {t("tender")}: {CURRENCY_SYMBOL[tender.currency]}
+              {quoteReference(b.total, scaledRate)} @ {bill.fxRateVesPerUnit}
+            </p>
+          )}
           <button
-            disabled={total <= 0}
-            onClick={() => setDone(total.toFixed(2))}
+            disabled={b.total <= 0n}
+            onClick={() =>
+              setDone({
+                ves: b.total,
+                key: `${bill.id}-${Math.random().toString(36).slice(2, 10)}`,
+              })
+            }
             className="mt-3 w-full rounded-full bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
           >
-            {t("payNow")} ${total.toFixed(2)}
+            {t("payNow")} Bs. {fmtVes(b.total)}
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between text-muted-foreground">
+      <span>{label}</span>
+      <span>Bs. {value}</span>
     </div>
   );
 }

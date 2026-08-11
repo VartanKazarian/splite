@@ -4,6 +4,7 @@ import { Check, CreditCard, Smartphone, Apple, ArrowLeft } from "lucide-react";
 import { LangToggle } from "@/components/LangToggle";
 import { useI18n } from "@/lib/i18n";
 import { getTable, restaurant } from "@/lib/mock-data";
+import { computeBreakdown, fmt, fmtVes, BCV_RATE } from "@/lib/fiscal";
 
 export const Route = createFileRoute("/t/$tableId")({
   head: () => ({
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/t/$tableId")({
 
 
 type Mode = "all" | "items" | "even" | "custom";
+type PayMethod = "mobile" | "card-ves" | "card-usd" | "apple" | "google";
 
 function GuestBill() {
   const { tableId } = Route.useParams();
@@ -34,6 +36,7 @@ function GuestBill() {
   const [shares, setShares] = useState(1);
   const [customAmount, setCustomAmount] = useState("10");
   const [tipPct, setTipPct] = useState(10);
+  const [payMethod, setPayMethod] = useState<PayMethod>("mobile");
   const [done, setDone] = useState<null | string>(null);
 
   const unpaid = table.items.filter((i) => !i.paid);
@@ -48,8 +51,12 @@ function GuestBill() {
     return Number.isFinite(n) && n > 0 ? Math.min(n, billTotal) : 0;
   }, [mode, billTotal, unpaid, picked, people, shares, customAmount]);
 
-  const tip = (base * tipPct) / 100;
-  const total = base + tip;
+  const foreign = payMethod === "card-usd" || payMethod === "apple" || payMethod === "google";
+  const b = useMemo(
+    () => computeBreakdown({ base, tipBps: tipPct * 100, foreignCurrency: foreign }),
+    [base, tipPct, foreign],
+  );
+  const total = Number(b.total) / 100;
 
   if (done) {
     return (
@@ -216,18 +223,44 @@ function GuestBill() {
         </div>
 
         <div className="mt-6 space-y-1 border-t border-border pt-4 text-sm">
+          <p className="pb-1 text-xs uppercase tracking-widest text-muted-foreground">
+            {t("breakdown")}
+          </p>
           <div className="flex justify-between text-muted-foreground">
-            <span>{t("subtotal")}</span>
-            <span>${base.toFixed(2)}</span>
+            <span>{t("taxBase")}</span>
+            <span>${fmt(b.base)}</span>
           </div>
           <div className="flex justify-between text-muted-foreground">
+            <span>{t("service")}</span>
+            <span>${fmt(b.service)}</span>
+          </div>
+          <div className="flex justify-between text-muted-foreground">
+            <span>{t("iva")}</span>
+            <span>${fmt(b.iva)}</span>
+          </div>
+          {b.igtf > 0n && (
+            <div className="flex justify-between text-muted-foreground">
+              <span>{t("igtf")}</span>
+              <span>${fmt(b.igtf)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-muted-foreground">
             <span>{t("tip")}</span>
-            <span>${tip.toFixed(2)}</span>
+            <span>${fmt(b.tip)}</span>
           </div>
           <div className="flex items-baseline justify-between pt-2">
             <span>{t("total")}</span>
-            <span className="font-display text-3xl">${total.toFixed(2)}</span>
+            <span className="font-display text-3xl">${fmt(b.total)}</span>
           </div>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>
+              {t("vesEquivalent")} · {t("bcvRate")} {BCV_RATE.toFixed(2)}
+            </span>
+            <span>Bs. {fmtVes(b.totalVes)}</span>
+          </div>
+          <p className="pt-2 text-[11px] leading-relaxed text-muted-foreground">
+            {t("settlementNote")} {t("tipNote")}.
+          </p>
         </div>
       </div>
 
@@ -235,21 +268,27 @@ function GuestBill() {
         <div className="mx-auto w-full max-w-md px-5 py-4">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">{t("payWith")}</p>
           <div className="mt-2 grid grid-cols-4 gap-2">
-            {[
-              { icon: Smartphone, label: t("mobile") },
-              { icon: CreditCard, label: t("card") },
-              { icon: Apple, label: "Apple Pay" },
-              { icon: CreditCard, label: "Google Pay" },
-            ].map((m) => (
-              <div
-                key={m.label}
-                className="flex flex-col items-center gap-1 rounded-lg border border-border px-1 py-2 text-[10px] text-muted-foreground"
+            {([
+              { id: "mobile", icon: Smartphone, label: t("mobile") },
+              { id: "card-ves", icon: CreditCard, label: `${t("card")} Bs.` },
+              { id: "apple", icon: Apple, label: "Apple Pay" },
+              { id: "google", icon: CreditCard, label: "Google Pay" },
+            ] as { id: PayMethod; icon: typeof Smartphone; label: string }[]).map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setPayMethod(m.id)}
+                className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 text-[10px] transition-colors ${
+                  payMethod === m.id
+                    ? "border-primary bg-primary/15 text-foreground"
+                    : "border-border text-muted-foreground hover:bg-secondary"
+                }`}
               >
                 <m.icon className="h-4 w-4" />
                 <span className="truncate">{m.label}</span>
-              </div>
+              </button>
             ))}
           </div>
+          {foreign && <p className="mt-2 text-[11px] text-muted-foreground">{t("igtfNote")}</p>}
           <button
             disabled={total <= 0}
             onClick={() => setDone(total.toFixed(2))}

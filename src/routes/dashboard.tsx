@@ -400,17 +400,37 @@ function Dashboard() {
                       <div className="mt-2 flex flex-wrap gap-2">
                         {(productsQuery.data ?? [])
                           .filter((p) => p.active)
-                          .map((p) => (
-                            <button
-                              key={p.id}
-                              disabled={addLine.isPending}
-                              onClick={() => addLine.mutate(p.id)}
-                              className="rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:border-primary disabled:opacity-40"
-                            >
-                              + {p.name} · {p.currency} {formatMinor(p.priceMinorUnits)}
-                            </button>
-                          ))}
+                          .map((p) => {
+                            // El backend rechaza mezclar monedas: MENU_CURRENCY_MISMATCH.
+                            const mismatch = p.currency !== bill.currency;
+                            return (
+                              <button
+                                key={p.id}
+                                disabled={addLine.isPending || mismatch}
+                                title={
+                                  mismatch
+                                    ? `${t("currencyMismatch")} (${p.currency} → ${bill.currency})`
+                                    : undefined
+                                }
+                                onClick={() => addLine.mutate(p.id)}
+                                className="rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:border-primary disabled:opacity-40"
+                              >
+                                + {p.name} · {p.currency} {formatMinor(p.priceMinorUnits)}
+                              </button>
+                            );
+                          })}
                       </div>
+                      {(productsQuery.data ?? []).some(
+                        (p) => p.active && p.currency !== bill.currency,
+                      ) && (
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          {t("currencyMismatchHint")}{" "}
+                          <Link to="/menu" className="underline">
+                            {t("manageMenu")}
+                          </Link>
+                        </p>
+                      )}
+
                     </div>
 
 

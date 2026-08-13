@@ -23,6 +23,23 @@ export function formatMinor(minor: string): string {
   return `${negative ? "-" : ""}${grouped},${cents}`;
 }
 
+/**
+ * "1.250,50" -> "125050". Sólo manipulación de strings: nada de parseFloat ni
+ * multiplicar por 100 en coma flotante (un float aquí desvía cada precio).
+ */
+export function parseMinorInput(input: string): string {
+  const cleaned = input.trim().replace(/[^\d.,]/g, "");
+  if (!cleaned) return "";
+  // El último separador con 1-2 dígitos detrás es el decimal; el resto son miles.
+  const match = cleaned.match(/^(.*?)([.,](\d{1,2}))?$/);
+  const decimals = match?.[3] ?? "";
+  const wholeRaw = (match?.[3] !== undefined ? (match?.[1] ?? "") : cleaned).replace(/\D/g, "");
+  const whole = wholeRaw.replace(/^0+(?=\d)/, "");
+  const cents = decimals.padEnd(2, "0");
+  const digits = `${whole || "0"}${cents}`.replace(/^0+(?=\d)/, "");
+  return digits === "" ? "0" : digits;
+}
+
 export type ApiErrorBody = {
   code: string;
   message: string;

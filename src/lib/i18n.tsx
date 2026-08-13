@@ -184,6 +184,26 @@ const dict = {
     deleteTable: "Eliminar mesa",
     deleteTableConfirm: "La mesa se desactivará y dejará de aparecer en el panel. ¿Continuar?",
     tableDeleted: "Mesa eliminada",
+    settings: "Configuración",
+    settingsTitle: "Configuración",
+    settingsSub: "Moneda del menú, IVA y servicio.",
+    charges: "Tarifas",
+    vatLabel: "IVA (%)",
+    serviceLabel: "Servicio (propina sugerida)",
+    ratesHint:
+      "El IVA se aplica al subtotal, y el servicio también se aplica al subtotal y no lleva impuesto. Un subtotal de 10.000 al 16/10 da IVA 1.600 + Servicio 1.000 = 12.600.",
+    saveRates: "Guardar tarifas",
+    ratesSaved: "Guardado",
+    openBillsUnaffected:
+      "Guardado. {n} cuenta(s) abierta(s) mantienen las tarifas anteriores. Ciérralas para aplicar las nuevas.",
+    ratesRange: "Escribe un porcentaje entre 0 y 100",
+    currencyBlocked:
+      "{n} producto(s) activo(s) tienen precio en otra moneda. Desactívalos o elimínalos para cambiar.",
+    deactivateOthers: "Desactivarlos",
+    deleteOthersPermanently: "Eliminar definitivamente",
+    permanentDeleteConfirm:
+      "Los productos se eliminarán definitivamente. Las cuentas que los usaron conservan su nombre y precio. ¿Continuar?",
+    productsUpdated: "Productos actualizados",
 
   },
 

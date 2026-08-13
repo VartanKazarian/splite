@@ -26,15 +26,20 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const clean = () => {
+        if (!qr || typeof window === "undefined") return;
+        // El token no debe quedar en la barra de direcciones ni en capturas.
+        const url = new URL(window.location.href);
+        url.searchParams.delete("qr");
+        window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+      };
       try {
         if (qr && !guestSession.get()) await guest.openSession(qr);
-        if (qr && typeof window !== "undefined") {
-          // El token no debe quedar en la barra de direcciones ni en capturas.
-          const url = new URL(window.location.href);
-          url.searchParams.delete("qr");
-          window.history.replaceState({}, "", url.pathname + url.search + url.hash);
-        }
+        clean();
         if (!cancelled) setSessionReady(Boolean(guestSession.get()));
+      } catch (error) {
+        clean();
+
       } catch (error) {
         if (!cancelled) setSessionError(error);
       }

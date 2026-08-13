@@ -176,6 +176,14 @@ const dict = {
     nameTaken: "Ya existe un producto con ese nombre",
     menuForbidden: "Sólo OWNER y MANAGER pueden editar el menú",
     tableFree: "Mesa libre",
+    closeBill: "Cerrar cuenta",
+    closeBillConfirm: "Se anulará la cuenta abierta de esta mesa y quedará libre. ¿Continuar?",
+    billClosed: "Cuenta cerrada",
+    renameTable: "Renombrar mesa",
+    tableRenamed: "Mesa renombrada",
+    deleteTable: "Eliminar mesa",
+    deleteTableConfirm: "La mesa se desactivará y dejará de aparecer en el panel. ¿Continuar?",
+    tableDeleted: "Mesa eliminada",
 
   },
 
@@ -352,6 +360,14 @@ const dict = {
     nameTaken: "A product with that name already exists",
     menuForbidden: "Only OWNER and MANAGER can edit the menu",
     tableFree: "Table free",
+    closeBill: "Close bill",
+    closeBillConfirm: "The open bill for this table will be voided and the table freed. Continue?",
+    billClosed: "Bill closed",
+    renameTable: "Rename table",
+    tableRenamed: "Table renamed",
+    deleteTable: "Delete table",
+    deleteTableConfirm: "The table will be deactivated and hidden from the panel. Continue?",
+    tableDeleted: "Table deleted",
 
   },
 

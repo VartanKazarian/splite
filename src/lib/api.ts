@@ -334,6 +334,8 @@ export type Bill = {
   totalDueVes: Money;
   amountPaidVes: Money;
   remainingVes: Money;
+  /** El backend lo llama fxRateVesPerUnit; se acepta el alias corto por compatibilidad. */
+  fxRateVesPerUnit?: string | null;
   fxRate?: string | null;
   fxValueDate?: string | null;
   usdReference?: string | null;

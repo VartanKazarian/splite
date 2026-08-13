@@ -355,9 +355,16 @@ export type Product = {
 
 export type MenuSettings = { id: string; name: string; menuCurrency: MenuCurrency };
 
+export type FloorTable = Table & { openBill: Bill | null };
+
 export const tables = {
   list: () =>
     apiRequest<{ data: Table[] }>("/api/v1/tables?limit=100", { auth: "staff" }).then((r) => r.data),
+  /** Un solo GET con todas las mesas: openBill = null significa mesa libre, no error. */
+  floor: () =>
+    apiRequest<{ data: FloorTable[] } | FloorTable[]>("/api/v1/tables/floor", {
+      auth: "staff",
+    }).then((r) => (Array.isArray(r) ? r : r.data)),
   create: (name: string) =>
     apiRequest<Table>("/api/v1/tables", { method: "POST", auth: "staff", body: { name } }),
   update: (tableId: string, body: { name?: string; active?: boolean }) =>

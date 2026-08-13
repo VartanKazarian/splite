@@ -255,8 +255,10 @@ const dict = {
     people: "People",
     tip: "Tip",
     subtotal: "Subtotal",
-    total: "Total to pay",
+    total: "Total",
+    totalPayable: "Total payable",
     payNow: "Pay",
+
     payWith: "Pay with",
     card: "Card",
     mobile: "Pago Móvil",

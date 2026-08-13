@@ -62,31 +62,17 @@ function Dashboard() {
     }
   }, [me.error, navigate]);
 
+  // Un solo GET del plano: cada mesa trae su openBill (null = mesa libre).
   const tablesQuery = useQuery({
-    queryKey: ["tables"],
-    queryFn: () => tablesApi.list(),
+    queryKey: ["floor"],
+    queryFn: () => tablesApi.floor(),
     enabled: ready && me.isSuccess,
     retry: false,
+    refetchInterval: 8000,
   });
 
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
   const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
-
-  const billQuery = useQuery({
-    queryKey: ["open-bill", selected?.id],
-    enabled: Boolean(selected),
-    retry: false,
-    refetchInterval: 8000,
-    queryFn: async (): Promise<Bill | null> => {
-      try {
-        return await tablesApi.openBill(selected!.id);
-      } catch (error) {
-        // 404 OPEN_BILL_NOT_FOUND es el estado normal entre servicios.
-        if (error instanceof ApiError && error.status === 404) return null;
-        throw error;
-      }
-    },
-  });
 
   const qrQuery = useQuery({
     queryKey: ["qr", selected?.id],
@@ -95,7 +81,13 @@ function Dashboard() {
     queryFn: () => tablesApi.qrToken(selected!.id),
   });
 
-  const rateQuery = useQuery({ queryKey: ["fx"], queryFn: exchangeRate, retry: false });
+  // La tasa sólo tras cargar el token: antes de auth devolvía 401.
+  const rateQuery = useQuery({
+    queryKey: ["fx"],
+    queryFn: exchangeRate,
+    enabled: ready && me.isSuccess,
+    retry: false,
+  });
 
   const [amount, setAmount] = useState("");
   const [idemKey, setIdemKey] = useState(newIdempotencyKey());

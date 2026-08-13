@@ -184,6 +184,26 @@ const dict = {
     deleteTable: "Eliminar mesa",
     deleteTableConfirm: "La mesa se desactivará y dejará de aparecer en el panel. ¿Continuar?",
     tableDeleted: "Mesa eliminada",
+    settings: "Configuración",
+    settingsTitle: "Configuración",
+    settingsSub: "Moneda del menú, IVA y servicio.",
+    charges: "Tarifas",
+    vatLabel: "IVA (%)",
+    serviceLabel: "Servicio (propina sugerida)",
+    ratesHint:
+      "El IVA se aplica al subtotal, y el servicio también se aplica al subtotal y no lleva impuesto. Un subtotal de 10.000 al 16/10 da IVA 1.600 + Servicio 1.000 = 12.600.",
+    saveRates: "Guardar tarifas",
+    ratesSaved: "Guardado",
+    openBillsUnaffected:
+      "Guardado. {n} cuenta(s) abierta(s) mantienen las tarifas anteriores. Ciérralas para aplicar las nuevas.",
+    ratesRange: "Escribe un porcentaje entre 0 y 100",
+    currencyBlocked:
+      "{n} producto(s) activo(s) tienen precio en otra moneda. Desactívalos o elimínalos para cambiar.",
+    deactivateOthers: "Desactivarlos",
+    deleteOthersPermanently: "Eliminar definitivamente",
+    permanentDeleteConfirm:
+      "Los productos se eliminarán definitivamente. Las cuentas que los usaron conservan su nombre y precio. ¿Continuar?",
+    productsUpdated: "Productos actualizados",
 
   },
 
@@ -368,6 +388,26 @@ const dict = {
     deleteTable: "Delete table",
     deleteTableConfirm: "The table will be deactivated and hidden from the panel. Continue?",
     tableDeleted: "Table deleted",
+    settings: "Settings",
+    settingsTitle: "Settings",
+    settingsSub: "Menu currency, VAT and service charge.",
+    charges: "Charge rates",
+    vatLabel: "VAT (%)",
+    serviceLabel: "Service (suggested tip)",
+    ratesHint:
+      "VAT applies to the subtotal, and the service charge applies to the subtotal too and is not taxed. A 10.000 subtotal at 16/10 gives VAT 1.600 + Service 1.000 = 12.600.",
+    saveRates: "Save rates",
+    ratesSaved: "Saved",
+    openBillsUnaffected:
+      "Saved. {n} open bill(s) keep the previous rates. Close them to apply the new ones.",
+    ratesRange: "Enter a percentage between 0 and 100",
+    currencyBlocked:
+      "{n} active product(s) are priced in another currency. Deactivate or delete them to switch.",
+    deactivateOthers: "Deactivate them",
+    deleteOthersPermanently: "Delete permanently",
+    permanentDeleteConfirm:
+      "The products will be deleted permanently. Bills that used them keep their own name and price. Continue?",
+    productsUpdated: "Products updated",
 
   },
 

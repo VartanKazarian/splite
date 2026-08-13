@@ -13,7 +13,6 @@ import {
   menu,
   parseMinorInput,
   staffSession,
-  type MenuCurrency,
   type Product,
 } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
@@ -32,8 +31,6 @@ export const Route = createFileRoute("/menu")({
   }),
   component: MenuPage,
 });
-
-const CURRENCIES: MenuCurrency[] = ["VES", "USD", "EUR"];
 
 type FieldErrors = Record<string, string>;
 
@@ -131,12 +128,6 @@ function MenuPage() {
     onError: fail,
   });
 
-  const setCurrency = useMutation({
-    mutationFn: (c: MenuCurrency) => menu.setCurrency(c),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["menu-settings"] }),
-    onError: fail,
-  });
-
   if (!ready) return null;
 
   const forbidden = [settings.error, products.error].some(
@@ -167,21 +158,12 @@ function MenuPage() {
             <section className="surface mt-6 p-6">
               <h2 className="text-xl">{t("menuCurrency")}</h2>
               {settings.isError && <ErrorBox error={settings.error} fallback={t("apiDown")} />}
-              <div className="mt-3 flex gap-2">
-                {CURRENCIES.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setCurrency.mutate(c)}
-                    className={`rounded-full border px-4 py-2 text-sm transition-colors ${
-                      settings.data?.menuCurrency === c
-                        ? "border-primary bg-primary/15 text-primary"
-                        : "border-border hover:bg-secondary"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {settings.data?.menuCurrency ?? "—"} ·{" "}
+                <Link to="/settings" className="underline">
+                  {t("settings")}
+                </Link>
+              </p>
             </section>
 
             <section className="surface mt-6 p-6">

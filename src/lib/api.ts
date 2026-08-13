@@ -40,6 +40,27 @@ export function parseMinorInput(input: string): string {
   return digits === "" ? "0" : digits;
 }
 
+/**
+ * Porcentaje escrito por el usuario → basis points (entero 0..10000).
+ * Aritmética sobre dígitos, nunca coma flotante: "12,5" → "12" + "50" = 1250.
+ */
+export function parseBpsInput(input: string): number {
+  const cleaned = input.trim().replace(/[^\d.,]/g, "");
+  if (!cleaned) return NaN;
+  const [wholeRaw = "", fracRaw = ""] = cleaned.split(/[.,]/);
+  const whole = wholeRaw.replace(/\D/g, "") || "0";
+  const frac = fracRaw.replace(/\D/g, "").slice(0, 2).padEnd(2, "0");
+  return Number(`${whole}${frac}`.replace(/^0+(?=\d)/, ""));
+}
+
+/** 1600 → "16%", 1250 → "12,5%" */
+export function formatBps(bps: number): string {
+  const whole = Math.trunc(bps / 100);
+  const frac = String(Math.abs(bps) % 100).padStart(2, "0").replace(/0+$/, "");
+  return `${whole}${frac ? `,${frac}` : ""}%`;
+}
+
+
 export type ApiErrorBody = {
   code: string;
   message: string;
@@ -389,7 +410,15 @@ export type Product = {
   updatedAt?: string;
 };
 
-export type MenuSettings = { id: string; name: string; menuCurrency: MenuCurrency };
+export type MenuSettings = {
+  id: string;
+  name: string;
+  menuCurrency: MenuCurrency;
+  vatBps: number;
+  serviceChargeBps: number;
+  /** Sólo lo devuelve PATCH /charges: cuentas abiertas que conservan las tarifas viejas. */
+  openBillsUnaffected?: number;
+};
 
 export type FloorTable = Table & { openBill: Bill | null };
 
@@ -458,6 +487,13 @@ export const menu = {
       auth: "staff",
       body: { currency },
     }),
+  /** Tarifas en basis points (0..10000). Se envía al menos una. */
+  setCharges: (body: { vatBps?: number; serviceChargeBps?: number }) =>
+    apiRequest<MenuSettings>("/api/v1/menu/settings/charges", {
+      method: "PATCH",
+      auth: "staff",
+      body,
+    }),
   products: () => listAll<Product>("/api/v1/menu/products"),
 
   createProduct: (body: { name: string; priceMinorUnits: Money; description?: string | null }) =>
@@ -466,8 +502,12 @@ export const menu = {
     id: string,
     body: { name?: string; priceMinorUnits?: Money; description?: string | null; active?: boolean },
   ) => apiRequest<Product>(`/api/v1/menu/products/${id}`, { method: "PATCH", auth: "staff", body }),
-  deleteProduct: (id: string) =>
-    apiRequest<void>(`/api/v1/menu/products/${id}`, { method: "DELETE", auth: "staff" }),
+  /** Sin `permanent` sólo desactiva; con `permanent` borra (las cuentas guardan su snapshot). */
+  deleteProduct: (id: string, permanent = false) =>
+    apiRequest<void>(
+      `/api/v1/menu/products/${id}${permanent ? "?permanent=true" : ""}`,
+      { method: "DELETE", auth: "staff" },
+    ),
 };
 
 

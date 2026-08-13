@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MenuRouteImport } from './routes/menu'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TIndexRouteImport } from './routes/t.index'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +36,11 @@ const MenuRoute = MenuRouteImport.update({
   path: '/menu',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TIndexRoute = TIndexRouteImport.update({
   id: '/t/',
   path: '/t/',
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/settings': typeof SettingsRoute
   '/t/': typeof TIndexRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/settings': typeof SettingsRoute
   '/t': typeof TIndexRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,15 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/settings': typeof SettingsRoute
   '/t/': typeof TIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login' | '/menu' | '/t/'
+  fullPaths: '/' | '/dashboard' | '/login' | '/menu' | '/settings' | '/t/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/menu' | '/t'
-  id: '__root__' | '/' | '/dashboard' | '/login' | '/menu' | '/t/'
+  to: '/' | '/dashboard' | '/login' | '/menu' | '/settings' | '/t'
+  id: '__root__' | '/' | '/dashboard' | '/login' | '/menu' | '/settings' | '/t/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +85,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   MenuRoute: typeof MenuRoute
+  SettingsRoute: typeof SettingsRoute
   TIndexRoute: typeof TIndexRoute
 }
 
@@ -109,6 +119,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MenuRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/t/': {
       id: '/t/'
       path: '/t'
@@ -124,6 +141,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   MenuRoute: MenuRoute,
+  SettingsRoute: SettingsRoute,
   TIndexRoute: TIndexRoute,
 }
 export const routeTree = rootRouteImport

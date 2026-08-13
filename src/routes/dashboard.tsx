@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check, LogOut, Pencil, Plus, Trash2, UtensilsCrossed, X } from "lucide-react";
+import { Check, LogOut, Pencil, Plus, Trash2, Settings, UtensilsCrossed, X } from "lucide-react";
 import { toast } from "sonner";
 import { LangToggle } from "@/components/LangToggle";
 import { QrCode } from "@/components/QrCode";
@@ -315,6 +315,12 @@ function Dashboard() {
               className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
             >
               <UtensilsCrossed className="h-4 w-4" /> {t("manageMenu")}
+            </Link>
+            <Link
+              to="/settings"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+            >
+              <Settings className="h-4 w-4" /> {t("settings")}
             </Link>
             <LangToggle />
 

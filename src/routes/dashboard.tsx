@@ -311,7 +311,7 @@ function Dashboard() {
                       {t("itemsOnBill")}
                     </p>
                     <ul className="mt-2 space-y-2 text-sm">
-                      {(bill.items ?? []).map((item) => (
+                      {billItems.map((item) => (
                         <li key={item.id} className="flex items-center justify-between gap-3">
                           <span>
                             {item.quantity} × {item.name}
@@ -330,7 +330,12 @@ function Dashboard() {
                           </span>
                         </li>
                       ))}
-                      {(bill.items ?? []).length === 0 && (
+                      {itemsQuery.isError && (
+                        <li>
+                          <ErrorBox error={itemsQuery.error} fallback={t("apiDown")} />
+                        </li>
+                      )}
+                      {itemsQuery.isSuccess && billItems.length === 0 && (
                         <li className="text-muted-foreground">{t("addLines")}</li>
                       )}
                     </ul>

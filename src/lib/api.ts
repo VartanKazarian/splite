@@ -509,7 +509,10 @@ export const bills = {
     }),
 };
 
-export const exchangeRate = () => apiRequest<ExchangeRate>("/api/v1/exchange-rate");
+/** Requiere sesión de personal: sin Bearer devuelve AUTH_TOKEN_MISSING. */
+export const exchangeRate = () =>
+  apiRequest<ExchangeRate>("/api/v1/exchange-rate", { auth: "staff" });
+
 
 export function newIdempotencyKey(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto

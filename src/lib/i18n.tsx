@@ -124,6 +124,8 @@ const dict = {
     chargeAmount: "Monto a cobrar (Bs.)",
     qrToken: "Token del QR",
     refreshQr: "Rotar QR",
+    currencyMismatch: "La cuenta se liquida en otra moneda",
+    currencyMismatchHint: "Sólo puedes añadir productos en la moneda de la cuenta. Ajusta la moneda del menú o el precio del producto.",
     copyLink: "Copiar enlace",
     linkCopied: "Enlace copiado",
     forbidden: "Tu rol no permite esta acción",

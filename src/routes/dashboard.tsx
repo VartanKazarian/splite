@@ -198,7 +198,14 @@ function Dashboard() {
             )}
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              to="/menu"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+            >
+              <UtensilsCrossed className="h-4 w-4" /> {t("manageMenu")}
+            </Link>
             <LangToggle />
+
             <button
               onClick={async () => {
                 await auth.logout();

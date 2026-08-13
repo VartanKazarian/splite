@@ -297,6 +297,8 @@ const dict = {
     chargeAmount: "Amount to charge (Bs.)",
     qrToken: "QR token",
     refreshQr: "Rotate QR",
+    currencyMismatch: "This bill settles in a different currency",
+    currencyMismatchHint: "You can only add products priced in the bill currency. Change the menu currency or the product price.",
     copyLink: "Copy link",
     linkCopied: "Link copied",
     forbidden: "Your role cannot do this",

@@ -6,13 +6,17 @@ import { LangToggle } from "@/components/LangToggle";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
+  formatFxRate,
   formatMinor,
+  formatMoney,
   guest,
   guestSession,
   type Bill,
+  type MenuCurrency,
   type SplitMode,
   type SplitPreview,
 } from "@/lib/api";
+
 import { ErrorBox } from "@/routes/dashboard";
 
 type Participant = { id: string; name: string };

@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TIndexRouteImport } from './routes/t.index'
+import { Route as TSplatRouteImport } from './routes/t.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const TIndexRoute = TIndexRouteImport.update({
   path: '/t/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TSplatRoute = TSplatRouteImport.update({
+  id: '/t/$',
+  path: '/t/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/settings': typeof SettingsRoute
+  '/t/$': typeof TSplatRoute
   '/t/': typeof TIndexRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/settings': typeof SettingsRoute
+  '/t/$': typeof TSplatRoute
   '/t': typeof TIndexRoute
 }
 export interface FileRoutesById {
@@ -70,14 +78,24 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/settings': typeof SettingsRoute
+  '/t/$': typeof TSplatRoute
   '/t/': typeof TIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login' | '/menu' | '/settings' | '/t/'
+  fullPaths:
+    '/' | '/dashboard' | '/login' | '/menu' | '/settings' | '/t/$' | '/t/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/menu' | '/settings' | '/t'
-  id: '__root__' | '/' | '/dashboard' | '/login' | '/menu' | '/settings' | '/t/'
+  to: '/' | '/dashboard' | '/login' | '/menu' | '/settings' | '/t/$' | '/t'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/menu'
+    | '/settings'
+    | '/t/$'
+    | '/t/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -86,6 +104,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MenuRoute: typeof MenuRoute
   SettingsRoute: typeof SettingsRoute
+  TSplatRoute: typeof TSplatRoute
   TIndexRoute: typeof TIndexRoute
 }
 
@@ -133,6 +152,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/t/$': {
+      id: '/t/$'
+      path: '/t/$'
+      fullPath: '/t/$'
+      preLoaderRoute: typeof TSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -142,6 +168,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MenuRoute: MenuRoute,
   SettingsRoute: SettingsRoute,
+  TSplatRoute: TSplatRoute,
   TIndexRoute: TIndexRoute,
 }
 export const routeTree = rootRouteImport

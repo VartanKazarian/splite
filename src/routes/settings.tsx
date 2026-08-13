@@ -9,7 +9,6 @@ import {
   ApiError,
   errorFieldsText,
   formatBps,
-  formatMinor,
   menu,
   parseBpsInput,
   staffSession,
@@ -72,7 +71,10 @@ function SettingsPage() {
   }, [settings.data]);
 
   const fail = (error: unknown) => {
-    if (!(error instanceof ApiError)) return toast.error(t("apiDown"));
+    if (!(error instanceof ApiError)) {
+      toast.error(t("apiDown"));
+      return;
+    }
     const fields = errorFieldsText(error);
     toast.error(fields ? `${error.code} · ${fields}` : `${error.code} · ${error.message}`);
   };
@@ -92,7 +94,10 @@ function SettingsPage() {
       else toast.success(t("ratesSaved"));
     },
     onError: (error) => {
-      if (error instanceof ApiError) return fail(error);
+      if (error instanceof ApiError) {
+        fail(error);
+        return;
+      }
       toast.error(t("ratesRange"));
     },
   });
@@ -250,11 +255,6 @@ function SettingsPage() {
                 >
                   {t("saveRates")}
                 </button>
-                {settings.data && (
-                  <span className="text-xs text-muted-foreground">
-                    {t("subtotal")} 10.000 → {formatMinor("1600")} + {formatMinor("1000")}
-                  </span>
-                )}
               </div>
             </section>
           </>

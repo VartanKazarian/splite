@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check } from "lucide-react";
@@ -13,32 +13,12 @@ import {
   type SplitMode,
   type SplitPreview,
 } from "@/lib/api";
-import { ErrorBox } from "./dashboard";
-
-type Search = { qr?: string };
-
-export const Route = createFileRoute("/t/$tableId")({
-  validateSearch: (search: Record<string, unknown>): Search =>
-    typeof search['qr'] === "string" ? { qr: search['qr'] } : {},
-  head: () => ({
-    meta: [
-      { title: "Tu cuenta — Mesa" },
-      {
-        name: "description",
-        content: "Ve tu cuenta, divídela con tus acompañantes y descubre cuánto te toca pagar.",
-      },
-      { property: "og:title", content: "Tu cuenta — Mesa" },
-      { property: "og:description", content: "Divide la cuenta desde tu móvil." },
-    ],
-  }),
-  component: GuestBillPage,
-});
+import { ErrorBox } from "@/routes/dashboard";
 
 type Participant = { id: string; name: string };
 
-function GuestBillPage() {
+export function GuestBillScreen({ qr }: { qr?: string }) {
   const { t } = useI18n();
-  const { qr } = Route.useSearch();
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState<unknown>(null);
 
@@ -47,7 +27,13 @@ function GuestBillPage() {
     let cancelled = false;
     (async () => {
       try {
-        if (qr) await guest.openSession(qr);
+        if (qr && !guestSession.get()) await guest.openSession(qr);
+        if (qr && typeof window !== "undefined") {
+          // El token no debe quedar en la barra de direcciones ni en capturas.
+          const url = new URL(window.location.href);
+          url.searchParams.delete("qr");
+          window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+        }
         if (!cancelled) setSessionReady(Boolean(guestSession.get()));
       } catch (error) {
         if (!cancelled) setSessionError(error);
@@ -62,7 +48,8 @@ function GuestBillPage() {
     queryKey: ["guest-bill"],
     enabled: sessionReady,
     retry: false,
-    refetchInterval: 6000,
+    // El personal añade productos mientras la gente está sentada: sondeo cada 5s.
+    refetchInterval: 5000,
     queryFn: async (): Promise<Bill | null> => {
       try {
         return await guest.bill<Bill>();
@@ -72,6 +59,7 @@ function GuestBillPage() {
       }
     },
   });
+
 
   const [mode, setMode] = useState<SplitMode>("FULL");
   const [people, setPeople] = useState<Participant[]>([

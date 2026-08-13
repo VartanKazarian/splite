@@ -325,9 +325,26 @@ export type PaymentResult = {
 
 /* ------------------------------------------------------- endpoints staff */
 
+export type Product = {
+  id: string;
+  name: string;
+  description: string | null;
+  priceMinorUnits: Money;
+  currency: MenuCurrency;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type MenuSettings = { id: string; name: string; menuCurrency: MenuCurrency };
+
 export const tables = {
   list: () =>
     apiRequest<{ data: Table[] }>("/api/v1/tables?limit=100", { auth: "staff" }).then((r) => r.data),
+  create: (name: string) =>
+    apiRequest<Table>("/api/v1/tables", { method: "POST", auth: "staff", body: { name } }),
+  update: (tableId: string, body: { name?: string; active?: boolean }) =>
+    apiRequest<Table>(`/api/v1/tables/${tableId}`, { method: "PATCH", auth: "staff", body }),
   openBill: (tableId: string) =>
     apiRequest<Bill>(`/api/v1/bills/tables/${tableId}/open`, { auth: "staff" }),
   qrToken: (tableId: string) =>
@@ -341,8 +358,61 @@ export const tables = {
     ),
 };
 
+/** Menú del restaurante: la moneda la fija el restaurante, nunca la petición. */
+export const menu = {
+  settings: () => apiRequest<MenuSettings>("/api/v1/menu/settings", { auth: "staff" }),
+  setCurrency: (menuCurrency: MenuCurrency) =>
+    apiRequest<MenuSettings>("/api/v1/menu/settings/currency", {
+      method: "PATCH",
+      auth: "staff",
+      body: { menuCurrency },
+    }),
+  products: () =>
+    apiRequest<{ data: Product[] }>("/api/v1/menu/products?limit=200", { auth: "staff" }).then(
+      (r) => r.data,
+    ),
+  createProduct: (body: { name: string; priceMinorUnits: Money; description?: string | null }) =>
+    apiRequest<Product>("/api/v1/menu/products", { method: "POST", auth: "staff", body }),
+  updateProduct: (
+    id: string,
+    body: { name?: string; priceMinorUnits?: Money; description?: string | null; active?: boolean },
+  ) => apiRequest<Product>(`/api/v1/menu/products/${id}`, { method: "PATCH", auth: "staff", body }),
+  deleteProduct: (id: string) =>
+    apiRequest<void>(`/api/v1/menu/products/${id}`, { method: "DELETE", auth: "staff" }),
+};
+
+
 export const bills = {
   get: (id: string) => apiRequest<Bill>(`/api/v1/bills/${id}`, { auth: "staff" }),
+  /** Abrir con total 0 es lo que permite luego añadir líneas del menú. */
+  open: (tableId: string, totalDueMinorUnits: Money = "0") =>
+    apiRequest<Bill>("/api/v1/bills", {
+      method: "POST",
+      auth: "staff",
+      body: { tableId, totalDueMinorUnits },
+    }),
+  items: (id: string) =>
+    apiRequest<{ data: BillItem[] }>(`/api/v1/bills/${id}/items`, { auth: "staff" }).then(
+      (r) => r.data,
+    ),
+  addItem: (id: string, productId: string, quantity = 1) =>
+    apiRequest<{ item: BillItem; bill: Bill }>(`/api/v1/bills/${id}/items`, {
+      method: "POST",
+      auth: "staff",
+      body: { productId, quantity },
+    }),
+  updateItem: (id: string, itemId: string, quantity: number) =>
+    apiRequest<{ item: BillItem; bill: Bill }>(`/api/v1/bills/${id}/items/${itemId}`, {
+      method: "PATCH",
+      auth: "staff",
+      body: { quantity },
+    }),
+  removeItem: (id: string, itemId: string) =>
+    apiRequest<{ bill: Bill }>(`/api/v1/bills/${id}/items/${itemId}`, {
+      method: "DELETE",
+      auth: "staff",
+    }),
+
   splitPreview: (id: string, body: SplitPreviewRequest) =>
     apiRequest<SplitPreview>(`/api/v1/bills/${id}/split/preview`, {
       method: "POST",

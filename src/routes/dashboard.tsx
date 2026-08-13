@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { LogOut, RefreshCw } from "lucide-react";
+import { LogOut, Plus, RefreshCw, Trash2, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { LangToggle } from "@/components/LangToggle";
 import { QrCode } from "@/components/QrCode";
@@ -12,11 +12,13 @@ import {
   bills,
   exchangeRate,
   formatMinor,
+  menu as menuApi,
   newIdempotencyKey,
   staffSession,
   tables as tablesApi,
   type Bill,
 } from "@/lib/api";
+
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -122,7 +124,59 @@ function Dashboard() {
     },
   });
 
+  const fail = (error: unknown) =>
+    toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
+
+  const [newTableName, setNewTableName] = useState("");
+
+  const createTable = useMutation({
+    mutationFn: () => tablesApi.create(newTableName.trim()),
+    onSuccess: (table) => {
+      setNewTableName("");
+      setSelectedId(table.id);
+      toast.success(t("tableCreated"));
+      queryClient.invalidateQueries({ queryKey: ["tables"] });
+    },
+    onError: fail,
+  });
+
+  // Abrir con total 0 es lo que permite luego itemizar la cuenta con el menú.
+  const openBill = useMutation({
+    mutationFn: () => bills.open(selected!.id, "0"),
+    onSuccess: () => {
+      toast.success(t("billOpened"));
+      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+    },
+    onError: fail,
+  });
+
+  const productsQuery = useQuery({
+    queryKey: ["menu-products"],
+    queryFn: () => menuApi.products(),
+    enabled: ready && me.isSuccess,
+    retry: false,
+  });
+
+  const addLine = useMutation({
+    mutationFn: (productId: string) => bills.addItem(bill!.id, productId, 1),
+    onSuccess: () => {
+      toast.success(t("lineAdded"));
+      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+    },
+    onError: fail,
+  });
+
+  const removeLine = useMutation({
+    mutationFn: (itemId: string) => bills.removeItem(bill!.id, itemId),
+    onSuccess: () => {
+      toast.success(t("lineRemoved"));
+      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+    },
+    onError: fail,
+  });
+
   if (!ready) return null;
+
 
   const guestUrl =
     typeof window !== "undefined" && selected && qrQuery.data
@@ -144,7 +198,14 @@ function Dashboard() {
             )}
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              to="/menu"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+            >
+              <UtensilsCrossed className="h-4 w-4" /> {t("manageMenu")}
+            </Link>
             <LangToggle />
+
             <button
               onClick={async () => {
                 await auth.logout();
@@ -168,9 +229,28 @@ function Dashboard() {
 
         <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
           <div>
-            <h2 className="mb-3 text-xl">{t("tables")}</h2>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl">{t("tables")}</h2>
+              <div className="flex gap-2">
+                <input
+                  value={newTableName}
+                  onChange={(e) => setNewTableName(e.target.value)}
+                  placeholder={t("tableName")}
+                  className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
+                />
+                <button
+                  disabled={!newTableName.trim() || createTable.isPending}
+                  onClick={() => createTable.mutate()}
+                  className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                >
+                  <Plus className="h-4 w-4" /> {t("createTable")}
+                </button>
+              </div>
+            </div>
             {tablesQuery.isLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
             <div className="grid gap-3 sm:grid-cols-2">
+
+
               {tableList.map((tb) => (
                 <button
                   key={tb.id}
@@ -212,25 +292,78 @@ function Dashboard() {
                 )}
                 {billQuery.isError && <ErrorBox error={billQuery.error} fallback={t("apiDown")} />}
                 {billQuery.isSuccess && !bill && (
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    {t("noOpenBill")} · {t("oneOpenBill")}
-                  </p>
+                  <div className="mt-3">
+                    <p className="text-sm text-muted-foreground">
+                      {t("noOpenBill")} · {t("oneOpenBill")}
+                    </p>
+                    <button
+                      disabled={openBill.isPending}
+                      onClick={() => openBill.mutate()}
+                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                    >
+                      <Plus className="h-4 w-4" /> {t("openNewBill")}
+                    </button>
+                  </div>
                 )}
 
                 {bill && (
                   <>
-                    <ul className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
+                    <p className="mt-4 border-t border-border pt-4 text-xs uppercase tracking-widest text-muted-foreground">
+                      {t("itemsOnBill")}
+                    </p>
+                    <ul className="mt-2 space-y-2 text-sm">
                       {(bill.items ?? []).map((item) => (
-                        <li key={item.id} className="flex justify-between gap-3">
+                        <li key={item.id} className="flex items-center justify-between gap-3">
                           <span>
                             {item.quantity} × {item.name}
                           </span>
-                          <span>
-                            {item.currency} {formatMinor(item.subtotalMinor)}
+                          <span className="flex items-center gap-3">
+                            <span>
+                              {item.currency} {formatMinor(item.subtotalMinor)}
+                            </span>
+                            <button
+                              onClick={() => removeLine.mutate(item.id)}
+                              aria-label={t("remove")}
+                              className="rounded-full border border-border p-1.5 text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </span>
                         </li>
                       ))}
+                      {(bill.items ?? []).length === 0 && (
+                        <li className="text-muted-foreground">{t("addLines")}</li>
+                      )}
                     </ul>
+
+                    <div className="mt-4 border-t border-border pt-4">
+                      <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                        {t("addLines")}
+                      </p>
+                      {productsQuery.isSuccess && productsQuery.data.length === 0 && (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {t("menuEmptyHint")}{" "}
+                          <Link to="/menu" className="underline">
+                            {t("manageMenu")}
+                          </Link>
+                        </p>
+                      )}
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {(productsQuery.data ?? [])
+                          .filter((p) => p.active)
+                          .map((p) => (
+                            <button
+                              key={p.id}
+                              disabled={addLine.isPending}
+                              onClick={() => addLine.mutate(p.id)}
+                              className="rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:border-primary disabled:opacity-40"
+                            >
+                              + {p.name} · {p.currency} {formatMinor(p.priceMinorUnits)}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+
 
                     <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
                       <Row label={t("subtotal")} value={formatMinor(bill.subtotalMinor)} />

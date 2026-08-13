@@ -368,6 +368,26 @@ const dict = {
     deleteTable: "Delete table",
     deleteTableConfirm: "The table will be deactivated and hidden from the panel. Continue?",
     tableDeleted: "Table deleted",
+    settings: "Settings",
+    settingsTitle: "Settings",
+    settingsSub: "Menu currency, VAT and service charge.",
+    charges: "Charge rates",
+    vatLabel: "VAT (%)",
+    serviceLabel: "Service (suggested tip)",
+    ratesHint:
+      "VAT applies to the subtotal, and the service charge applies to the subtotal too and is not taxed. A 10.000 subtotal at 16/10 gives VAT 1.600 + Service 1.000 = 12.600.",
+    saveRates: "Save rates",
+    ratesSaved: "Saved",
+    openBillsUnaffected:
+      "Saved. {n} open bill(s) keep the previous rates. Close them to apply the new ones.",
+    ratesRange: "Enter a percentage between 0 and 100",
+    currencyBlocked:
+      "{n} active product(s) are priced in another currency. Deactivate or delete them to switch.",
+    deactivateOthers: "Deactivate them",
+    deleteOthersPermanently: "Delete permanently",
+    permanentDeleteConfirm:
+      "The products will be deleted permanently. Bills that used them keep their own name and price. Continue?",
+    productsUpdated: "Products updated",
 
   },
 

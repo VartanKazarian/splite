@@ -36,15 +36,7 @@ const CURRENCIES: MenuCurrency[] = ["VES", "USD", "EUR"];
 type FieldErrors = Record<string, string>;
 
 function fieldsOf(error: unknown): FieldErrors {
-  if (!(error instanceof ApiError) || error.code !== "VALIDATION_FAILED") return {};
-  const raw = (error.details as { fields?: unknown }).fields;
-  if (!raw || typeof raw !== "object") return {};
-  return Object.fromEntries(
-    Object.entries(raw as Record<string, unknown>).map(([k, v]) => [
-      k,
-      Array.isArray(v) ? String(v[0]) : String(v),
-    ]),
-  );
+  return errorFields(error);
 }
 
 function MenuPage() {

@@ -112,12 +112,21 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
     onError: () => setPreview(null),
   });
 
+  const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : undefined);
+
   if (sessionError || (!sessionReady && !qr)) {
+    const code = codeOf(sessionError);
     return (
       <Shell>
         <h1 className="text-3xl">{t("yourBill")}</h1>
-        <p className="mt-3 text-sm text-muted-foreground">{t("scanNeeded")}</p>
-        {sessionError ? <ErrorBox error={sessionError} fallback={t("apiDown")} /> : null}
+        <p className="mt-3 text-sm text-muted-foreground">
+          {code === "QR_INVALID" || code === "QR_TOKEN_INVALID"
+            ? t("qrInvalid")
+            : code === "GUEST_SESSION_INVALID"
+              ? t("sessionExpired")
+              : t("scanNeeded")}
+        </p>
+        {sessionError && !code ? <ErrorBox error={sessionError} fallback={t("apiDown")} /> : null}
       </Shell>
     );
   }
@@ -131,6 +140,16 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
   }
 
   if (billQuery.isError) {
+    const code = codeOf(billQuery.error);
+    if (code === "GUEST_SESSION_INVALID") {
+      guestSession.set(null);
+      return (
+        <Shell>
+          <h1 className="text-3xl">{t("yourBill")}</h1>
+          <p className="mt-3 text-sm text-muted-foreground">{t("sessionExpired")}</p>
+        </Shell>
+      );
+    }
     return (
       <Shell>
         <h1 className="text-3xl">{t("errorTitle")}</h1>

@@ -39,10 +39,9 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
         if (!cancelled) setSessionReady(Boolean(guestSession.get()));
       } catch (error) {
         clean();
-
-      } catch (error) {
         if (!cancelled) setSessionError(error);
       }
+
     })();
     return () => {
       cancelled = true;

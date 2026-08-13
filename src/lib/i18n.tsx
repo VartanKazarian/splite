@@ -160,6 +160,15 @@ const dict = {
     quantity: "Cant.",
     addLines: "Añadir productos del menú",
     menuEmptyHint: "Primero crea productos en el menú.",
+    productDescription: "Descripción (opcional)",
+    priceInputHint: "Escribe el precio como 1.250,50",
+    edit: "Editar",
+    cancel: "Cancelar",
+    saved: "Cambios guardados",
+    productDeleted: "Producto desactivado",
+    nameTaken: "Ya existe un producto con ese nombre",
+    menuForbidden: "Sólo OWNER y MANAGER pueden editar el menú",
+    tableFree: "Mesa libre",
 
   },
 

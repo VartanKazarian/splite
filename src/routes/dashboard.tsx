@@ -23,13 +23,17 @@ import {
   errorFields,
   errorFieldsText,
   exchangeRate,
+  formatFxRate,
   formatMinor,
+  formatMoney,
   menu as menuApi,
   newIdempotencyKey,
   staffSession,
   tables as tablesApi,
   type Bill,
+  type MenuCurrency,
 } from "@/lib/api";
+
 
 
 export const Route = createFileRoute("/dashboard")({

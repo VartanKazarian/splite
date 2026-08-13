@@ -295,6 +295,8 @@ const dict = {
     chargeAmount: "Amount to charge (Bs.)",
     qrToken: "QR token",
     refreshQr: "Rotate QR",
+    copyLink: "Copy link",
+    linkCopied: "Link copied",
     forbidden: "Your role cannot do this",
     outstanding: "Outstanding",
     allocated: "Total allocated",

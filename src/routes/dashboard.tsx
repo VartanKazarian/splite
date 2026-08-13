@@ -177,8 +177,10 @@ function Dashboard() {
 
   const refreshBill = () => {
     queryClient.invalidateQueries({ queryKey: ["floor"] });
+    queryClient.invalidateQueries({ queryKey: ["bill", bill?.id] });
     queryClient.invalidateQueries({ queryKey: ["bill-items", bill?.id] });
   };
+
 
   const addLine = useMutation({
     mutationFn: (productId: string) => bills.addItem(bill!.id, productId, 1),

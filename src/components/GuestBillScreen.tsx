@@ -34,7 +34,12 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
         window.history.replaceState({}, "", url.pathname + url.search + url.hash);
       };
       try {
-        if (qr && !guestSession.get()) await guest.openSession(qr);
+        // Cualquier móvil, sin login: el token del QR siempre abre sesión nueva
+        // (una sesión vieja en sessionStorage podría ser de otra mesa o estar caducada).
+        if (qr) {
+          guestSession.set(null);
+          await guest.openSession(qr);
+        }
         clean();
         if (!cancelled) setSessionReady(Boolean(guestSession.get()));
       } catch (error) {

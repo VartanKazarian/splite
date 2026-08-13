@@ -255,11 +255,14 @@ function Dashboard() {
                     <span className="font-display text-2xl">{tb.name}</span>
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs ${
-                        tb.active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
+                        tb.openBill
+                          ? "bg-primary/20 text-primary"
+                          : "bg-secondary text-muted-foreground"
                       }`}
                     >
-                      {tb.active ? t("statusOPEN") : t("free")}
+                      {tb.openBill ? t("statusOPEN") : t("tableFree")}
                     </span>
+
                   </div>
                 </button>
               ))}

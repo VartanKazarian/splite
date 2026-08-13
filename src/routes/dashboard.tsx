@@ -23,13 +23,19 @@ import {
   errorFields,
   errorFieldsText,
   exchangeRate,
+  formatBps,
+  formatFxRate,
   formatMinor,
+  formatMoney,
   menu as menuApi,
   newIdempotencyKey,
   staffSession,
   tables as tablesApi,
   type Bill,
+  type MenuCurrency,
 } from "@/lib/api";
+
+
 
 
 export const Route = createFileRoute("/dashboard")({
@@ -516,9 +522,8 @@ function Dashboard() {
                             {item.quantity} × {item.name}
                           </span>
                           <span className="flex items-center gap-3">
-                            <span>
-                              {item.currency} {formatMinor(item.subtotalMinor)}
-                            </span>
+                            <span>{formatMoney(item.subtotalMinor, bill.currency)}</span>
+
                             <button
                               onClick={() => removeLine.mutate(item.id)}
                               aria-label={t("remove")}
@@ -588,32 +593,35 @@ function Dashboard() {
                     </div>
 
 
-                    <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
-                      <Row label={t("subtotal")} value={formatMinor(totals.subtotal)} />
-                      <Row
-                        label={`${t("iva")} ${bill.vatBps / 100}%`}
-                        value={formatMinor(totals.vat)}
+                    <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
+                      <MoneyRow label={t("subtotal")} amount={totals.subtotal} currency={bill.currency} />
+                      <MoneyRow
+                        label={`${t("iva")} ${formatBps(bill.vatBps)}`}
+                        amount={totals.vat}
+                        currency={bill.currency}
                       />
-                      <Row
-                        label={`${t("service")} ${bill.serviceChargeBps / 100}%`}
-                        value={formatMinor(totals.service)}
+                      <MoneyRow
+                        label={`${t("service")} ${formatBps(bill.serviceChargeBps)}`}
+                        amount={totals.service}
+                        currency={bill.currency}
                       />
-                      <Row label={t("total")} value={formatMinor(totals.total)} />
-                      <Row label={t("alreadyPaid")} value={formatMinor(bill.amountPaidVes)} />
+                      <MoneyRow label={t("total")} amount={totals.total} currency={bill.currency} highlight />
+                      <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
 
-                      <div className="flex items-baseline justify-between pt-2">
+                      <div className="flex items-baseline justify-between pt-2 text-foreground">
                         <span>{t("outstanding")}</span>
                         <span className="font-display text-3xl">
-                          Bs. {formatMinor(bill.remainingVes)}
+                          {formatMoney(bill.remainingVes, "VES")}
                         </span>
                       </div>
                       {(bill.fxRateVesPerUnit ?? bill.fxRate) && (
                         <p className="pt-2 text-[11px] text-muted-foreground">
-                          {t("frozenRate")}: {bill.fxRateVesPerUnit ?? bill.fxRate} ·{" "}
+                          {t("frozenRate")}: {formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)} ·{" "}
                           {t("valueDate")} {bill.fxValueDate}
                         </p>
                       )}
                     </div>
+
 
                     <div className="mt-5 border-t border-border pt-4">
                       <label className="text-xs uppercase tracking-widest text-muted-foreground">
@@ -734,14 +742,25 @@ function Dashboard() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function MoneyRow({
+  label,
+  amount,
+  currency,
+  highlight,
+}: {
+  label: string;
+  amount: string;
+  currency: MenuCurrency;
+  highlight?: boolean;
+}) {
   return (
-    <div className="flex justify-between text-muted-foreground">
+    <div className={`flex justify-between ${highlight ? "text-foreground" : ""}`}>
       <span>{label}</span>
-      <span>Bs. {value}</span>
+      <span>{formatMoney(amount, currency)}</span>
     </div>
   );
 }
+
 
 export function ErrorBox({ error, fallback }: { error: unknown; fallback: string }) {
   const api = error instanceof ApiError ? error : null;

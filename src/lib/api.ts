@@ -60,6 +60,28 @@ export function formatBps(bps: number): string {
   return `${whole}${frac ? `,${frac}` : ""}%`;
 }
 
+export function currencySymbol(currency: MenuCurrency): string {
+  if (currency === "USD") return "$";
+  if (currency === "EUR") return "€";
+  return "Bs";
+}
+
+/** Formatea un monto en unidades menores con el símbolo correcto de la moneda. */
+export function formatMoney(minor: string, currency: MenuCurrency): string {
+  const symbol = currencySymbol(currency);
+  const amount = formatMinor(minor);
+  return currency === "VES" ? `${amount} ${symbol}` : `${symbol}${amount}`;
+}
+
+/** "771.07140000" → "771,0714". No aritmética: sólo recorta ceros decimales. */
+export function formatFxRate(rate: string): string {
+  const [wholeRaw, fracRaw = ""] = rate.split(".");
+  const whole = (wholeRaw || "0").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const frac = fracRaw.replace(/0+$/, "");
+  return frac ? `${whole},${frac}` : whole;
+}
+
+
 
 export type ApiErrorBody = {
   code: string;

@@ -6,13 +6,19 @@ import { LangToggle } from "@/components/LangToggle";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
+  formatBps,
+  formatFxRate,
   formatMinor,
+  formatMoney,
   guest,
   guestSession,
   type Bill,
+  type MenuCurrency,
   type SplitMode,
   type SplitPreview,
 } from "@/lib/api";
+
+
 import { ErrorBox } from "@/routes/dashboard";
 
 type Participant = { id: string; name: string };
@@ -206,35 +212,56 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
               <span>
                 {item.quantity} × {item.name}
               </span>
-              <span>
-                {item.currency} {formatMinor(item.subtotalMinor)}
-              </span>
+              <span>{formatMoney(item.subtotalMinor, bill.currency)}</span>
             </li>
           ))}
         </ul>
 
         <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
-          <Row label={t("subtotal")} value={formatMinor(bill.subtotalMinor)} />
-          <Row label={`${t("iva")} ${bill.vatBps / 100}%`} value={formatMinor(bill.vatMinor)} />
-          <Row
-            label={`${t("service")} ${bill.serviceChargeBps / 100}%`}
-            value={formatMinor(bill.serviceChargeMinor)}
+          <MoneyRow label={t("subtotal")} amount={bill.subtotalMinor} currency={bill.currency} />
+          <MoneyRow
+            label={`${t("iva")} ${formatBps(bill.vatBps)}`}
+            amount={bill.vatMinor}
+            currency={bill.currency}
           />
-          <Row label={t("total")} value={formatMinor(bill.totalDueVes ?? bill.totalDue)} />
-          <Row label={t("alreadyPaid")} value={formatMinor(bill.amountPaidVes)} />
-
-          <div className="flex items-baseline justify-between pt-2 text-foreground">
-            <span>{t("outstanding")}</span>
-            <span className="font-display text-3xl">Bs. {formatMinor(bill.remainingVes)}</span>
-          </div>
-          {bill.usdReference && (
-            <div className="flex justify-between text-xs">
-              <span>{t("reference")}</span>
-              <span>${bill.usdReference}</span>
-            </div>
-          )}
+          <MoneyRow
+            label={`${t("service")} ${formatBps(bill.serviceChargeBps)}`}
+            amount={bill.serviceChargeMinor}
+            currency={bill.currency}
+          />
+          <MoneyRow label={t("total")} amount={bill.totalDue} currency={bill.currency} highlight />
         </div>
+
+        {bill.currency !== "VES" && (
+          <div className="mt-4 space-y-1 border-t border-border pt-4">
+            <div className="flex items-baseline justify-between text-foreground">
+              <span className="text-xs uppercase tracking-widest">{t("totalPayable")}</span>
+              <span className="font-display text-3xl">
+                {formatMoney(bill.totalDueVes, "VES")}
+              </span>
+            </div>
+            {(bill.fxRateVesPerUnit ?? bill.fxRate) && (
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{t("bcvRate")}</span>
+                <span>{formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {BigInt(bill.amountPaidVes ?? "0") > 0n && (
+          <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
+            <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
+            <div className="flex items-baseline justify-between pt-2 text-foreground">
+              <span>{t("outstanding")}</span>
+              <span className="font-display text-2xl">
+                {formatMoney(bill.remainingVes, "VES")}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
+
 
       <div className="surface mt-4 p-6">
         <div className="grid grid-cols-2 gap-2">
@@ -383,14 +410,25 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function MoneyRow({
+  label,
+  amount,
+  currency,
+  highlight,
+}: {
+  label: string;
+  amount: string;
+  currency: MenuCurrency;
+  highlight?: boolean;
+}) {
   return (
-    <div className="flex justify-between">
+    <div className={`flex justify-between ${highlight ? "text-foreground" : ""}`}>
       <span>{label}</span>
-      <span>Bs. {value}</span>
+      <span>{formatMoney(amount, currency)}</span>
     </div>
   );
 }
+
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (

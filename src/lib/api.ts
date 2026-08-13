@@ -106,9 +106,23 @@ export const staffSession = {
 };
 
 export const guestSession = {
-  get: () => readStore<GuestSession>(GUEST_KEY),
-  set: (s: GuestSession | null) => writeStore(GUEST_KEY, s),
+  get: (): GuestSession | null => {
+    if (typeof window === "undefined") return null;
+    const raw = window.sessionStorage.getItem(GUEST_KEY);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as GuestSession;
+    } catch {
+      return null;
+    }
+  },
+  set: (s: GuestSession | null) => {
+    if (typeof window === "undefined") return;
+    if (s === null) window.sessionStorage.removeItem(GUEST_KEY);
+    else window.sessionStorage.setItem(GUEST_KEY, JSON.stringify(s));
+  },
 };
+
 
 type RequestOptions = {
   method?: string;

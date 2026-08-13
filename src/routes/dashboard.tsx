@@ -175,6 +175,32 @@ function Dashboard() {
   });
   const billItems = itemsQuery.data ?? [];
 
+  // Si el resumen aún no trae IVA/servicio, se derivan de las líneas ya cargadas.
+  const totals = useMemo(() => {
+    const big = (v?: string | null) => {
+      try {
+        return BigInt(v ?? "0");
+      } catch {
+        return 0n;
+      }
+    };
+    const serverSubtotal = big(bill?.subtotalMinor);
+    const lineSubtotal = billItems.reduce((acc, it) => acc + big(it.subtotalMinor), 0n);
+    const subtotal = serverSubtotal > 0n ? serverSubtotal : lineSubtotal;
+    const vatBps = BigInt(bill?.vatBps ?? 0);
+    const svcBps = BigInt(bill?.serviceChargeBps ?? 0);
+    const service = big(bill?.serviceChargeMinor) || (subtotal * svcBps) / 10000n;
+    const vat = big(bill?.vatMinor) || ((subtotal + service) * vatBps) / 10000n;
+    const total = big(bill?.totalDue) || subtotal + service + vat;
+    return {
+      subtotal: subtotal.toString(),
+      vat: vat.toString(),
+      service: service.toString(),
+      total: total.toString(),
+    };
+  }, [bill, billItems]);
+
+
   const refreshBill = () => {
     queryClient.invalidateQueries({ queryKey: ["floor"] });
     queryClient.invalidateQueries({ queryKey: ["bill", bill?.id] });

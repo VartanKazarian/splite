@@ -96,6 +96,18 @@ function Dashboard() {
 
   const floorBill = selected?.openBill ?? null;
 
+  // El plano sólo trae un resumen: IVA y servicio se recalculan en el detalle.
+  const billQuery = useQuery({
+    queryKey: ["bill", floorBill?.id],
+    queryFn: () => bills.get(floorBill!.id),
+    enabled: ready && !!floorBill?.id,
+    retry: false,
+  });
+
+  const bill = billQuery.data ?? floorBill;
+
+
+
   const payMutation = useMutation({
     mutationFn: async () => {
       const digits = amount.replace(/\D/g, "");

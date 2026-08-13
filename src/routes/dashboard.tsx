@@ -531,19 +531,36 @@ function Dashboard() {
 
 
                 <button
-                  onClick={async () => {
-                    try {
-                      await tablesApi.rotateQr(selected!.id);
-                      qrQuery.refetch();
-                      toast.success(t("refreshQr"));
-                    } catch (error) {
-                      toast.error(error instanceof ApiError ? error.code : t("apiDown"));
-                    }
-                  }}
+                  onClick={() => setRotateOpen(true)}
                   className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
                 >
                   {t("refreshQr")}
                 </button>
+
+                <AlertDialog open={rotateOpen} onOpenChange={setRotateOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t("refreshQr")}</AlertDialogTitle>
+                      <AlertDialogDescription>{t("rotateQrWarning")}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          try {
+                            await tablesApi.rotateQr(selected!.id);
+                            await qrQuery.refetch();
+                            toast.success(t("refreshQr"));
+                          } catch (error) {
+                            toast.error(error instanceof ApiError ? error.code : t("apiDown"));
+                          }
+                        }}
+                      >
+                        {t("continue")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </>
             )}
           </aside>

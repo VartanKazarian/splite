@@ -150,11 +150,25 @@ function Dashboard() {
     retry: false,
   });
 
+  // Las líneas no vienen dentro de la cuenta: se piden aparte a /bills/{id}/items.
+  const itemsQuery = useQuery({
+    queryKey: ["bill-items", bill?.id],
+    queryFn: () => bills.items(bill!.id),
+    enabled: ready && !!bill?.id,
+    retry: false,
+  });
+  const billItems = itemsQuery.data ?? [];
+
+  const refreshBill = () => {
+    queryClient.invalidateQueries({ queryKey: ["floor"] });
+    queryClient.invalidateQueries({ queryKey: ["bill-items", bill?.id] });
+  };
+
   const addLine = useMutation({
     mutationFn: (productId: string) => bills.addItem(bill!.id, productId, 1),
     onSuccess: () => {
       toast.success(t("lineAdded"));
-      queryClient.invalidateQueries({ queryKey: ["floor"] });
+      refreshBill();
     },
     onError: fail,
   });
@@ -163,10 +177,11 @@ function Dashboard() {
     mutationFn: (itemId: string) => bills.removeItem(bill!.id, itemId),
     onSuccess: () => {
       toast.success(t("lineRemoved"));
-      queryClient.invalidateQueries({ queryKey: ["floor"] });
+      refreshBill();
     },
     onError: fail,
   });
+
 
   if (!ready) return null;
 

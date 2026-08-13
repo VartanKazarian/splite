@@ -292,25 +292,78 @@ function Dashboard() {
                 )}
                 {billQuery.isError && <ErrorBox error={billQuery.error} fallback={t("apiDown")} />}
                 {billQuery.isSuccess && !bill && (
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    {t("noOpenBill")} · {t("oneOpenBill")}
-                  </p>
+                  <div className="mt-3">
+                    <p className="text-sm text-muted-foreground">
+                      {t("noOpenBill")} · {t("oneOpenBill")}
+                    </p>
+                    <button
+                      disabled={openBill.isPending}
+                      onClick={() => openBill.mutate()}
+                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                    >
+                      <Plus className="h-4 w-4" /> {t("openNewBill")}
+                    </button>
+                  </div>
                 )}
 
                 {bill && (
                   <>
-                    <ul className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
+                    <p className="mt-4 border-t border-border pt-4 text-xs uppercase tracking-widest text-muted-foreground">
+                      {t("itemsOnBill")}
+                    </p>
+                    <ul className="mt-2 space-y-2 text-sm">
                       {(bill.items ?? []).map((item) => (
-                        <li key={item.id} className="flex justify-between gap-3">
+                        <li key={item.id} className="flex items-center justify-between gap-3">
                           <span>
                             {item.quantity} × {item.name}
                           </span>
-                          <span>
-                            {item.currency} {formatMinor(item.subtotalMinor)}
+                          <span className="flex items-center gap-3">
+                            <span>
+                              {item.currency} {formatMinor(item.subtotalMinor)}
+                            </span>
+                            <button
+                              onClick={() => removeLine.mutate(item.id)}
+                              aria-label={t("remove")}
+                              className="rounded-full border border-border p-1.5 text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </span>
                         </li>
                       ))}
+                      {(bill.items ?? []).length === 0 && (
+                        <li className="text-muted-foreground">{t("addLines")}</li>
+                      )}
                     </ul>
+
+                    <div className="mt-4 border-t border-border pt-4">
+                      <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                        {t("addLines")}
+                      </p>
+                      {productsQuery.isSuccess && productsQuery.data.length === 0 && (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {t("menuEmptyHint")}{" "}
+                          <Link to="/menu" className="underline">
+                            {t("manageMenu")}
+                          </Link>
+                        </p>
+                      )}
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {(productsQuery.data ?? [])
+                          .filter((p) => p.active)
+                          .map((p) => (
+                            <button
+                              key={p.id}
+                              disabled={addLine.isPending}
+                              onClick={() => addLine.mutate(p.id)}
+                              className="rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:border-primary disabled:opacity-40"
+                            >
+                              + {p.name} · {p.currency} {formatMinor(p.priceMinorUnits)}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+
 
                     <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
                       <Row label={t("subtotal")} value={formatMinor(bill.subtotalMinor)} />

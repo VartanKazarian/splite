@@ -124,7 +124,59 @@ function Dashboard() {
     },
   });
 
+  const fail = (error: unknown) =>
+    toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
+
+  const [newTableName, setNewTableName] = useState("");
+
+  const createTable = useMutation({
+    mutationFn: () => tablesApi.create(newTableName.trim()),
+    onSuccess: (table) => {
+      setNewTableName("");
+      setSelectedId(table.id);
+      toast.success(t("tableCreated"));
+      queryClient.invalidateQueries({ queryKey: ["tables"] });
+    },
+    onError: fail,
+  });
+
+  // Abrir con total 0 es lo que permite luego itemizar la cuenta con el menú.
+  const openBill = useMutation({
+    mutationFn: () => bills.open(selected!.id, "0"),
+    onSuccess: () => {
+      toast.success(t("billOpened"));
+      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+    },
+    onError: fail,
+  });
+
+  const productsQuery = useQuery({
+    queryKey: ["menu-products"],
+    queryFn: () => menuApi.products(),
+    enabled: ready && me.isSuccess,
+    retry: false,
+  });
+
+  const addLine = useMutation({
+    mutationFn: (productId: string) => bills.addItem(bill!.id, productId, 1),
+    onSuccess: () => {
+      toast.success(t("lineAdded"));
+      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+    },
+    onError: fail,
+  });
+
+  const removeLine = useMutation({
+    mutationFn: (itemId: string) => bills.removeItem(bill!.id, itemId),
+    onSuccess: () => {
+      toast.success(t("lineRemoved"));
+      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+    },
+    onError: fail,
+  });
+
   if (!ready) return null;
+
 
   const guestUrl =
     typeof window !== "undefined" && selected && qrQuery.data

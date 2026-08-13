@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MenuRouteImport } from './routes/menu'
-import { Route as TTableIdRouteImport } from './routes/t.$tableId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -35,25 +34,18 @@ const MenuRoute = MenuRouteImport.update({
   path: '/menu',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TTableIdRoute = TTableIdRouteImport.update({
-  id: '/t/$tableId',
-  path: '/t/$tableId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
-  '/t/$tableId': typeof TTableIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
-  '/t/$tableId': typeof TTableIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -61,14 +53,13 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
-  '/t/$tableId': typeof TTableIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login' | '/menu' | '/t/$tableId'
+  fullPaths: '/' | '/dashboard' | '/login' | '/menu'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/menu' | '/t/$tableId'
-  id: '__root__' | '/' | '/dashboard' | '/login' | '/menu' | '/t/$tableId'
+  to: '/' | '/dashboard' | '/login' | '/menu'
+  id: '__root__' | '/' | '/dashboard' | '/login' | '/menu'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,7 +67,6 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   MenuRoute: typeof MenuRoute
-  TTableIdRoute: typeof TTableIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -109,13 +99,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MenuRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/t/$tableId': {
-      id: '/t/$tableId'
-      path: '/t/$tableId'
-      fullPath: '/t/$tableId'
-      preLoaderRoute: typeof TTableIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -124,7 +107,6 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   MenuRoute: MenuRoute,
-  TTableIdRoute: TTableIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

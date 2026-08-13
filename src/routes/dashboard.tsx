@@ -10,6 +10,7 @@ import {
   ApiError,
   auth,
   bills,
+  errorFields,
   exchangeRate,
   formatMinor,
   menu as menuApi,
@@ -472,10 +473,20 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export function ErrorBox({ error, fallback }: { error: unknown; fallback: string }) {
   const api = error instanceof ApiError ? error : null;
+  const fields = Object.entries(errorFields(error));
   return (
     <div className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs">
       <p className="font-medium text-destructive">{api?.code ?? "NETWORK_ERROR"}</p>
       <p className="mt-1 text-muted-foreground">{api?.message ?? fallback}</p>
+      {fields.length > 0 && (
+        <ul className="mt-1 space-y-0.5 text-muted-foreground">
+          {fields.map(([field, message]) => (
+            <li key={field}>
+              <span className="text-destructive">{field}</span>: {message}
+            </li>
+          ))}
+        </ul>
+      )}
       {api?.requestId && (
         <p className="mt-1 break-all text-[10px] text-muted-foreground">
           Request ID: {api.requestId}

@@ -63,6 +63,26 @@ export class ApiError extends Error {
   }
 }
 
+/** details.fields dice exactamente qué campo falló; sin esto un 400 parece un fallo genérico. */
+export function errorFields(error: unknown): Record<string, string> {
+  if (!(error instanceof ApiError)) return {};
+  const raw = (error.details as { fields?: unknown })?.fields;
+  if (!raw || typeof raw !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, unknown>).map(([k, v]) => [
+      k,
+      Array.isArray(v) ? v.join(", ") : String(v),
+    ]),
+  );
+}
+
+/** Texto corto listo para toast: "limit: must be <= 100". */
+export function errorFieldsText(error: unknown): string {
+  return Object.entries(errorFields(error))
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(" · ");
+}
+
 export type StaffSession = {
   accessToken: string;
   refreshToken: string;
@@ -371,9 +391,30 @@ export type MenuSettings = { id: string; name: string; menuCurrency: MenuCurrenc
 
 export type FloorTable = Table & { openBill: Bill | null };
 
+/** El backend limita cualquier listado a 100 por página. Nunca pedir más. */
+export const PAGE_LIMIT = 100;
+
+/** Recorre páginas de 100 en 100 hasta agotar el listado. */
+async function listAll<T>(path: string): Promise<T[]> {
+  const out: T[] = [];
+  let offset = 0;
+  for (let page = 0; page < 50; page++) {
+    const sep = path.includes("?") ? "&" : "?";
+    const res = await apiRequest<{ data: T[] }>(
+      `${path}${sep}limit=${PAGE_LIMIT}&offset=${offset}`,
+      { auth: "staff" },
+    );
+    const batch = res.data ?? [];
+    out.push(...batch);
+    if (batch.length < PAGE_LIMIT) break;
+    offset += PAGE_LIMIT;
+  }
+  return out;
+}
+
 export const tables = {
-  list: () =>
-    apiRequest<{ data: Table[] }>("/api/v1/tables?limit=100", { auth: "staff" }).then((r) => r.data),
+  list: () => listAll<Table>("/api/v1/tables"),
+
   /** Un solo GET con todas las mesas: openBill = null significa mesa libre, no error. */
   floor: () =>
     apiRequest<{ data: FloorTable[] } | FloorTable[]>("/api/v1/tables/floor", {
@@ -405,10 +446,8 @@ export const menu = {
       auth: "staff",
       body: { menuCurrency },
     }),
-  products: () =>
-    apiRequest<{ data: Product[] }>("/api/v1/menu/products?limit=200", { auth: "staff" }).then(
-      (r) => r.data,
-    ),
+  products: () => listAll<Product>("/api/v1/menu/products"),
+
   createProduct: (body: { name: string; priceMinorUnits: Money; description?: string | null }) =>
     apiRequest<Product>("/api/v1/menu/products", { method: "POST", auth: "staff", body }),
   updateProduct: (

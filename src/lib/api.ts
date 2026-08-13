@@ -63,6 +63,26 @@ export class ApiError extends Error {
   }
 }
 
+/** details.fields dice exactamente qué campo falló; sin esto un 400 parece un fallo genérico. */
+export function errorFields(error: unknown): Record<string, string> {
+  if (!(error instanceof ApiError)) return {};
+  const raw = (error.details as { fields?: unknown })?.fields;
+  if (!raw || typeof raw !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, unknown>).map(([k, v]) => [
+      k,
+      Array.isArray(v) ? v.join(", ") : String(v),
+    ]),
+  );
+}
+
+/** Texto corto listo para toast: "limit: must be <= 100". */
+export function errorFieldsText(error: unknown): string {
+  return Object.entries(errorFields(error))
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(" · ");
+}
+
 export type StaffSession = {
   accessToken: string;
   refreshToken: string;

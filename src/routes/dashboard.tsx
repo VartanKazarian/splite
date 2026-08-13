@@ -591,32 +591,35 @@ function Dashboard() {
                     </div>
 
 
-                    <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
-                      <Row label={t("subtotal")} value={formatMinor(totals.subtotal)} />
-                      <Row
-                        label={`${t("iva")} ${bill.vatBps / 100}%`}
-                        value={formatMinor(totals.vat)}
+                    <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
+                      <MoneyRow label={t("subtotal")} amount={totals.subtotal} currency={bill.currency} />
+                      <MoneyRow
+                        label={`${t("iva")} ${formatBps(bill.vatBps)}`}
+                        amount={totals.vat}
+                        currency={bill.currency}
                       />
-                      <Row
-                        label={`${t("service")} ${bill.serviceChargeBps / 100}%`}
-                        value={formatMinor(totals.service)}
+                      <MoneyRow
+                        label={`${t("service")} ${formatBps(bill.serviceChargeBps)}`}
+                        amount={totals.service}
+                        currency={bill.currency}
                       />
-                      <Row label={t("total")} value={formatMinor(totals.total)} />
-                      <Row label={t("alreadyPaid")} value={formatMinor(bill.amountPaidVes)} />
+                      <MoneyRow label={t("total")} amount={totals.total} currency={bill.currency} highlight />
+                      <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
 
-                      <div className="flex items-baseline justify-between pt-2">
+                      <div className="flex items-baseline justify-between pt-2 text-foreground">
                         <span>{t("outstanding")}</span>
                         <span className="font-display text-3xl">
-                          Bs. {formatMinor(bill.remainingVes)}
+                          {formatMoney(bill.remainingVes, "VES")}
                         </span>
                       </div>
                       {(bill.fxRateVesPerUnit ?? bill.fxRate) && (
                         <p className="pt-2 text-[11px] text-muted-foreground">
-                          {t("frozenRate")}: {bill.fxRateVesPerUnit ?? bill.fxRate} ·{" "}
+                          {t("frozenRate")}: {formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)} ·{" "}
                           {t("valueDate")} {bill.fxValueDate}
                         </p>
                       )}
                     </div>
+
 
                     <div className="mt-5 border-t border-border pt-4">
                       <label className="text-xs uppercase tracking-widest text-muted-foreground">

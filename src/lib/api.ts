@@ -426,10 +426,8 @@ export const menu = {
       auth: "staff",
       body: { menuCurrency },
     }),
-  products: () =>
-    apiRequest<{ data: Product[] }>("/api/v1/menu/products?limit=200", { auth: "staff" }).then(
-      (r) => r.data,
-    ),
+  products: () => listAll<Product>("/api/v1/menu/products"),
+
   createProduct: (body: { name: string; priceMinorUnits: Money; description?: string | null }) =>
     apiRequest<Product>("/api/v1/menu/products", { method: "POST", auth: "staff", body }),
   updateProduct: (

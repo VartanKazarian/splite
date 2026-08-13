@@ -520,9 +520,8 @@ function Dashboard() {
                             {item.quantity} × {item.name}
                           </span>
                           <span className="flex items-center gap-3">
-                            <span>
-                              {item.currency} {formatMinor(item.subtotalMinor)}
-                            </span>
+                            <span>{formatMoney(item.subtotalMinor, bill.currency)}</span>
+
                             <button
                               onClick={() => removeLine.mutate(item.id)}
                               aria-label={t("remove")}

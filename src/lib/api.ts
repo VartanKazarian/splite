@@ -410,7 +410,15 @@ export type Product = {
   updatedAt?: string;
 };
 
-export type MenuSettings = { id: string; name: string; menuCurrency: MenuCurrency };
+export type MenuSettings = {
+  id: string;
+  name: string;
+  menuCurrency: MenuCurrency;
+  vatBps: number;
+  serviceChargeBps: number;
+  /** Sólo lo devuelve PATCH /charges: cuentas abiertas que conservan las tarifas viejas. */
+  openBillsUnaffected?: number;
+};
 
 export type FloorTable = Table & { openBill: Bill | null };
 

@@ -40,6 +40,27 @@ export function parseMinorInput(input: string): string {
   return digits === "" ? "0" : digits;
 }
 
+/**
+ * Porcentaje escrito por el usuario → basis points (entero 0..10000).
+ * Aritmética sobre dígitos, nunca coma flotante: "12,5" → "12" + "50" = 1250.
+ */
+export function parseBpsInput(input: string): number {
+  const cleaned = input.trim().replace(/[^\d.,]/g, "");
+  if (!cleaned) return NaN;
+  const [wholeRaw = "", fracRaw = ""] = cleaned.split(/[.,]/);
+  const whole = wholeRaw.replace(/\D/g, "") || "0";
+  const frac = fracRaw.replace(/\D/g, "").slice(0, 2).padEnd(2, "0");
+  return Number(`${whole}${frac}`.replace(/^0+(?=\d)/, ""));
+}
+
+/** 1600 → "16%", 1250 → "12,5%" */
+export function formatBps(bps: number): string {
+  const whole = Math.trunc(bps / 100);
+  const frac = String(Math.abs(bps) % 100).padStart(2, "0").replace(/0+$/, "");
+  return `${whole}${frac ? `,${frac}` : ""}%`;
+}
+
+
 export type ApiErrorBody = {
   code: string;
   message: string;

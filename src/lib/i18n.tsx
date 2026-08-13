@@ -124,6 +124,8 @@ const dict = {
     chargeAmount: "Monto a cobrar (Bs.)",
     qrToken: "Token del QR",
     refreshQr: "Rotar QR",
+    copyLink: "Copiar enlace",
+    linkCopied: "Enlace copiado",
     forbidden: "Tu rol no permite esta acción",
     outstanding: "Pendiente por liquidar",
     allocated: "Total repartido",

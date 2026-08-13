@@ -386,9 +386,10 @@ function Dashboard() {
                           Bs. {formatMinor(bill.remainingVes)}
                         </span>
                       </div>
-                      {bill.fxRate && (
+                      {(bill.fxRateVesPerUnit ?? bill.fxRate) && (
                         <p className="pt-2 text-[11px] text-muted-foreground">
-                          {t("frozenRate")}: {bill.fxRate} · {t("valueDate")} {bill.fxValueDate}
+                          {t("frozenRate")}: {bill.fxRateVesPerUnit ?? bill.fxRate} ·{" "}
+                          {t("valueDate")} {bill.fxValueDate}
                         </p>
                       )}
                     </div>

@@ -487,6 +487,13 @@ export const menu = {
       auth: "staff",
       body: { currency },
     }),
+  /** Tarifas en basis points (0..10000). Se envía al menos una. */
+  setCharges: (body: { vatBps?: number; serviceChargeBps?: number }) =>
+    apiRequest<MenuSettings>("/api/v1/menu/settings/charges", {
+      method: "PATCH",
+      auth: "staff",
+      body,
+    }),
   products: () => listAll<Product>("/api/v1/menu/products"),
 
   createProduct: (body: { name: string; priceMinorUnits: Money; description?: string | null }) =>
@@ -495,8 +502,12 @@ export const menu = {
     id: string,
     body: { name?: string; priceMinorUnits?: Money; description?: string | null; active?: boolean },
   ) => apiRequest<Product>(`/api/v1/menu/products/${id}`, { method: "PATCH", auth: "staff", body }),
-  deleteProduct: (id: string) =>
-    apiRequest<void>(`/api/v1/menu/products/${id}`, { method: "DELETE", auth: "staff" }),
+  /** Sin `permanent` sólo desactiva; con `permanent` borra (las cuentas guardan su snapshot). */
+  deleteProduct: (id: string, permanent = false) =>
+    apiRequest<void>(
+      `/api/v1/menu/products/${id}${permanent ? "?permanent=true" : ""}`,
+      { method: "DELETE", auth: "staff" },
+    ),
 };
 
 

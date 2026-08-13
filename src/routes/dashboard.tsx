@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { LogOut, RefreshCw } from "lucide-react";
+import { LogOut, Plus, RefreshCw, Trash2, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { LangToggle } from "@/components/LangToggle";
 import { QrCode } from "@/components/QrCode";
@@ -12,11 +12,13 @@ import {
   bills,
   exchangeRate,
   formatMinor,
+  menu as menuApi,
   newIdempotencyKey,
   staffSession,
   tables as tablesApi,
   type Bill,
 } from "@/lib/api";
+
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({

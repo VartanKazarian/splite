@@ -414,16 +414,18 @@ function Dashboard() {
 
 
                     <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
-                      <Row label={t("subtotal")} value={formatMinor(bill.subtotalMinor)} />
+                      <Row label={t("subtotal")} value={formatMinor(totals.subtotal)} />
                       <Row
                         label={`${t("iva")} ${bill.vatBps / 100}%`}
-                        value={formatMinor(bill.vatMinor)}
+                        value={formatMinor(totals.vat)}
                       />
                       <Row
                         label={`${t("service")} ${bill.serviceChargeBps / 100}%`}
-                        value={formatMinor(bill.serviceChargeMinor)}
+                        value={formatMinor(totals.service)}
                       />
+                      <Row label={t("total")} value={formatMinor(totals.total)} />
                       <Row label={t("alreadyPaid")} value={formatMinor(bill.amountPaidVes)} />
+
                       <div className="flex items-baseline justify-between pt-2">
                         <span>{t("outstanding")}</span>
                         <span className="font-display text-3xl">

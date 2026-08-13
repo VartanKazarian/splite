@@ -251,7 +251,10 @@ function Dashboard() {
 
 
   // El token ya contiene mesa y restaurante: la ruta no lleva el id (QR más corto).
-  const guestUrl = qrQuery.data ? `https://splite.lovable.app/t?qr=${qrQuery.data.token}` : "";
+  // El token puede contener caracteres no seguros en URL (+, /, =): hay que escaparlo.
+  const guestUrl = qrQuery.data
+    ? `https://splite.lovable.app/t?qr=${encodeURIComponent(qrQuery.data.token)}`
+    : "";
 
 
   return (

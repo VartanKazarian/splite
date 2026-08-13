@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { LogOut, Plus, RefreshCw, Trash2, UtensilsCrossed } from "lucide-react";
+import { LogOut, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { LangToggle } from "@/components/LangToggle";
 import { QrCode } from "@/components/QrCode";
@@ -62,31 +62,17 @@ function Dashboard() {
     }
   }, [me.error, navigate]);
 
+  // Un solo GET del plano: cada mesa trae su openBill (null = mesa libre).
   const tablesQuery = useQuery({
-    queryKey: ["tables"],
-    queryFn: () => tablesApi.list(),
+    queryKey: ["floor"],
+    queryFn: () => tablesApi.floor(),
     enabled: ready && me.isSuccess,
     retry: false,
+    refetchInterval: 8000,
   });
 
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
   const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
-
-  const billQuery = useQuery({
-    queryKey: ["open-bill", selected?.id],
-    enabled: Boolean(selected),
-    retry: false,
-    refetchInterval: 8000,
-    queryFn: async (): Promise<Bill | null> => {
-      try {
-        return await tablesApi.openBill(selected!.id);
-      } catch (error) {
-        // 404 OPEN_BILL_NOT_FOUND es el estado normal entre servicios.
-        if (error instanceof ApiError && error.status === 404) return null;
-        throw error;
-      }
-    },
-  });
 
   const qrQuery = useQuery({
     queryKey: ["qr", selected?.id],
@@ -95,12 +81,18 @@ function Dashboard() {
     queryFn: () => tablesApi.qrToken(selected!.id),
   });
 
-  const rateQuery = useQuery({ queryKey: ["fx"], queryFn: exchangeRate, retry: false });
+  // La tasa sólo tras cargar el token: antes de auth devolvía 401.
+  const rateQuery = useQuery({
+    queryKey: ["fx"],
+    queryFn: exchangeRate,
+    enabled: ready && me.isSuccess,
+    retry: false,
+  });
 
   const [amount, setAmount] = useState("");
   const [idemKey, setIdemKey] = useState(newIdempotencyKey());
 
-  const bill = billQuery.data ?? null;
+  const bill = selected?.openBill ?? null;
 
   const payMutation = useMutation({
     mutationFn: async () => {
@@ -113,7 +105,7 @@ function Dashboard() {
       toast.success(`${t("takePayment")} · ${formatMinor(result.remaining)} Bs.`);
       setAmount("");
       setIdemKey(newIdempotencyKey());
-      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
     },
     onError: (error) => {
       if (error instanceof ApiError) {
@@ -135,7 +127,7 @@ function Dashboard() {
       setNewTableName("");
       setSelectedId(table.id);
       toast.success(t("tableCreated"));
-      queryClient.invalidateQueries({ queryKey: ["tables"] });
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
     },
     onError: fail,
   });
@@ -145,7 +137,7 @@ function Dashboard() {
     mutationFn: () => bills.open(selected!.id, "0"),
     onSuccess: () => {
       toast.success(t("billOpened"));
-      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
     },
     onError: fail,
   });
@@ -161,7 +153,7 @@ function Dashboard() {
     mutationFn: (productId: string) => bills.addItem(bill!.id, productId, 1),
     onSuccess: () => {
       toast.success(t("lineAdded"));
-      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
     },
     onError: fail,
   });
@@ -170,7 +162,7 @@ function Dashboard() {
     mutationFn: (itemId: string) => bills.removeItem(bill!.id, itemId),
     onSuccess: () => {
       toast.success(t("lineRemoved"));
-      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
     },
     onError: fail,
   });
@@ -263,11 +255,14 @@ function Dashboard() {
                     <span className="font-display text-2xl">{tb.name}</span>
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs ${
-                        tb.active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
+                        tb.openBill
+                          ? "bg-primary/20 text-primary"
+                          : "bg-secondary text-muted-foreground"
                       }`}
                     >
-                      {tb.active ? t("statusOPEN") : t("free")}
+                      {tb.openBill ? t("statusOPEN") : t("tableFree")}
                     </span>
+
                   </div>
                 </button>
               ))}
@@ -275,26 +270,14 @@ function Dashboard() {
 
             {selected && (
               <div className="surface mt-6 p-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl">
-                    {t("openBill")} · {selected.name}
-                  </h2>
-                  <button
-                    onClick={() => billQuery.refetch()}
-                    className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" /> {t("retry")}
-                  </button>
-                </div>
+                <h2 className="text-xl">
+                  {t("openBill")} · {selected.name}
+                </h2>
 
-                {billQuery.isLoading && (
-                  <p className="mt-3 text-sm text-muted-foreground">{t("loading")}</p>
-                )}
-                {billQuery.isError && <ErrorBox error={billQuery.error} fallback={t("apiDown")} />}
-                {billQuery.isSuccess && !bill && (
+                {!bill && (
                   <div className="mt-3">
                     <p className="text-sm text-muted-foreground">
-                      {t("noOpenBill")} · {t("oneOpenBill")}
+                      {t("tableFree")} · {t("oneOpenBill")}
                     </p>
                     <button
                       disabled={openBill.isPending}
@@ -305,6 +288,7 @@ function Dashboard() {
                     </button>
                   </div>
                 )}
+
 
                 {bill && (
                   <>

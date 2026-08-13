@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { LogOut, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { Check, LogOut, Pencil, Plus, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { toast } from "sonner";
 import { LangToggle } from "@/components/LangToggle";
 import { QrCode } from "@/components/QrCode";
@@ -179,6 +179,44 @@ function Dashboard() {
     onError: fail,
   });
 
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const renameTable = useMutation({
+    mutationFn: () => tablesApi.rename(selected!.id, renameValue.trim()),
+    onSuccess: () => {
+      setRenaming(false);
+      toast.success(t("tableRenamed"));
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
+    },
+    onError: fail,
+  });
+
+  // No existe DELETE de mesas: eliminar es desactivar (deja de salir en el plano).
+  const deleteTable = useMutation({
+    mutationFn: () => tablesApi.deactivate(selected!.id),
+    onSuccess: () => {
+      setDeleteOpen(false);
+      setSelectedId(null);
+      toast.success(t("tableDeleted"));
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
+    },
+    onError: fail,
+  });
+
+  const closeBill = useMutation({
+    mutationFn: () => bills.void(bill!.id),
+    onSuccess: () => {
+      setCloseOpen(false);
+      toast.success(t("billClosed"));
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
+      queryClient.invalidateQueries({ queryKey: ["bill", bill?.id] });
+    },
+    onError: fail,
+  });
+
   const productsQuery = useQuery({
     queryKey: ["menu-products"],
     queryFn: () => menuApi.products(),
@@ -352,9 +390,97 @@ function Dashboard() {
 
             {selected && (
               <div className="surface mt-6 p-6">
-                <h2 className="text-xl">
-                  {t("openBill")} · {selected.name}
-                </h2>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  {renaming ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        maxLength={50}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
+                      />
+                      <button
+                        disabled={!renameValue.trim() || renameTable.isPending}
+                        onClick={() => renameTable.mutate()}
+                        aria-label={t("save")}
+                        className="rounded-full border border-border p-2 text-primary disabled:opacity-40"
+                      >
+                        <Check className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setRenaming(false)}
+                        aria-label={t("cancel")}
+                        className="rounded-full border border-border p-2"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <h2 className="text-xl">
+                      {t("openBill")} · {selected.name}
+                    </h2>
+                  )}
+                  <div className="flex items-center gap-2">
+                    {!renaming && (
+                      <button
+                        onClick={() => {
+                          setRenameValue(selected.name);
+                          setRenaming(true);
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:bg-secondary"
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> {t("renameTable")}
+                      </button>
+                    )}
+                    {bill && (
+                      <button
+                        onClick={() => setCloseOpen(true)}
+                        className="rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:bg-secondary"
+                      >
+                        {t("closeBill")}
+                      </button>
+                    )}
+                    {!bill && (
+                      <button
+                        onClick={() => setDeleteOpen(true)}
+                        className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-secondary"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> {t("deleteTable")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <AlertDialog open={closeOpen} onOpenChange={setCloseOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t("closeBill")}</AlertDialogTitle>
+                      <AlertDialogDescription>{t("closeBillConfirm")}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => closeBill.mutate()}>
+                        {t("closeBill")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t("deleteTable")}</AlertDialogTitle>
+                      <AlertDialogDescription>{t("deleteTableConfirm")}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteTable.mutate()}>
+                        {t("deleteTable")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
                 {!bill && (
                   <div className="mt-3">

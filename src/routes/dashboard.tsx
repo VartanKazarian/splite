@@ -5,6 +5,16 @@ import { LogOut, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { LangToggle } from "@/components/LangToggle";
 import { QrCode } from "@/components/QrCode";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
@@ -76,12 +86,21 @@ function Dashboard() {
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
   const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
 
+  // El token QR es permanente por mesa: se pide una sola vez y sólo se
+  // vuelve a pedir tras rotar el nonce.
   const qrQuery = useQuery({
     queryKey: ["qr", selected?.id],
     enabled: Boolean(selected),
     retry: false,
     queryFn: () => tablesApi.qrToken(selected!.id),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
   });
+  const [rotateOpen, setRotateOpen] = useState(false);
 
   // La tasa sólo tras cargar el token: antes de auth devolvía 401.
   const rateQuery = useQuery({
@@ -522,19 +541,36 @@ function Dashboard() {
 
 
                 <button
-                  onClick={async () => {
-                    try {
-                      await tablesApi.rotateQr(selected!.id);
-                      qrQuery.refetch();
-                      toast.success(t("refreshQr"));
-                    } catch (error) {
-                      toast.error(error instanceof ApiError ? error.code : t("apiDown"));
-                    }
-                  }}
+                  onClick={() => setRotateOpen(true)}
                   className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
                 >
                   {t("refreshQr")}
                 </button>
+
+                <AlertDialog open={rotateOpen} onOpenChange={setRotateOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t("refreshQr")}</AlertDialogTitle>
+                      <AlertDialogDescription>{t("rotateQrWarning")}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          try {
+                            await tablesApi.rotateQr(selected!.id);
+                            await qrQuery.refetch();
+                            toast.success(t("refreshQr"));
+                          } catch (error) {
+                            toast.error(error instanceof ApiError ? error.code : t("apiDown"));
+                          }
+                        }}
+                      >
+                        {t("continue")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </>
             )}
           </aside>

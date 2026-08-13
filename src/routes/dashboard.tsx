@@ -229,9 +229,26 @@ function Dashboard() {
 
         <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
           <div>
-            <h2 className="mb-3 text-xl">{t("tables")}</h2>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl">{t("tables")}</h2>
+              <div className="flex gap-2">
+                <input
+                  value={newTableName}
+                  onChange={(e) => setNewTableName(e.target.value)}
+                  placeholder={t("tableName")}
+                  className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
+                />
+                <button
+                  disabled={!newTableName.trim() || createTable.isPending}
+                  onClick={() => createTable.mutate()}
+                  className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                >
+                  <Plus className="h-4 w-4" /> {t("createTable")}
+                </button>
+              </div>
+            </div>
             {tablesQuery.isLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
-            <div className="grid gap-3 sm:grid-cols-2">
+
               {tableList.map((tb) => (
                 <button
                   key={tb.id}

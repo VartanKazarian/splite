@@ -424,6 +424,15 @@ export const tables = {
     }).then((r) => (Array.isArray(r) ? r : r.data)),
   create: (name: string) =>
     apiRequest<Table>("/api/v1/tables", { method: "POST", auth: "staff", body: { name } }),
+  rename: (tableId: string, name: string) =>
+    apiRequest<Table>(`/api/v1/tables/${tableId}`, { method: "PATCH", auth: "staff", body: { name } }),
+  /** No hay DELETE: eliminar una mesa es desactivarla (PATCH active:false). */
+  deactivate: (tableId: string) =>
+    apiRequest<Table>(`/api/v1/tables/${tableId}`, {
+      method: "PATCH",
+      auth: "staff",
+      body: { active: false },
+    }),
   update: (tableId: string, body: { name?: string; active?: boolean }) =>
     apiRequest<Table>(`/api/v1/tables/${tableId}`, { method: "PATCH", auth: "staff", body }),
   openBill: (tableId: string) =>
@@ -471,6 +480,9 @@ export const bills = {
       auth: "staff",
       body: { tableId, totalDueMinorUnits },
     }),
+  /** Cerrar una cuenta abierta sin pagos: el backend la anula (VOID) y libera la mesa. */
+  void: (id: string) =>
+    apiRequest<Bill>(`/api/v1/bills/${id}/void`, { method: "POST", auth: "staff" }),
   items: (id: string) =>
     apiRequest<{ data: BillItem[] }>(`/api/v1/bills/${id}/items`, { auth: "staff" }).then(
       (r) => r.data,

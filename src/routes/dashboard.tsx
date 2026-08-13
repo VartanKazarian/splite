@@ -483,9 +483,22 @@ function Dashboard() {
             {qrQuery.isError && <ErrorBox error={qrQuery.error} fallback={t("forbidden")} />}
             {guestUrl && (
               <>
-                <p className="mt-4 select-all break-all text-[10px] text-muted-foreground">
-                  {guestUrl}
-                </p>
+                {/* El enlace lleva el token de invitado: nunca se muestra en pantalla. */}
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(guestUrl);
+                      toast.success(t("linkCopied"));
+                    } catch {
+                      toast.error(t("apiDown"));
+                    }
+                  }}
+                  className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
+                >
+                  {t("copyLink")}
+                </button>
+
+
 
                 <button
                   onClick={async () => {

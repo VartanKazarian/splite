@@ -192,7 +192,9 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
             label={`${t("service")} ${bill.serviceChargeBps / 100}%`}
             value={formatMinor(bill.serviceChargeMinor)}
           />
+          <Row label={t("total")} value={formatMinor(bill.totalDueVes ?? bill.totalDue)} />
           <Row label={t("alreadyPaid")} value={formatMinor(bill.amountPaidVes)} />
+
           <div className="flex items-baseline justify-between pt-2 text-foreground">
             <span>{t("outstanding")}</span>
             <span className="font-display text-3xl">Bs. {formatMinor(bill.remainingVes)}</span>

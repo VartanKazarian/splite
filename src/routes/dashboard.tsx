@@ -120,6 +120,7 @@ function Dashboard() {
       setAmount("");
       setIdemKey(newIdempotencyKey());
       queryClient.invalidateQueries({ queryKey: ["floor"] });
+      queryClient.invalidateQueries({ queryKey: ["bill", bill?.id] });
     },
     onError: (error) => {
       if (error instanceof ApiError) {

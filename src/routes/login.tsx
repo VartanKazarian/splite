@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LangToggle } from "@/components/LangToggle";
 import { useI18n } from "@/lib/i18n";
-import { signIn } from "@/lib/auth";
-import { restaurant } from "@/lib/mock-data";
+import { ApiError, auth, staffSession } from "@/lib/api";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -23,8 +22,34 @@ export const Route = createFileRoute("/login")({
 function Login() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("gerencia@lacava.ve");
-  const [password, setPassword] = useState("demo1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<{ code: string; message: string; requestId: string } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (staffSession.get()) navigate({ to: "/dashboard" });
+  }, [navigate]);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setPending(true);
+    setError(null);
+    try {
+      await auth.login(email, password);
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError({ code: err.code, message: err.message, requestId: err.requestId });
+      } else {
+        setError({ code: "NETWORK_ERROR", message: t("apiDown"), requestId: "" });
+      }
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -36,18 +61,9 @@ function Login() {
       </header>
 
       <main className="flex flex-1 items-center justify-center px-5 pb-20">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            signIn(email);
-            navigate({ to: "/dashboard" });
-          }}
-          className="surface w-full max-w-sm p-8 shadow-[var(--shadow-glow)]"
-        >
+        <form onSubmit={submit} className="surface w-full max-w-sm p-8 shadow-[var(--shadow-glow)]">
           <h1 className="text-3xl">{t("login")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("loginSub")} · {restaurant.name}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("loginSub")}</p>
 
           <label className="mt-6 block text-xs uppercase tracking-widest text-muted-foreground">
             {t("email")}
@@ -55,6 +71,7 @@ function Login() {
           <input
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="mt-2 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
@@ -66,18 +83,31 @@ function Login() {
           <input
             type="password"
             required
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="mt-2 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
           />
 
+          {error && (
+            <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs">
+              <p className="font-medium text-destructive">{error.code}</p>
+              <p className="mt-1 text-muted-foreground">{error.message}</p>
+              {error.requestId && (
+                <p className="mt-1 break-all text-[10px] text-muted-foreground">
+                  {t("requestId")}: {error.requestId}
+                </p>
+              )}
+            </div>
+          )}
+
           <button
             type="submit"
-            className="mt-6 w-full rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            disabled={pending}
+            className="mt-6 w-full rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            {t("enter")}
+            {pending ? t("loading") : t("enter")}
           </button>
-          <p className="mt-4 text-center text-xs text-muted-foreground">{t("demoNote")}</p>
         </form>
       </main>
     </div>

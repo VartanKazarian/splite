@@ -94,7 +94,7 @@ function Dashboard() {
   const [amount, setAmount] = useState("");
   const [idemKey, setIdemKey] = useState(newIdempotencyKey());
 
-  const bill = selected?.openBill ?? null;
+  const floorBill = selected?.openBill ?? null;
 
   const payMutation = useMutation({
     mutationFn: async () => {

@@ -105,7 +105,7 @@ function Dashboard() {
       toast.success(`${t("takePayment")} · ${formatMinor(result.remaining)} Bs.`);
       setAmount("");
       setIdemKey(newIdempotencyKey());
-      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
     },
     onError: (error) => {
       if (error instanceof ApiError) {
@@ -127,7 +127,7 @@ function Dashboard() {
       setNewTableName("");
       setSelectedId(table.id);
       toast.success(t("tableCreated"));
-      queryClient.invalidateQueries({ queryKey: ["tables"] });
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
     },
     onError: fail,
   });
@@ -137,7 +137,7 @@ function Dashboard() {
     mutationFn: () => bills.open(selected!.id, "0"),
     onSuccess: () => {
       toast.success(t("billOpened"));
-      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
     },
     onError: fail,
   });
@@ -153,7 +153,7 @@ function Dashboard() {
     mutationFn: (productId: string) => bills.addItem(bill!.id, productId, 1),
     onSuccess: () => {
       toast.success(t("lineAdded"));
-      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
     },
     onError: fail,
   });
@@ -162,7 +162,7 @@ function Dashboard() {
     mutationFn: (itemId: string) => bills.removeItem(bill!.id, itemId),
     onSuccess: () => {
       toast.success(t("lineRemoved"));
-      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
     },
     onError: fail,
   });

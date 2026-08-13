@@ -59,8 +59,8 @@ function Landing() {
             <p className="mt-5 max-w-md text-base text-muted-foreground">{t("heroSub")}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                to="/t/$tableId"
-                params={{ tableId: "15" }}
+                to="/t"
+
                 className="rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
                 {t("ctaDemo")}

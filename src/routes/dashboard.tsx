@@ -170,10 +170,9 @@ function Dashboard() {
   if (!ready) return null;
 
 
-  const guestUrl =
-    typeof window !== "undefined" && selected && qrQuery.data
-      ? `${window.location.origin}/t/${selected.id}?qr=${qrQuery.data.token}`
-      : "";
+  // El token ya contiene mesa y restaurante: la ruta no lleva el id (QR más corto).
+  const guestUrl = qrQuery.data ? `https://splite.lovable.app/t?qr=${qrQuery.data.token}` : "";
+
 
   return (
     <div className="min-h-screen">

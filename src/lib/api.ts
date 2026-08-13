@@ -244,3 +244,125 @@ export const guest = {
     guestSession.set(null);
   },
 };
+
+/* ------------------------------------------------------- tipos de dominio */
+
+export type Money = string; // dígitos en unidades menores
+export type MenuCurrency = "VES" | "USD" | "EUR";
+
+export type Table = {
+  id: string;
+  restaurantId: string;
+  name: string;
+  active: boolean;
+  createdAt: string;
+};
+
+export type BillItem = {
+  id: string;
+  billId: string;
+  productId: string | null;
+  name: string;
+  unitPriceMinor: Money;
+  currency: MenuCurrency;
+  quantity: number;
+  subtotalMinor: Money;
+};
+
+export type Bill = {
+  id: string;
+  tableId: string;
+  status: "OPEN" | "CLOSED" | "VOID";
+  currency: MenuCurrency;
+  subtotalMinor: Money;
+  vatBps: number;
+  vatMinor: Money;
+  serviceChargeBps: number;
+  serviceChargeMinor: Money;
+  totalDue: Money;
+  totalDueVes: Money;
+  amountPaidVes: Money;
+  remainingVes: Money;
+  fxRate?: string | null;
+  fxValueDate?: string | null;
+  usdReference?: string | null;
+  itemCount?: number;
+  items?: BillItem[];
+};
+
+export type SplitMode = "FULL" | "EQUAL" | "ITEMS" | "CUSTOM";
+
+export type SplitPreviewRequest = {
+  mode: SplitMode;
+  participants: { id: string; name?: string; amountVes?: Money }[];
+  claims?: { itemId: string; participantIds: string[] }[];
+};
+
+export type SplitPreview = {
+  mode: SplitMode;
+  currency: "VES";
+  outstandingVes: Money;
+  totalAllocatedVes: Money;
+  allocations: {
+    participantId: string;
+    name: string | null;
+    amountVes: Money;
+    usdReference: string | null;
+  }[];
+};
+
+export type ExchangeRate = {
+  rates: Record<string, { rate: string; valueDate: string | null; source: string }>;
+};
+
+export type PaymentResult = {
+  paymentId: string;
+  status: "OPEN" | "CLOSED";
+  totalDue: Money;
+  amountPaid: Money;
+  remaining: Money;
+};
+
+/* ------------------------------------------------------- endpoints staff */
+
+export const tables = {
+  list: () =>
+    apiRequest<{ data: Table[] }>("/api/v1/tables?limit=100", { auth: "staff" }).then((r) => r.data),
+  openBill: (tableId: string) =>
+    apiRequest<Bill>(`/api/v1/bills/tables/${tableId}/open`, { auth: "staff" }),
+  qrToken: (tableId: string) =>
+    apiRequest<{ token: string; expiresIn: number }>(`/api/v1/guest/tables/${tableId}/qr`, {
+      auth: "staff",
+    }),
+  rotateQr: (tableId: string) =>
+    apiRequest<{ token: string; expiresIn: number }>(
+      `/api/v1/guest/tables/${tableId}/qr/rotate`,
+      { method: "POST", auth: "staff" },
+    ),
+};
+
+export const bills = {
+  get: (id: string) => apiRequest<Bill>(`/api/v1/bills/${id}`, { auth: "staff" }),
+  splitPreview: (id: string, body: SplitPreviewRequest) =>
+    apiRequest<SplitPreview>(`/api/v1/bills/${id}/split/preview`, {
+      method: "POST",
+      body,
+      auth: "staff",
+    }),
+  /** La clave de idempotencia se genera una vez por intento y se reutiliza en cada reintento. */
+  pay: (id: string, amountMinorUnits: Money, idempotencyKey: string) =>
+    apiRequest<PaymentResult>(`/api/v1/bills/${id}/payments`, {
+      method: "POST",
+      auth: "staff",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: { billId: id, amountMinorUnits, currency: "VES", idempotencyKey },
+    }),
+};
+
+export const exchangeRate = () => apiRequest<ExchangeRate>("/api/v1/exchange-rate");
+
+export function newIdempotencyKey(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `key-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}

@@ -1,12 +1,22 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Users, Clock, LogOut } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { LogOut, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { LangToggle } from "@/components/LangToggle";
 import { QrCode } from "@/components/QrCode";
 import { useI18n } from "@/lib/i18n";
-import { getSession, signOut } from "@/lib/auth";
-import { restaurant, staff, stats, tables, dueMinor, type TableInfo } from "@/lib/mock-data";
-import { BCV_RATES, CURRENCY_SYMBOL, applyRate, fmt, fmtVes, parseRate } from "@/lib/fiscal";
+import {
+  ApiError,
+  auth,
+  bills,
+  exchangeRate,
+  formatMinor,
+  newIdempotencyKey,
+  staffSession,
+  tables as tablesApi,
+  type Bill,
+} from "@/lib/api";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -24,39 +34,100 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function Dashboard() {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const navigate = useNavigate();
-  const [user, setUser] = useState<string | null>(null);
-  const [selected, setSelected] = useState<TableInfo>(tables[0]!);
+  const queryClient = useQueryClient();
+  const [ready, setReady] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const session = getSession();
-    if (!session) navigate({ to: "/login" });
-    else setUser(session);
+    if (!staffSession.get()) navigate({ to: "/login" });
+    else setReady(true);
   }, [navigate]);
 
-  if (!user) return null;
+  // En cada arranque: /auth/me. Nunca /auth/refresh para saber quién es.
+  const me = useQuery({
+    queryKey: ["me"],
+    queryFn: () => auth.me(),
+    enabled: ready,
+    retry: false,
+  });
 
-  const isPartial = (tb: TableInfo) => (tb.bill?.payments ?? []).some((p) => p.status === "SUCCEEDED");
+  useEffect(() => {
+    if (me.error instanceof ApiError && me.error.status === 401) {
+      staffSession.set(null);
+      navigate({ to: "/login" });
+    }
+  }, [me.error, navigate]);
 
-  const statusLabel = (tb: TableInfo) =>
-    !tb.bill ? t("free") : isPartial(tb) ? t("partial") : t("statusOPEN");
+  const tablesQuery = useQuery({
+    queryKey: ["tables"],
+    queryFn: () => tablesApi.list(),
+    enabled: ready && me.isSuccess,
+    retry: false,
+  });
 
-  const statusClass = (tb: TableInfo) =>
-    !tb.bill
-      ? "bg-secondary text-muted-foreground"
-      : isPartial(tb)
-        ? "bg-accent/20 text-accent"
-        : "bg-primary/20 text-primary";
+  const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
+  const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
 
-  const sym = CURRENCY_SYMBOL[restaurant.menuCurrency];
-  const rateOf = (tb: TableInfo) =>
-    tb.bill?.fxRateVesPerUnit ? parseRate(tb.bill.fxRateVesPerUnit) : null;
-  const dueVes = (tb: TableInfo) => {
-    const r = rateOf(tb);
-    const minor = dueMinor(tb);
-    return r ? applyRate(minor, r) : minor;
-  };
+  const billQuery = useQuery({
+    queryKey: ["open-bill", selected?.id],
+    enabled: Boolean(selected),
+    retry: false,
+    refetchInterval: 8000,
+    queryFn: async (): Promise<Bill | null> => {
+      try {
+        return await tablesApi.openBill(selected!.id);
+      } catch (error) {
+        // 404 OPEN_BILL_NOT_FOUND es el estado normal entre servicios.
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+      }
+    },
+  });
+
+  const qrQuery = useQuery({
+    queryKey: ["qr", selected?.id],
+    enabled: Boolean(selected),
+    retry: false,
+    queryFn: () => tablesApi.qrToken(selected!.id),
+  });
+
+  const rateQuery = useQuery({ queryKey: ["fx"], queryFn: exchangeRate, retry: false });
+
+  const [amount, setAmount] = useState("");
+  const [idemKey, setIdemKey] = useState(newIdempotencyKey());
+
+  const bill = billQuery.data ?? null;
+
+  const payMutation = useMutation({
+    mutationFn: async () => {
+      const digits = amount.replace(/\D/g, "");
+      if (!digits) throw new Error("empty");
+      // La misma clave se reutiliza en cada reintento del mismo intento de cobro.
+      return bills.pay(bill!.id, digits, idemKey);
+    },
+    onSuccess: (result) => {
+      toast.success(`${t("takePayment")} · ${formatMinor(result.remaining)} Bs.`);
+      setAmount("");
+      setIdemKey(newIdempotencyKey());
+      queryClient.invalidateQueries({ queryKey: ["open-bill"] });
+    },
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        toast.error(`${error.code} · ${error.message}`);
+      } else {
+        toast.error(t("apiDown"));
+      }
+    },
+  });
+
+  if (!ready) return null;
+
+  const guestUrl =
+    typeof window !== "undefined" && selected && qrQuery.data
+      ? `${window.location.origin}/t/${selected.id}?qr=${qrQuery.data.token}`
+      : "";
 
   return (
     <div className="min-h-screen">
@@ -66,13 +137,18 @@ function Dashboard() {
             <Link to="/" className="font-display text-2xl">
               {t("brand")}
             </Link>
-            <span className="ml-3 text-sm text-muted-foreground">{restaurant.name}</span>
+            {me.data && (
+              <span className="ml-3 text-sm text-muted-foreground">
+                {t("signedInAs")} {me.data.user.email} · {t(`role${me.data.user.role}` as never)}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <LangToggle />
             <button
-              onClick={() => {
-                signOut();
+              onClick={async () => {
+                await auth.logout();
+                queryClient.clear();
                 navigate({ to: "/" });
               }}
               className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
@@ -86,166 +162,207 @@ function Dashboard() {
       <main className="mx-auto max-w-6xl px-5 py-8">
         <h1 className="text-3xl">{t("dashboard")}</h1>
 
-        <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: t("todaySales"), value: `Bs. ${stats.sales}` },
-            { label: t("avgTip"), value: stats.tip },
-            { label: t("openTables"), value: stats.open },
-            { label: t("tickets"), value: stats.tickets },
-          ].map((s) => (
-            <div key={s.label} className="surface p-5">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">{s.label}</p>
-              <p className="mt-2 font-display text-3xl">{s.value}</p>
-            </div>
-          ))}
-        </section>
+        {(me.isError || tablesQuery.isError) && (
+          <ErrorBox error={(me.error ?? tablesQuery.error) as unknown} fallback={t("apiDown")} />
+        )}
 
         <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
           <div>
             <h2 className="mb-3 text-xl">{t("tables")}</h2>
+            {tablesQuery.isLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
             <div className="grid gap-3 sm:grid-cols-2">
-              {tables.map((tb) => (
+              {tableList.map((tb) => (
                 <button
                   key={tb.id}
-                  onClick={() => setSelected(tb)}
+                  onClick={() => setSelectedId(tb.id)}
                   className={`surface p-5 text-left transition-colors hover:border-primary ${
-                    selected.id === tb.id ? "border-primary" : ""
+                    selected?.id === tb.id ? "border-primary" : ""
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-display text-2xl">
-                      {t("table")} {tb.number}
-                    </span>
+                    <span className="font-display text-2xl">{tb.name}</span>
                     <span
-                      className={`rounded-full px-2.5 py-1 text-xs ${statusClass(tb)}`}
+                      className={`rounded-full px-2.5 py-1 text-xs ${
+                        tb.active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
+                      }`}
                     >
-                      {statusLabel(tb)}
+                      {tb.active ? t("statusOPEN") : t("free")}
                     </span>
                   </div>
-                  <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                      <Users className="h-3.5 w-3.5" /> {tb.bill?.guests ?? 0}/{tb.seats}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" /> {tb.bill?.openedAt ?? "—"}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-sm">
-                    {tb.bill ? (
-                      <>
-                        <span className="text-foreground">Bs. {fmtVes(dueVes(tb))}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {sym}
-                          {fmt(dueMinor(tb))}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </p>
                 </button>
               ))}
             </div>
+
+            {selected && (
+              <div className="surface mt-6 p-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl">
+                    {t("openBill")} · {selected.name}
+                  </h2>
+                  <button
+                    onClick={() => billQuery.refetch()}
+                    className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" /> {t("retry")}
+                  </button>
+                </div>
+
+                {billQuery.isLoading && (
+                  <p className="mt-3 text-sm text-muted-foreground">{t("loading")}</p>
+                )}
+                {billQuery.isError && <ErrorBox error={billQuery.error} fallback={t("apiDown")} />}
+                {billQuery.isSuccess && !bill && (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    {t("noOpenBill")} · {t("oneOpenBill")}
+                  </p>
+                )}
+
+                {bill && (
+                  <>
+                    <ul className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
+                      {(bill.items ?? []).map((item) => (
+                        <li key={item.id} className="flex justify-between gap-3">
+                          <span>
+                            {item.quantity} × {item.name}
+                          </span>
+                          <span>
+                            {item.currency} {formatMinor(item.subtotalMinor)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
+                      <Row label={t("subtotal")} value={formatMinor(bill.subtotalMinor)} />
+                      <Row
+                        label={`${t("iva")} ${bill.vatBps / 100}%`}
+                        value={formatMinor(bill.vatMinor)}
+                      />
+                      <Row
+                        label={`${t("service")} ${bill.serviceChargeBps / 100}%`}
+                        value={formatMinor(bill.serviceChargeMinor)}
+                      />
+                      <Row label={t("alreadyPaid")} value={formatMinor(bill.amountPaidVes)} />
+                      <div className="flex items-baseline justify-between pt-2">
+                        <span>{t("outstanding")}</span>
+                        <span className="font-display text-3xl">
+                          Bs. {formatMinor(bill.remainingVes)}
+                        </span>
+                      </div>
+                      {bill.fxRate && (
+                        <p className="pt-2 text-[11px] text-muted-foreground">
+                          {t("frozenRate")}: {bill.fxRate} · {t("valueDate")} {bill.fxValueDate}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mt-5 border-t border-border pt-4">
+                      <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                        {t("chargeAmount")}
+                      </label>
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          inputMode="numeric"
+                          placeholder="250000"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
+                        />
+                        <button
+                          disabled={payMutation.isPending || !amount}
+                          onClick={() => payMutation.mutate()}
+                          className="whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                        >
+                          {t("takePayment")}
+                        </button>
+                      </div>
+                      <p className="mt-2 break-all text-[10px] text-muted-foreground">
+                        {t("idemKey")}: {idemKey} — {t("idemNote")}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           <aside className="surface h-fit p-6 text-center">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">{t("qrFor")}</p>
-            <p className="mt-1 font-display text-3xl">
-              {t("table")} {selected.number}
-            </p>
+            <p className="mt-1 font-display text-3xl">{selected?.name ?? "—"}</p>
             <div className="mt-5 flex justify-center">
-              <QrCode value={`mesa-${selected.id}`} size={168} />
+              <QrCode value={guestUrl || "splite"} size={168} />
             </div>
-            <ul className="mt-5 space-y-1 text-left text-sm text-muted-foreground">
-              {(selected.bill?.items ?? []).map((i) => (
-                <li key={i.id} className="flex justify-between gap-3">
-                  <span className={i.paid ? "line-through" : ""}>{i.name[lang]}</span>
-                  <span>
-                    {sym}
-                    {fmt(i.priceMinor)}
-                  </span>
-                </li>
-              ))}
-              {!selected.bill && <li>{t("free")}</li>}
-            </ul>
-
-            {selected.bill && (
-              <div className="mt-5 border-t border-border pt-4 text-left text-xs">
-                <p className="uppercase tracking-widest text-muted-foreground">{t("payments")}</p>
-                {selected.bill.payments.length === 0 && (
-                  <p className="mt-2 text-muted-foreground">{t("noPayments")}</p>
-                )}
-                <ul className="mt-2 space-y-2">
-                  {selected.bill.payments.map((p) => (
-                    <li key={p.id} className="rounded-lg bg-secondary/60 p-3">
-                      <div className="flex justify-between">
-                        <span>{t(`method${p.method}` as never)}</span>
-                        <span>Bs. {fmtVes(p.amountVes)}</span>
-                      </div>
-                      <div className="mt-1 flex justify-between text-muted-foreground">
-                        <span>
-                          {t(`payStatus${p.status}` as never)} · {t(`payer${p.payerType}` as never)}
-                        </span>
-                        <span>{p.at}</span>
-                      </div>
-                      {p.tender && (
-                        <p className="mt-1 text-muted-foreground">
-                          {t("tender")}: {CURRENCY_SYMBOL[p.tender.currency]}
-                          {fmt(p.tender.amount)} @ {p.tender.fxRate}
-                        </p>
-                      )}
-                      <p className="mt-1 break-all text-[10px] text-muted-foreground">
-                        {t("idemKey")}: {p.idempotencyKey}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {qrQuery.isError && <ErrorBox error={qrQuery.error} fallback={t("forbidden")} />}
+            {guestUrl && (
+              <>
+                <a
+                  href={guestUrl}
+                  className="mt-4 block break-all text-[10px] text-muted-foreground underline"
+                >
+                  {guestUrl}
+                </a>
+                <button
+                  onClick={async () => {
+                    try {
+                      await tablesApi.rotateQr(selected!.id);
+                      qrQuery.refetch();
+                      toast.success(t("refreshQr"));
+                    } catch (error) {
+                      toast.error(error instanceof ApiError ? error.code : t("apiDown"));
+                    }
+                  }}
+                  className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
+                >
+                  {t("refreshQr")}
+                </button>
+              </>
             )}
-            <Link
-              to="/t/$tableId"
-              params={{ tableId: selected.id }}
-              className="mt-6 inline-block w-full rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              {t("viewTable")}
-            </Link>
           </aside>
         </section>
-        <section className="mt-8 grid gap-6 lg:grid-cols-2">
-          <div className="surface p-6">
-            <h2 className="text-xl">{t("exchangeRate")}</h2>
-            <p className="mt-1 text-xs text-muted-foreground">{t("fxSource")}</p>
-            <ul className="mt-4 space-y-2 text-sm">
-              {(["USD", "EUR"] as const).map((c) => (
-                <li key={c} className="flex justify-between border-b border-border pb-2">
-                  <span className="text-muted-foreground">
-                    {c} · {t("valueDate")} {BCV_RATES[c].valueDate}
-                  </span>
-                  <span>{BCV_RATES[c].rate} Bs.</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-xs text-muted-foreground">
-              {t("quotedIn")} {restaurant.menuCurrency} · {t("settlementVes")} · {t("oneOpenBill")}
-            </p>
-          </div>
 
-          <div className="surface p-6">
-            <h2 className="text-xl">{t("team")}</h2>
-            <ul className="mt-4 space-y-2 text-sm">
-              {staff.map((u) => (
-                <li key={u.email} className="flex justify-between border-b border-border pb-2">
-                  <span>
-                    {u.name}
-                    <span className="block text-xs text-muted-foreground">{u.email}</span>
-                  </span>
-                  <span className="text-muted-foreground">{t(`role${u.role}` as never)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <section className="mt-8 surface p-6">
+          <h2 className="text-xl">{t("exchangeRate")}</h2>
+          <p className="mt-1 text-xs text-muted-foreground">{t("fxSource")}</p>
+          {rateQuery.isError && <ErrorBox error={rateQuery.error} fallback={t("apiDown")} />}
+          <ul className="mt-4 space-y-2 text-sm">
+            {Object.entries(rateQuery.data?.rates ?? {}).map(([code, r]) => (
+              <li key={code} className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">
+                  {code} · {t("valueDate")} {r.valueDate ?? "—"} · {r.source}
+                </span>
+                <span>{r.rate} Bs.</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {t("settlementVes")} · {t("settlementNote")}
+          </p>
         </section>
       </main>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between text-muted-foreground">
+      <span>{label}</span>
+      <span>Bs. {value}</span>
+    </div>
+  );
+}
+
+export function ErrorBox({ error, fallback }: { error: unknown; fallback: string }) {
+  const api = error instanceof ApiError ? error : null;
+  return (
+    <div className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs">
+      <p className="font-medium text-destructive">{api?.code ?? "NETWORK_ERROR"}</p>
+      <p className="mt-1 text-muted-foreground">{api?.message ?? fallback}</p>
+      {api?.requestId && (
+        <p className="mt-1 break-all text-[10px] text-muted-foreground">
+          Request ID: {api.requestId}
+        </p>
+      )}
     </div>
   );
 }

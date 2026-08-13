@@ -248,6 +248,8 @@ function Dashboard() {
               </div>
             </div>
             {tablesQuery.isLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
+            <div className="grid gap-3 sm:grid-cols-2">
+
 
               {tableList.map((tb) => (
                 <button

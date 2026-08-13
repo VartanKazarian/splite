@@ -94,7 +94,19 @@ function Dashboard() {
   const [amount, setAmount] = useState("");
   const [idemKey, setIdemKey] = useState(newIdempotencyKey());
 
-  const bill = selected?.openBill ?? null;
+  const floorBill = selected?.openBill ?? null;
+
+  // El plano sólo trae un resumen: IVA y servicio se recalculan en el detalle.
+  const billQuery = useQuery({
+    queryKey: ["bill", floorBill?.id],
+    queryFn: () => bills.get(floorBill!.id),
+    enabled: ready && !!floorBill?.id,
+    retry: false,
+  });
+
+  const bill = billQuery.data ?? floorBill;
+
+
 
   const payMutation = useMutation({
     mutationFn: async () => {
@@ -108,6 +120,7 @@ function Dashboard() {
       setAmount("");
       setIdemKey(newIdempotencyKey());
       queryClient.invalidateQueries({ queryKey: ["floor"] });
+      queryClient.invalidateQueries({ queryKey: ["bill", bill?.id] });
     },
     onError: (error) => {
       if (error instanceof ApiError) {
@@ -163,10 +176,38 @@ function Dashboard() {
   });
   const billItems = itemsQuery.data ?? [];
 
+  // Si el resumen aún no trae IVA/servicio, se derivan de las líneas ya cargadas.
+  const totals = useMemo(() => {
+    const big = (v?: string | null) => {
+      try {
+        return BigInt(v ?? "0");
+      } catch {
+        return 0n;
+      }
+    };
+    const serverSubtotal = big(bill?.subtotalMinor);
+    const lineSubtotal = billItems.reduce((acc, it) => acc + big(it.subtotalMinor), 0n);
+    const subtotal = serverSubtotal > 0n ? serverSubtotal : lineSubtotal;
+    const vatBps = BigInt(bill?.vatBps ?? 0);
+    const svcBps = BigInt(bill?.serviceChargeBps ?? 0);
+    const service = big(bill?.serviceChargeMinor) || (subtotal * svcBps) / 10000n;
+    const vat = big(bill?.vatMinor) || ((subtotal + service) * vatBps) / 10000n;
+    const total = big(bill?.totalDue) || subtotal + service + vat;
+    return {
+      subtotal: subtotal.toString(),
+      vat: vat.toString(),
+      service: service.toString(),
+      total: total.toString(),
+    };
+  }, [bill, billItems]);
+
+
   const refreshBill = () => {
     queryClient.invalidateQueries({ queryKey: ["floor"] });
+    queryClient.invalidateQueries({ queryKey: ["bill", bill?.id] });
     queryClient.invalidateQueries({ queryKey: ["bill-items", bill?.id] });
   };
+
 
   const addLine = useMutation({
     mutationFn: (productId: string) => bills.addItem(bill!.id, productId, 1),
@@ -374,16 +415,18 @@ function Dashboard() {
 
 
                     <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
-                      <Row label={t("subtotal")} value={formatMinor(bill.subtotalMinor)} />
+                      <Row label={t("subtotal")} value={formatMinor(totals.subtotal)} />
                       <Row
                         label={`${t("iva")} ${bill.vatBps / 100}%`}
-                        value={formatMinor(bill.vatMinor)}
+                        value={formatMinor(totals.vat)}
                       />
                       <Row
                         label={`${t("service")} ${bill.serviceChargeBps / 100}%`}
-                        value={formatMinor(bill.serviceChargeMinor)}
+                        value={formatMinor(totals.service)}
                       />
+                      <Row label={t("total")} value={formatMinor(totals.total)} />
                       <Row label={t("alreadyPaid")} value={formatMinor(bill.amountPaidVes)} />
+
                       <div className="flex items-baseline justify-between pt-2">
                         <span>{t("outstanding")}</span>
                         <span className="font-display text-3xl">
@@ -441,9 +484,22 @@ function Dashboard() {
             {qrQuery.isError && <ErrorBox error={qrQuery.error} fallback={t("forbidden")} />}
             {guestUrl && (
               <>
-                <p className="mt-4 select-all break-all text-[10px] text-muted-foreground">
-                  {guestUrl}
-                </p>
+                {/* El enlace lleva el token de invitado: nunca se muestra en pantalla. */}
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(guestUrl);
+                      toast.success(t("linkCopied"));
+                    } catch {
+                      toast.error(t("apiDown"));
+                    }
+                  }}
+                  className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
+                >
+                  {t("copyLink")}
+                </button>
+
+
 
                 <button
                   onClick={async () => {

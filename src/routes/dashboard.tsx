@@ -267,26 +267,14 @@ function Dashboard() {
 
             {selected && (
               <div className="surface mt-6 p-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl">
-                    {t("openBill")} · {selected.name}
-                  </h2>
-                  <button
-                    onClick={() => billQuery.refetch()}
-                    className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" /> {t("retry")}
-                  </button>
-                </div>
+                <h2 className="text-xl">
+                  {t("openBill")} · {selected.name}
+                </h2>
 
-                {billQuery.isLoading && (
-                  <p className="mt-3 text-sm text-muted-foreground">{t("loading")}</p>
-                )}
-                {billQuery.isError && <ErrorBox error={billQuery.error} fallback={t("apiDown")} />}
-                {billQuery.isSuccess && !bill && (
+                {!bill && (
                   <div className="mt-3">
                     <p className="text-sm text-muted-foreground">
-                      {t("noOpenBill")} · {t("oneOpenBill")}
+                      {t("tableFree")} · {t("oneOpenBill")}
                     </p>
                     <button
                       disabled={openBill.isPending}
@@ -297,6 +285,7 @@ function Dashboard() {
                     </button>
                   </div>
                 )}
+
 
                 {bill && (
                   <>

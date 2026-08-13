@@ -410,14 +410,25 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function MoneyRow({
+  label,
+  amount,
+  currency,
+  highlight,
+}: {
+  label: string;
+  amount: string;
+  currency: MenuCurrency;
+  highlight?: boolean;
+}) {
   return (
-    <div className="flex justify-between">
+    <div className={`flex justify-between ${highlight ? "text-foreground" : ""}`}>
       <span>{label}</span>
-      <span>Bs. {value}</span>
+      <span>{formatMoney(amount, currency)}</span>
     </div>
   );
 }
+
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (

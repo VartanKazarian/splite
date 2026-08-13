@@ -82,7 +82,10 @@ function MenuPage() {
       refresh();
       return toast.error(`${error.code} · ${error.message}`);
     }
-    if (error.code === "VALIDATION_FAILED") return toast.error(error.message);
+    const fields = errorFieldsText(error);
+    if (error.code === "VALIDATION_FAILED")
+      return toast.error(fields ? `${error.message} — ${fields}` : error.message);
+    if (fields) return toast.error(`${error.code} · ${fields}`);
     return toast.error(`${error.code} · ${error.message}`);
   };
 

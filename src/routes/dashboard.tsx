@@ -11,6 +11,7 @@ import {
   auth,
   bills,
   errorFields,
+  errorFieldsText,
   exchangeRate,
   formatMinor,
   menu as menuApi,
@@ -117,8 +118,11 @@ function Dashboard() {
     },
   });
 
-  const fail = (error: unknown) =>
-    toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
+  const fail = (error: unknown) => {
+    if (!(error instanceof ApiError)) return toast.error(t("apiDown"));
+    const fields = errorFieldsText(error);
+    return toast.error(`${error.code} · ${fields || error.message}`);
+  };
 
   const [newTableName, setNewTableName] = useState("");
 
@@ -150,11 +154,25 @@ function Dashboard() {
     retry: false,
   });
 
+  // Las líneas no vienen dentro de la cuenta: se piden aparte a /bills/{id}/items.
+  const itemsQuery = useQuery({
+    queryKey: ["bill-items", bill?.id],
+    queryFn: () => bills.items(bill!.id),
+    enabled: ready && !!bill?.id,
+    retry: false,
+  });
+  const billItems = itemsQuery.data ?? [];
+
+  const refreshBill = () => {
+    queryClient.invalidateQueries({ queryKey: ["floor"] });
+    queryClient.invalidateQueries({ queryKey: ["bill-items", bill?.id] });
+  };
+
   const addLine = useMutation({
     mutationFn: (productId: string) => bills.addItem(bill!.id, productId, 1),
     onSuccess: () => {
       toast.success(t("lineAdded"));
-      queryClient.invalidateQueries({ queryKey: ["floor"] });
+      refreshBill();
     },
     onError: fail,
   });
@@ -163,10 +181,11 @@ function Dashboard() {
     mutationFn: (itemId: string) => bills.removeItem(bill!.id, itemId),
     onSuccess: () => {
       toast.success(t("lineRemoved"));
-      queryClient.invalidateQueries({ queryKey: ["floor"] });
+      refreshBill();
     },
     onError: fail,
   });
+
 
   if (!ready) return null;
 
@@ -296,7 +315,7 @@ function Dashboard() {
                       {t("itemsOnBill")}
                     </p>
                     <ul className="mt-2 space-y-2 text-sm">
-                      {(bill.items ?? []).map((item) => (
+                      {billItems.map((item) => (
                         <li key={item.id} className="flex items-center justify-between gap-3">
                           <span>
                             {item.quantity} × {item.name}
@@ -315,7 +334,12 @@ function Dashboard() {
                           </span>
                         </li>
                       ))}
-                      {(bill.items ?? []).length === 0 && (
+                      {itemsQuery.isError && (
+                        <li>
+                          <ErrorBox error={itemsQuery.error} fallback={t("apiDown")} />
+                        </li>
+                      )}
+                      {itemsQuery.isSuccess && billItems.length === 0 && (
                         <li className="text-muted-foreground">{t("addLines")}</li>
                       )}
                     </ul>
@@ -366,9 +390,10 @@ function Dashboard() {
                           Bs. {formatMinor(bill.remainingVes)}
                         </span>
                       </div>
-                      {bill.fxRate && (
+                      {(bill.fxRateVesPerUnit ?? bill.fxRate) && (
                         <p className="pt-2 text-[11px] text-muted-foreground">
-                          {t("frozenRate")}: {bill.fxRate} · {t("valueDate")} {bill.fxValueDate}
+                          {t("frozenRate")}: {bill.fxRateVesPerUnit ?? bill.fxRate} ·{" "}
+                          {t("valueDate")} {bill.fxValueDate}
                         </p>
                       )}
                     </div>

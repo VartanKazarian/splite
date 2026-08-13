@@ -334,6 +334,8 @@ export type Bill = {
   totalDueVes: Money;
   amountPaidVes: Money;
   remainingVes: Money;
+  /** El backend lo llama fxRateVesPerUnit; se acepta el alias corto por compatibilidad. */
+  fxRateVesPerUnit?: string | null;
   fxRate?: string | null;
   fxValueDate?: string | null;
   usdReference?: string | null;
@@ -440,11 +442,12 @@ export const tables = {
 /** Menú del restaurante: la moneda la fija el restaurante, nunca la petición. */
 export const menu = {
   settings: () => apiRequest<MenuSettings>("/api/v1/menu/settings", { auth: "staff" }),
-  setCurrency: (menuCurrency: MenuCurrency) =>
+  /** El backend espera { currency }, no { menuCurrency }: enviarlo mal da VALIDATION_FAILED. */
+  setCurrency: (currency: MenuCurrency) =>
     apiRequest<MenuSettings>("/api/v1/menu/settings/currency", {
       method: "PATCH",
       auth: "staff",
-      body: { menuCurrency },
+      body: { currency },
     }),
   products: () => listAll<Product>("/api/v1/menu/products"),
 

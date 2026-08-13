@@ -384,6 +384,35 @@ export const menu = {
 
 export const bills = {
   get: (id: string) => apiRequest<Bill>(`/api/v1/bills/${id}`, { auth: "staff" }),
+  /** Abrir con total 0 es lo que permite luego añadir líneas del menú. */
+  open: (tableId: string, totalDueMinorUnits: Money = "0") =>
+    apiRequest<Bill>("/api/v1/bills", {
+      method: "POST",
+      auth: "staff",
+      body: { tableId, totalDueMinorUnits },
+    }),
+  items: (id: string) =>
+    apiRequest<{ data: BillItem[] }>(`/api/v1/bills/${id}/items`, { auth: "staff" }).then(
+      (r) => r.data,
+    ),
+  addItem: (id: string, productId: string, quantity = 1) =>
+    apiRequest<{ item: BillItem; bill: Bill }>(`/api/v1/bills/${id}/items`, {
+      method: "POST",
+      auth: "staff",
+      body: { productId, quantity },
+    }),
+  updateItem: (id: string, itemId: string, quantity: number) =>
+    apiRequest<{ item: BillItem; bill: Bill }>(`/api/v1/bills/${id}/items/${itemId}`, {
+      method: "PATCH",
+      auth: "staff",
+      body: { quantity },
+    }),
+  removeItem: (id: string, itemId: string) =>
+    apiRequest<{ bill: Bill }>(`/api/v1/bills/${id}/items/${itemId}`, {
+      method: "DELETE",
+      auth: "staff",
+    }),
+
   splitPreview: (id: string, body: SplitPreviewRequest) =>
     apiRequest<SplitPreview>(`/api/v1/bills/${id}/split/preview`, {
       method: "POST",

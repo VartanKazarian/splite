@@ -117,8 +117,11 @@ function Dashboard() {
     },
   });
 
-  const fail = (error: unknown) =>
-    toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
+  const fail = (error: unknown) => {
+    if (!(error instanceof ApiError)) return toast.error(t("apiDown"));
+    const fields = errorFieldsText(error);
+    return toast.error(`${error.code} · ${fields || error.message}`);
+  };
 
   const [newTableName, setNewTableName] = useState("");
 

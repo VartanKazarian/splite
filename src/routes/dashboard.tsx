@@ -76,12 +76,21 @@ function Dashboard() {
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
   const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
 
+  // El token QR es permanente por mesa: se pide una sola vez y sólo se
+  // vuelve a pedir tras rotar el nonce.
   const qrQuery = useQuery({
     queryKey: ["qr", selected?.id],
     enabled: Boolean(selected),
     retry: false,
     queryFn: () => tablesApi.qrToken(selected!.id),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
   });
+  const [rotateOpen, setRotateOpen] = useState(false);
 
   // La tasa sólo tras cargar el token: antes de auth devolvía 401.
   const rateQuery = useQuery({

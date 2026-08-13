@@ -406,17 +406,19 @@ function Dashboard() {
             <p className="text-xs uppercase tracking-widest text-muted-foreground">{t("qrFor")}</p>
             <p className="mt-1 font-display text-3xl">{selected?.name ?? "—"}</p>
             <div className="mt-5 flex justify-center">
-              <QrCode value={guestUrl || "splite"} size={168} />
+              {guestUrl ? (
+                <QrCode value={guestUrl} size={240} />
+              ) : (
+                <div className="h-[264px] w-[264px] rounded-lg bg-secondary" />
+              )}
             </div>
             {qrQuery.isError && <ErrorBox error={qrQuery.error} fallback={t("forbidden")} />}
             {guestUrl && (
               <>
-                <a
-                  href={guestUrl}
-                  className="mt-4 block break-all text-[10px] text-muted-foreground underline"
-                >
+                <p className="mt-4 select-all break-all text-[10px] text-muted-foreground">
                   {guestUrl}
-                </a>
+                </p>
+
                 <button
                   onClick={async () => {
                     try {

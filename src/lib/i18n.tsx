@@ -135,6 +135,7 @@ const dict = {
     currencyMismatch: "La cuenta se liquida en otra moneda",
     currencyMismatchHint: "Sólo puedes añadir productos en la moneda de la cuenta. Ajusta la moneda del menú o el precio del producto.",
     copyLink: "Copiar enlace",
+    qrScanHint: "Escanea para ver tu cuenta",
     rotateQrWarning:
       "Esto invalidará el código impreso de esta mesa. Tendrás que imprimirlo de nuevo. ¿Continuar?",
     continue: "Continuar",
@@ -356,6 +357,7 @@ const dict = {
     currencyMismatch: "This bill settles in a different currency",
     currencyMismatchHint: "You can only add products priced in the bill currency. Change the menu currency or the product price.",
     copyLink: "Copy link",
+    qrScanHint: "Scan to view your bill",
     rotateQrWarning:
       "This will invalidate the printed code for this table. You will have to print it again. Continue?",
     continue: "Continue",

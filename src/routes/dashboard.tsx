@@ -656,13 +656,14 @@ function Dashboard() {
           <aside className="surface h-fit p-6 text-center">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">{t("qrFor")}</p>
             <p className="mt-1 font-display text-3xl">{selected?.name ?? "—"}</p>
-            <div className="mt-5 flex justify-center">
+            <div className="mt-5 flex justify-center animate-fade-in">
               {guestUrl ? (
                 <QrCode value={guestUrl} size={240} />
               ) : (
                 <div className="h-[264px] w-[264px] rounded-lg bg-secondary" />
               )}
             </div>
+            <p className="mt-4 text-xs text-muted-foreground">{t("qrScanHint")}</p>
             {qrQuery.isError && <ErrorBox error={qrQuery.error} fallback={t("forbidden")} />}
             {guestUrl && (
               <>

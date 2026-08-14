@@ -98,6 +98,9 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
   const [mine, setMine] = useState<string[]>([]);
   const [amount, setAmount] = useState("");
   const [preview, setPreview] = useState<SplitPreview | null>(null);
+  // Propina opcional del comensal, encima del cargo por servicio de la cuenta.
+  const [tipPct, setTipPct] = useState<number | null>(0);
+  const [tipCustom, setTipCustom] = useState("");
 
   const bill = billQuery.data ?? null;
   const rateStr = bill?.fxRateVesPerUnit ?? bill?.fxRate ?? null;
@@ -223,6 +226,13 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
     { id: "EQUAL", label: t("splitEven") },
     { id: "CUSTOM", label: t("custom") },
   ];
+
+  // La propina se calcula en céntimos enteros sobre la parte del comensal.
+  const shareMinor = preview ? BigInt(myShare(preview, mode)) : 0n;
+  const tipMinor =
+    tipPct === null
+      ? (parseMinorInput(tipCustom) || "0")
+      : ((shareMinor * BigInt(tipPct)) / 100n).toString();
 
   const toggleMine = (itemId: string) =>
     setMine((prev) =>
@@ -423,6 +433,59 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{t("allocated")}</span>
               <span>{formatMoney(preview.totalAllocatedVes, "VES")}</span>
+            </div>
+            <div className="mt-5 border-t border-border pt-4">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                {t("tipTitle")}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">{t("tipHint")}</p>
+              <div className="mt-3 grid grid-cols-5 gap-2">
+                {[0, 5, 10, 15].map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => {
+                      setTipPct(p);
+                      setTipCustom("");
+                    }}
+                    className={`rounded-lg border px-2 py-2 text-xs transition-colors ${
+                      tipPct === p
+                        ? "border-primary bg-primary/15 text-foreground"
+                        : "border-border text-muted-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {p === 0 ? t("tipNone") : `${p}%`}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setTipPct(null)}
+                  className={`rounded-lg border px-2 py-2 text-xs transition-colors ${
+                    tipPct === null
+                      ? "border-primary bg-primary/15 text-foreground"
+                      : "border-border text-muted-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {t("tipOther")}
+                </button>
+              </div>
+              {tipPct === null && (
+                <input
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={tipCustom}
+                  onChange={(e) => setTipCustom(e.target.value)}
+                  className="mt-3 w-full rounded-lg border border-input bg-secondary px-3 py-2.5 text-sm outline-none focus:border-ring"
+                />
+              )}
+              <div className="mt-3 flex justify-between text-xs text-muted-foreground">
+                <span>{t("tipAmount")}</span>
+                <span>{formatMoney(tipMinor, "VES")}</span>
+              </div>
+              <div className="mt-1 flex items-baseline justify-between text-foreground">
+                <span className="text-xs uppercase tracking-widest">{t("yourTotalWithTip")}</span>
+                <span className="font-display text-2xl">
+                  {formatMoney((BigInt(myShare(preview, mode)) + BigInt(tipMinor)).toString(), "VES")}
+                </span>
+              </div>
             </div>
             <p className="mt-3 text-[11px] text-muted-foreground">{t("guestNoPay")}</p>
           </div>

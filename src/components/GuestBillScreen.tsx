@@ -411,7 +411,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
                   }`}
                 >
                   <button
-                    onClick={() => setMineQty(item.id, on ? 0 : max, max)}
+                    onClick={() => setMineQty(item.id, on ? 0 : 1, max)}
                     className="flex flex-1 items-center gap-2 text-left"
                   >
                     <span
@@ -421,10 +421,9 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
                     >
                       {on && <Check className="h-3 w-3" />}
                     </span>
-                    <span>
-                      {max} × {item.name}
-                    </span>
+                    <span>{item.name}</span>
                   </button>
+
                   <span className="flex items-center gap-2">
                     <span className="flex items-center gap-1">
                       <button

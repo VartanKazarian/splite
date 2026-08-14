@@ -735,7 +735,7 @@ function Dashboard() {
             ))}
           </ul>
           <p className="mt-3 text-xs text-muted-foreground">
-            {t("settlementVes")} · {t("settlementNote")}
+            {t("settlementNote")}
           </p>
         </section>
       </main>

@@ -403,6 +403,34 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
               const qty = mine[item.id] ?? 0;
               const on = qty > 0;
               const unit = (BigInt(item.subtotalMinor) * BigInt(qty)) / BigInt(max || 1);
+
+              // Si solo hay una unidad, basta con marcar/desmarcar el producto.
+              if (max === 1) {
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setMineQty(item.id, on ? 0 : 1, max)}
+                    className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
+                      on ? "border-primary bg-primary/15" : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                          on ? "border-primary bg-primary/40" : "border-border"
+                        }`}
+                      >
+                        {on && <Check className="h-3 w-3" />}
+                      </span>
+                      <span>{item.name}</span>
+                    </span>
+                    <span className="w-20 shrink-0 text-right">
+                      {formatMoney(item.subtotalMinor, bill.currency)}
+                    </span>
+                  </button>
+                );
+              }
+
               return (
                 <div
                   key={item.id}

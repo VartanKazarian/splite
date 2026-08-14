@@ -289,14 +289,6 @@ function Dashboard() {
     onError: fail,
   });
 
-  const addLine = useMutation({
-    mutationFn: (productId: string) => bills.addItem(bill!.id, productId, 1),
-    onSuccess: () => {
-      toast.success(t("lineAdded"));
-      refreshBill();
-    },
-    onError: fail,
-  });
 
   const removeLine = useMutation({
     mutationFn: (itemId: string) => bills.removeItem(bill!.id, itemId),

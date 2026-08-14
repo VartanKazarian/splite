@@ -7,8 +7,9 @@ const dict = {
     brand: "Mesa",
     tagline: "Pagar la cuenta del restaurante en 30 segundos",
     heroSub:
-      "Un QR por mesa. El cliente ve la cuenta, la divide, deja propina y paga. El POS se cierra solo.",
+      "Un QR por mesa. El cliente ve la cuenta, la divide, deja propina y paga.",
     ctaDemo: "Ver demo de cliente",
+    demoBanner: "Modo demo · cuenta de ejemplo, no se cobra nada",
     ctaLogin: "Entrar al panel",
     f1: "QR por mesa",
     f1d: "Un código permanente por mesa que identifica restaurante y cuenta abierta.",
@@ -229,8 +230,9 @@ const dict = {
     brand: "Mesa",
     tagline: "Settle the restaurant bill in 30 seconds",
     heroSub:
-      "One QR per table. Guests view the bill, split it, tip and pay. The POS closes itself.",
+      "One QR per table. Guests view the bill, split it, tip and pay.",
     ctaDemo: "See guest demo",
+    demoBanner: "Demo mode · sample bill, nothing is charged",
     ctaLogin: "Go to dashboard",
     f1: "QR per table",
     f1d: "A permanent code per table identifying the venue and the open bill.",

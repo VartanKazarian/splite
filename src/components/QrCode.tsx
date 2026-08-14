@@ -61,7 +61,7 @@ export function QrCode({ value, size = 240 }: { value: string; size?: number }) 
 
   return (
     <div
-      className="inline-block rounded-[24px] border p-2 transition-all duration-500 ease-out"
+      className="inline-block rounded-[24px] border p-1 transition-all duration-500 ease-out"
       style={{
         borderColor: COPPER,
         boxShadow: `0 18px 45px -18px ${COPPER}80, 0 0 0 1px ${COPPER}33`,
@@ -69,7 +69,7 @@ export function QrCode({ value, size = 240 }: { value: string; size?: number }) 
         transform: shown ? "scale(1)" : "scale(0.94)",
       }}
     >
-      <div className="rounded-[18px] bg-white p-6">
+      <div className="rounded-[18px] bg-white p-2">
         <div ref={ref} style={{ width: size, height: size }} />
       </div>
     </div>

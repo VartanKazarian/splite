@@ -548,37 +548,21 @@ function Dashboard() {
                       <p className="text-xs uppercase tracking-widest text-muted-foreground">
                         {t("addLines")}
                       </p>
-                      {productsQuery.isSuccess && productsQuery.data.length === 0 && (
+                      {productsQuery.isSuccess && productsQuery.data.length === 0 ? (
                         <p className="mt-2 text-sm text-muted-foreground">
                           {t("menuEmptyHint")}{" "}
                           <Link to="/menu" className="underline">
                             {t("manageMenu")}
                           </Link>
                         </p>
+                      ) : (
+                        <button
+                          onClick={() => setPickerOpen(true)}
+                          className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:border-primary"
+                        >
+                          <Plus className="h-4 w-4" /> {t("chooseProducts")}
+                        </button>
                       )}
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {(productsQuery.data ?? [])
-                          .filter((p) => p.active)
-                          .map((p) => {
-                            // El backend rechaza mezclar monedas: MENU_CURRENCY_MISMATCH.
-                            const mismatch = p.currency !== bill.currency;
-                            return (
-                              <button
-                                key={p.id}
-                                disabled={addLine.isPending || mismatch}
-                                title={
-                                  mismatch
-                                    ? `${t("currencyMismatch")} (${p.currency} → ${bill.currency})`
-                                    : undefined
-                                }
-                                onClick={() => addLine.mutate(p.id)}
-                                className="rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:border-primary disabled:opacity-40"
-                              >
-                                + {p.name} · {p.currency} {formatMinor(p.priceMinorUnits)}
-                              </button>
-                            );
-                          })}
-                      </div>
                       {(productsQuery.data ?? []).some(
                         (p) => p.active && p.currency !== bill.currency,
                       ) && (
@@ -590,7 +574,16 @@ function Dashboard() {
                         </p>
                       )}
 
+                      <AddProductsDialog
+                        open={pickerOpen}
+                        onOpenChange={setPickerOpen}
+                        products={productsQuery.data ?? []}
+                        billCurrency={bill.currency}
+                        pending={addLines.isPending}
+                        onConfirm={(lines) => addLines.mutate(lines)}
+                      />
                     </div>
+
 
 
                     <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">

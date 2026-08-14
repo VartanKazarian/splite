@@ -77,46 +77,73 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
 
 
   const [mode, setMode] = useState<SplitMode>("FULL");
-  const [people, setPeople] = useState<Participant[]>([
-    { id: "p1", name: "" },
-    { id: "p2", name: "" },
-  ]);
-  const [claims, setClaims] = useState<Record<string, string[]>>({});
-  const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [diners, setDiners] = useState(2);
+  const [mine, setMine] = useState<string[]>([]);
+  const [amount, setAmount] = useState("");
   const [preview, setPreview] = useState<SplitPreview | null>(null);
 
   const bill = billQuery.data ?? null;
+  const rateStr = bill?.fxRateVesPerUnit ?? bill?.fxRate ?? null;
+  const showVes = Boolean(bill && bill.currency !== "VES" && rateStr);
 
   const splitMutation = useMutation({
     mutationFn: async () => {
-      const participants =
-        mode === "FULL"
-          ? [{ id: "p1", name: people[0]?.name || "" }]
-          : people.map((p) => ({
-              id: p.id,
-              ...(p.name ? { name: p.name } : {}),
-              ...(mode === "CUSTOM"
-                ? { amountVes: (amounts[p.id] ?? "").replace(/\D/g, "") }
-                : {}),
-            }));
-      const body = {
-        mode,
-        participants,
-        ...(mode === "ITEMS"
-          ? {
-              claims: (bill?.items ?? []).map((item) => ({
-                itemId: item.id,
-                participantIds: claims[item.id] ?? [],
-              })),
-            }
-          : {}),
-      };
+      // Nadie escribe nombres: cada comensal usa el mismo QR y sólo marca lo suyo.
+      const remaining = BigInt(bill?.remainingVes ?? bill?.totalDueVes ?? "0");
+      let body: Record<string, unknown>;
+      if (mode === "FULL") {
+        body = { mode, participants: [{ id: "me" }] };
+      } else if (mode === "EQUAL") {
+        body = {
+          mode,
+          participants: Array.from({ length: Math.max(2, diners) }, (_, i) => ({ id: `p${i + 1}` })),
+        };
+      } else if (mode === "ITEMS") {
+        body = {
+          mode,
+          participants: [{ id: "me" }, { id: "others" }],
+          claims: (bill?.items ?? []).map((item) => ({
+            itemId: item.id,
+            participantIds: [mine.includes(item.id) ? "me" : "others"],
+          })),
+        };
+      } else {
+        const cents = BigInt(parseMinorInput(amount) || "0");
+        const rest = remaining > cents ? remaining - cents : 0n;
+        body = {
+          mode,
+          participants: [
+            { id: "me", amountVes: cents.toString() },
+            { id: "others", amountVes: rest.toString() },
+          ],
+        };
+      }
       // El reparto lo calcula el servidor: nunca se divide en el cliente.
       return guest.splitPreview<SplitPreview>(body);
     },
     onSuccess: setPreview,
     onError: () => setPreview(null),
   });
+
+  // El cálculo aparece solo tras la selección, sin botón intermedio.
+  const canSplit =
+    Boolean(bill) &&
+    (mode === "FULL" ||
+      (mode === "EQUAL" && diners >= 2) ||
+      (mode === "ITEMS" && mine.length > 0) ||
+      (mode === "CUSTOM" && BigInt(parseMinorInput(amount) || "0") > 0n));
+  const splitRef = useRef(splitMutation);
+  splitRef.current = splitMutation;
+  useEffect(() => {
+    if (!canSplit) {
+      setPreview(null);
+      return;
+    }
+    const id = setTimeout(() => splitRef.current.mutate(), 250);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSplit, mode, diners, mine.join(","), amount, bill?.totalDue, bill?.remainingVes]);
+
 
   const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : undefined);
 

@@ -1,7 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check, LogOut, Pencil, Plus, Trash2, Settings, UtensilsCrossed, X } from "lucide-react";
+import {
+  Check,
+  Info,
+  Link as LinkIcon,
+  Loader2,
+  LogOut,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Settings,
+  Trash2,
+  UtensilsCrossed,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { LangToggle } from "@/components/LangToggle";
 import { QrCode } from "@/components/QrCode";
@@ -117,7 +130,19 @@ function Dashboard() {
   });
 
   const [amount, setAmount] = useState("");
+  const [amountFocused, setAmountFocused] = useState(false);
+  const [idemOpen, setIdemOpen] = useState(false);
   const [idemKey, setIdemKey] = useState(newIdempotencyKey());
+
+  // Referencia visual: el cobro siempre se registra en bolívares.
+  const usdRate = rateQuery.data?.rates?.["USD"]?.rate ?? null;
+  const usdPreview = (() => {
+    if (!usdRate || !amount) return null;
+    const rate = Number(usdRate);
+    if (!rate) return null;
+    const usd = Number(amount) / 100 / rate;
+    return usd.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  })();
 
   const floorBill = selected?.openBill ?? null;
 
@@ -623,29 +648,46 @@ function Dashboard() {
                     </div>
 
 
-                    <div className="mt-5 border-t border-border pt-4">
-                      <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                    <div className="mt-5 border-t border-border pt-5">
+                      <label className="text-[12px] uppercase tracking-[0.08em] text-muted-foreground">
                         {t("chargeAmount")}
                       </label>
-                      <div className="mt-2 flex gap-2">
-                        <input
-                          inputMode="numeric"
-                          placeholder="250000"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
-                        />
+                      <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                        <div className="w-full">
+                          <input
+                            inputMode="numeric"
+                            placeholder="250000"
+                            value={amountFocused ? amount : groupDigits(amount)}
+                            onFocus={() => setAmountFocused(true)}
+                            onBlur={() => setAmountFocused(false)}
+                            onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))}
+                            className="w-full rounded-2xl border border-input bg-secondary px-4 py-3.5 text-base tabular-nums outline-none transition-colors focus:border-primary"
+                          />
+                          {usdPreview && (
+                            <p className="mt-1.5 text-xs tabular-nums text-muted-foreground">
+                              ≈ {usdPreview} USD
+                            </p>
+                          )}
+                        </div>
                         <button
-                          disabled={payMutation.isPending || !amount}
+                          disabled={payMutation.isPending || !Number(amount || "0")}
                           onClick={() => payMutation.mutate()}
-                          className="whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                          className="inline-flex h-[52px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-opacity disabled:opacity-40"
                         >
-                          {t("takePayment")}
+                          {payMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {payMutation.isPending ? t("registering") : t("takePayment")}
                         </button>
                       </div>
-                      <p className="mt-2 break-all text-[10px] text-muted-foreground">
+                      <button
+                        type="button"
+                        onClick={() => setIdemOpen((v) => !v)}
+                        title={idemKey}
+                        className={`mt-3 block w-full text-left text-[11px] text-muted-foreground/60 ${
+                          idemOpen ? "break-all" : "truncate"
+                        }`}
+                      >
                         {t("idemKey")}: {idemKey} — {t("idemNote")}
-                      </p>
+                      </button>
                     </div>
                   </>
                 )}
@@ -654,13 +696,17 @@ function Dashboard() {
           </div>
 
           <aside className="surface h-fit p-6 text-center">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">{t("qrFor")}</p>
-            <p className="mt-1 font-display text-3xl">{selected?.name ?? "—"}</p>
-            <div className="mt-5 flex justify-center animate-fade-in">
+            <p className="text-[12px] uppercase tracking-[0.08em] text-muted-foreground">
+              {t("qrFor")}
+            </p>
+            <p className="mt-1 font-display text-[40px] leading-tight">{selected?.name ?? "—"}</p>
+            <div className="mt-5 flex justify-center">
               {guestUrl ? (
-                <QrCode value={guestUrl} size={240} />
+                <div className="w-[70%] min-w-[200px] max-w-[280px]">
+                  <QrCode value={guestUrl} size={240} />
+                </div>
               ) : (
-                <div className="h-[264px] w-[264px] rounded-lg bg-secondary" />
+                <div className="aspect-square w-[70%] min-w-[200px] max-w-[280px] rounded-[20px] bg-secondary" />
               )}
             </div>
             <p className="mt-4 text-xs text-muted-foreground">{t("qrScanHint")}</p>
@@ -677,18 +723,18 @@ function Dashboard() {
                       toast.error(t("apiDown"));
                     }
                   }}
-                  className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
+                  className="mt-5 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-full border border-primary/25 bg-transparent px-5 text-sm text-foreground transition-colors hover:bg-primary/[0.08]"
                 >
-                  {t("copyLink")}
+                  <LinkIcon className="h-4 w-4" /> {t("copyLink")}
                 </button>
 
 
 
                 <button
                   onClick={() => setRotateOpen(true)}
-                  className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
+                  className="mt-3 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-full border border-primary/25 bg-transparent px-5 text-sm text-foreground transition-colors hover:bg-primary/[0.08]"
                 >
-                  {t("refreshQr")}
+                  <RefreshCw className="h-4 w-4" /> {t("refreshQr")}
                 </button>
 
                 <AlertDialog open={rotateOpen} onOpenChange={setRotateOpen}>
@@ -720,27 +766,40 @@ function Dashboard() {
           </aside>
         </section>
 
-        <section className="mt-8 surface p-6">
-          <h2 className="text-xl">{t("exchangeRate")}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{t("fxSource")}</p>
+        <section className="surface mt-5 p-6">
+          <h2 className="font-display text-2xl">{t("exchangeRate")}</h2>
+          <span className="mt-2 inline-block rounded-full bg-primary/10 px-3 py-1 text-[11px] text-primary">
+            {t("fxSource")}
+          </span>
           {rateQuery.isError && <ErrorBox error={rateQuery.error} fallback={t("apiDown")} />}
-          <ul className="mt-4 space-y-2 text-sm">
+          <dl className="mt-5 divide-y divide-border">
             {Object.entries(rateQuery.data?.rates ?? {}).map(([code, r]) => (
-              <li key={code} className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">
-                  {code} · {t("valueDate")} {r.valueDate ?? "—"} · {r.source}
-                </span>
-                <span>{r.rate} Bs.</span>
-              </li>
+              <div key={code} className="flex items-baseline justify-between gap-4 py-2.5">
+                <dt className="text-sm text-muted-foreground">
+                  {code}
+                  <span className="ml-2 text-xs">
+                    {t("valueDate")} {r.valueDate ?? "—"} · {r.source}
+                  </span>
+                </dt>
+                <dd className="shrink-0 font-display text-lg tabular-nums">{r.rate} Bs.</dd>
+              </div>
             ))}
-          </ul>
-          <p className="mt-3 text-xs text-muted-foreground">
-            {t("settlementVes")} · {t("settlementNote")}
-          </p>
+          </dl>
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-primary/15 bg-primary/[0.06] p-4">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <p className="text-xs text-muted-foreground">
+              {t("settlementVes")} · {t("settlementNote")}
+            </p>
+          </div>
         </section>
       </main>
     </div>
   );
+}
+
+/** Agrupa dígitos crudos en miles para mostrarlos al perder el foco. */
+function groupDigits(digits: string): string {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 function MoneyRow({

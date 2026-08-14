@@ -5,6 +5,7 @@ import { Check, LogOut, Pencil, Plus, Trash2, Settings, UtensilsCrossed, X } fro
 import { toast } from "sonner";
 import { LangToggle } from "@/components/LangToggle";
 import { QrCode } from "@/components/QrCode";
+import { AddProductsDialog } from "@/components/AddProductsDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -271,6 +272,22 @@ function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ["bill-items", bill?.id] });
   };
 
+
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const addLines = useMutation({
+    mutationFn: async (lines: { productId: string; quantity: number }[]) => {
+      for (const line of lines) {
+        await bills.addItem(bill!.id, line.productId, line.quantity);
+      }
+    },
+    onSuccess: () => {
+      setPickerOpen(false);
+      toast.success(t("lineAdded"));
+      refreshBill();
+    },
+    onError: fail,
+  });
 
   const addLine = useMutation({
     mutationFn: (productId: string) => bills.addItem(bill!.id, productId, 1),

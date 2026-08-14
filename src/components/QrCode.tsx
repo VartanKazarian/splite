@@ -13,7 +13,7 @@ const BRAND_LOGO =
   );
 
 /**
- * QR premium: puntos redondeados, ojos en cobre de marca, logo central y
+ * QR premium: ojos en cobre de marca, resto negro puro, logo central y
  * corrección de errores alta ("H") para que siga siendo escaneable.
  */
 export function QrCode({ value, size = 240 }: { value: string; size?: number }) {
@@ -34,15 +34,10 @@ export function QrCode({ value, size = 240 }: { value: string; size?: number }) 
         type: "svg" as const,
         data: value,
         image: BRAND_LOGO,
-        margin: 16,
+        margin: 0,
         qrOptions: { errorCorrectionLevel: "H" as const },
-        imageOptions: {
-          crossOrigin: "anonymous",
-          margin: 8,
-          imageSize: 0.25,
-          hideBackgroundDots: true,
-        },
-        dotsOptions: { color: "#0A0A0A", type: "rounded" as const },
+        imageOptions: { crossOrigin: "anonymous", margin: 6, imageSize: 0.22 },
+        dotsOptions: { color: "#000000", type: "square" as const },
         backgroundOptions: { color: "#ffffff" },
         cornersSquareOptions: { color: COPPER, type: "extra-rounded" as const },
         cornersDotOptions: { color: COPPER, type: "dot" as const },
@@ -66,19 +61,17 @@ export function QrCode({ value, size = 240 }: { value: string; size?: number }) 
 
   return (
     <div
-      className="inline-block rounded-[20px] bg-white p-6 transition-all duration-[400ms] ease-out"
+      className="inline-block rounded-[24px] border p-1 transition-all duration-500 ease-out"
       style={{
-        boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(201,124,75,0.15)`,
+        borderColor: COPPER,
+        boxShadow: `0 18px 45px -18px ${COPPER}80, 0 0 0 1px ${COPPER}33`,
         opacity: shown ? 1 : 0,
-        transform: shown ? "scale(1)" : "scale(0.96)",
+        transform: shown ? "scale(1)" : "scale(0.94)",
       }}
     >
-      {/* El SVG se adapta al ancho disponible sin perder la zona de silencio. */}
-      <div
-        ref={ref}
-        className="[&>svg]:h-auto [&>svg]:w-full"
-        style={{ width: size, maxWidth: "100%" }}
-      />
+      <div className="rounded-[18px] bg-white p-2">
+        <div ref={ref} style={{ width: size, height: size }} />
+      </div>
     </div>
   );
 }

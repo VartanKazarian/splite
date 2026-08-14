@@ -1,17 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { LangToggle } from "@/components/LangToggle";
 import { useI18n } from "@/lib/i18n";
+import { applyRate, parseRate } from "@/lib/fiscal";
 import {
   ApiError,
   formatBps,
   formatFxRate,
-  formatMinor,
   formatMoney,
   guest,
   guestSession,
+  parseMinorInput,
   type Bill,
   type MenuCurrency,
   type SplitMode,
@@ -21,7 +22,23 @@ import {
 
 import { ErrorBox } from "@/routes/dashboard";
 
-type Participant = { id: string; name: string };
+/** Referencia visual en Bs de un importe cotizado, a la tasa congelada de la cuenta. */
+function toVes(minor: string, rate: string | null): string {
+  if (!rate) return "0";
+  try {
+    return applyRate(BigInt(minor), parseRate(rate)).toString();
+  } catch {
+    return "0";
+  }
+}
+
+/** Lo que le toca a este comensal según el modo elegido. */
+function myShare(preview: SplitPreview, mode: SplitMode): string {
+  if (mode === "EQUAL") return preview.allocations[0]?.amountVes ?? "0";
+  const mineAlloc = preview.allocations.find((a) => a.participantId === "me");
+  return mineAlloc?.amountVes ?? preview.allocations[0]?.amountVes ?? "0";
+}
+
 
 export function GuestBillScreen({ qr }: { qr?: string }) {
   const { t } = useI18n();
@@ -207,16 +224,11 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
     { id: "CUSTOM", label: t("custom") },
   ];
 
-  const toggleClaim = (itemId: string, participantId: string) =>
-    setClaims((prev) => {
-      const current = prev[itemId] ?? [];
-      return {
-        ...prev,
-        [itemId]: current.includes(participantId)
-          ? current.filter((id) => id !== participantId)
-          : [...current, participantId],
-      };
-    });
+  const toggleMine = (itemId: string) =>
+    setMine((prev) =>
+      prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId],
+    );
+
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-md px-5 pb-16">
@@ -239,10 +251,18 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
               <span>
                 {item.quantity} × {item.name}
               </span>
-              <span>{formatMoney(item.subtotalMinor, bill.currency)}</span>
+              <span className="flex shrink-0 items-baseline gap-3">
+                <span>{formatMoney(item.subtotalMinor, bill.currency)}</span>
+                {showVes && (
+                  <span className="w-24 text-right text-xs text-muted-foreground">
+                    {formatMoney(toVes(item.subtotalMinor, rateStr), "VES")}
+                  </span>
+                )}
+              </span>
             </li>
           ))}
         </ul>
+
 
         <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
           <MoneyRow label={t("subtotal")} amount={bill.subtotalMinor} currency={bill.currency} />
@@ -310,128 +330,104 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
           ))}
         </div>
 
-        {mode !== "FULL" && (
-          <div className="mt-5 space-y-2">
+        {mode === "EQUAL" && (
+          <div className="mt-5">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              {t("participants")}
+              {t("howManyDiners")}
             </p>
-            {people.map((p, index) => (
-              <div key={p.id} className="flex items-center gap-2">
-                <input
-                  placeholder={`${t("name")} ${index + 1}`}
-                  value={p.name}
-                  onChange={(e) =>
-                    setPeople((prev) =>
-                      prev.map((x) => (x.id === p.id ? { ...x, name: e.target.value } : x)),
-                    )
-                  }
-                  className="w-full rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
-                />
-                {mode === "CUSTOM" && (
-                  <input
-                    inputMode="numeric"
-                    placeholder="Bs. céntimos"
-                    value={amounts[p.id] ?? ""}
-                    onChange={(e) =>
-                      setAmounts((prev) => ({ ...prev, [p.id]: e.target.value }))
-                    }
-                    className="w-36 rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
-                  />
-                )}
-                {people.length > 1 && (
-                  <button
-                    onClick={() => setPeople((prev) => prev.filter((x) => x.id !== p.id))}
-                    className="rounded-full border border-border px-3 py-2 text-xs text-muted-foreground"
-                  >
-                    −
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              onClick={() =>
-                setPeople((prev) => [...prev, { id: `p${prev.length + 1}-${Date.now()}`, name: "" }])
-              }
-              className="rounded-full border border-border px-4 py-2 text-xs text-muted-foreground"
-            >
-              + {t("addPerson")}
-            </button>
+            <div className="mt-3 flex items-center gap-4">
+              <button
+                onClick={() => setDiners((n) => Math.max(2, n - 1))}
+                className="h-10 w-10 rounded-full border border-border text-lg text-muted-foreground"
+              >
+                −
+              </button>
+              <span className="font-display text-3xl">{diners}</span>
+              <button
+                onClick={() => setDiners((n) => Math.min(50, n + 1))}
+                className="h-10 w-10 rounded-full border border-border text-lg text-muted-foreground"
+              >
+                +
+              </button>
+            </div>
           </div>
         )}
 
         {mode === "ITEMS" && (
-          <div className="mt-5 space-y-3">
-            <p className="text-xs text-muted-foreground">{t("claimItems")}</p>
-            {(bill.items ?? []).map((item) => (
-              <div key={item.id} className="rounded-lg bg-secondary/60 p-3">
-                <p className="text-sm">{item.name}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {people.map((p, i) => {
-                    const on = (claims[item.id] ?? []).includes(p.id);
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => toggleClaim(item.id, p.id)}
-                        className={`rounded-full border px-3 py-1 text-xs ${
-                          on ? "border-primary bg-primary/20" : "border-border text-muted-foreground"
-                        }`}
-                      >
-                        {p.name || `${t("name")} ${i + 1}`}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+          <div className="mt-5 space-y-2">
+            <p className="text-xs text-muted-foreground">{t("selectYourItems")}</p>
+            {(bill.items ?? []).map((item) => {
+              const on = mine.includes(item.id);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => toggleMine(item.id)}
+                  className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
+                    on ? "border-primary bg-primary/15" : "border-border text-muted-foreground"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <span
+                      className={`flex h-4 w-4 items-center justify-center rounded border ${
+                        on ? "border-primary bg-primary/40" : "border-border"
+                      }`}
+                    >
+                      {on && <Check className="h-3 w-3" />}
+                    </span>
+                    {item.quantity} × {item.name}
+                  </span>
+                  <span>{formatMoney(item.subtotalMinor, bill.currency)}</span>
+                </button>
+              );
+            })}
           </div>
         )}
 
-        <button
-          onClick={() => splitMutation.mutate()}
-          disabled={splitMutation.isPending}
-          className="mt-6 w-full rounded-full bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
-        >
-          {splitMutation.isPending ? t("loading") : t("previewSplit")}
-        </button>
+        {mode === "CUSTOM" && (
+          <div className="mt-5">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              {t("yourAmount")}
+            </p>
+            <input
+              inputMode="decimal"
+              placeholder="0,00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="mt-3 w-full rounded-lg border border-input bg-secondary px-3 py-2.5 text-sm outline-none focus:border-ring"
+            />
+          </div>
+        )}
+
+        {splitMutation.isPending && (
+          <p className="mt-5 text-xs text-muted-foreground">{t("calculating")}</p>
+        )}
 
         {splitMutation.isError && (
           <ErrorBox error={splitMutation.error} fallback={t("apiDown")} />
         )}
 
-        {preview && (
+        {preview && !splitMutation.isPending && (
           <div className="mt-5 border-t border-border pt-4">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              {t("allocations")}
-            </p>
-            <ul className="mt-3 space-y-2 text-sm">
-              {preview.allocations.map((a) => (
-                <li key={a.participantId} className="flex justify-between">
-                  <span className="inline-flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-success" />
-                    {a.name || a.participantId}
-                  </span>
-                  <span>
-                    Bs. {formatMinor(a.amountVes)}
-                    {a.usdReference && (
-                      <span className="ml-2 text-xs text-muted-foreground">${a.usdReference}</span>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-3 flex justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                {mode === "EQUAL" ? t("perPerson") : t("yourShare")}
+              </span>
+              <span className="font-display text-3xl">
+                {formatMoney(myShare(preview, mode), "VES")}
+              </span>
+            </div>
+            <div className="mt-3 flex justify-between text-xs text-muted-foreground">
               <span>{t("outstanding")}</span>
-              <span>Bs. {formatMinor(preview.outstandingVes)}</span>
+              <span>{formatMoney(preview.outstandingVes, "VES")}</span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{t("allocated")}</span>
-              <span>Bs. {formatMinor(preview.totalAllocatedVes)}</span>
+              <span>{formatMoney(preview.totalAllocatedVes, "VES")}</span>
             </div>
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              {t("largestRemainder")}. {t("guestNoPay")}
-            </p>
+            <p className="mt-3 text-[11px] text-muted-foreground">{t("guestNoPay")}</p>
           </div>
         )}
+
       </div>
     </div>
   );

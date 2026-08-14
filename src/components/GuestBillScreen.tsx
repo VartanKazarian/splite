@@ -100,7 +100,8 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
 
   const [mode, setMode] = useState<SplitMode>("FULL");
   const [diners, setDiners] = useState(2);
-  const [mine, setMine] = useState<string[]>([]);
+  // itemId -> unidades que paga este comensal
+  const [mine, setMine] = useState<Record<string, number>>({});
   const [amount, setAmount] = useState("");
   const [preview, setPreview] = useState<SplitPreview | null>(null);
   // Propina opcional del comensal, encima del cargo por servicio de la cuenta.
@@ -135,10 +136,18 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
         body = {
           mode,
           participants: [{ id: "me" }, { id: "others" }],
-          claims: (bill?.items ?? []).map((item) => ({
-            itemId: item.id,
-            participantIds: [mine.includes(item.id) ? "me" : "others"],
-          })),
+          claims: (bill?.items ?? []).flatMap((item) => {
+            const qty = mine[item.id] ?? 0;
+            const rest = Math.max(0, (item.quantity ?? 1) - qty);
+            return [
+              ...(qty > 0
+                ? [{ itemId: item.id, quantity: qty, participantIds: ["me"] }]
+                : []),
+              ...(rest > 0
+                ? [{ itemId: item.id, quantity: rest, participantIds: ["others"] }]
+                : []),
+            ];
+          }),
         };
       } else {
         const cents = BigInt(parseMinorInput(amount) || "0");
@@ -163,7 +172,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
     Boolean(bill) &&
     (mode === "FULL" ||
       (mode === "EQUAL" && diners >= 2) ||
-      (mode === "ITEMS" && mine.length > 0) ||
+      (mode === "ITEMS" && Object.values(mine).some((q) => q > 0)) ||
       (mode === "CUSTOM" && BigInt(parseMinorInput(amount) || "0") > 0n));
   const splitRef = useRef(splitMutation);
   splitRef.current = splitMutation;
@@ -175,7 +184,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
     const id = setTimeout(() => splitRef.current.mutate(), 250);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canSplit, mode, diners, mine.join(","), amount, bill?.totalDue, bill?.remainingVes]);
+  }, [canSplit, mode, diners, JSON.stringify(mine), amount, bill?.totalDue, bill?.remainingVes]);
 
 
   const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : undefined);
@@ -247,10 +256,14 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
       ? (parseMinorInput(tipCustom) || "0")
       : ((shareMinor * BigInt(tipPct)) / 100n).toString();
 
-  const toggleMine = (itemId: string) =>
-    setMine((prev) =>
-      prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId],
-    );
+  const setMineQty = (itemId: string, qty: number, max: number) =>
+    setMine((prev) => {
+      const next = { ...prev };
+      const clamped = Math.max(0, Math.min(max, qty));
+      if (clamped === 0) delete next[itemId];
+      else next[itemId] = clamped;
+      return next;
+    });
 
 
   return (
@@ -271,7 +284,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
       <div className="surface p-6">
         <h1 className="text-3xl">{t("yourBill")}</h1>
         <p className="mt-1 text-xs text-muted-foreground">
-          {t("quotedIn")} {bill.currency} · {t("settlementVes")}
+          {t("quotedIn")} {bill.currency}
         </p>
 
         <ul className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
@@ -386,27 +399,57 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
           <div className="mt-5 space-y-2">
             <p className="text-xs text-muted-foreground">{t("selectYourItems")}</p>
             {(bill.items ?? []).map((item) => {
-              const on = mine.includes(item.id);
+              const max = item.quantity ?? 1;
+              const qty = mine[item.id] ?? 0;
+              const on = qty > 0;
+              const unit = (BigInt(item.subtotalMinor) * BigInt(qty)) / BigInt(max || 1);
               return (
-                <button
+                <div
                   key={item.id}
-                  onClick={() => toggleMine(item.id)}
                   className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
                     on ? "border-primary bg-primary/15" : "border-border text-muted-foreground"
                   }`}
                 >
-                  <span className="inline-flex items-center gap-2">
+                  <button
+                    onClick={() => setMineQty(item.id, on ? 0 : max, max)}
+                    className="flex flex-1 items-center gap-2 text-left"
+                  >
                     <span
-                      className={`flex h-4 w-4 items-center justify-center rounded border ${
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
                         on ? "border-primary bg-primary/40" : "border-border"
                       }`}
                     >
                       {on && <Check className="h-3 w-3" />}
                     </span>
-                    {item.quantity} × {item.name}
+                    <span>
+                      {max} × {item.name}
+                    </span>
+                  </button>
+                  <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-1">
+                      <button
+                        aria-label="-"
+                        onClick={() => setMineQty(item.id, qty - 1, max)}
+                        disabled={qty <= 0}
+                        className="h-7 w-7 rounded-full border border-border text-sm disabled:opacity-30"
+                      >
+                        −
+                      </button>
+                      <span className="w-5 text-center tabular-nums">{qty}</span>
+                      <button
+                        aria-label="+"
+                        onClick={() => setMineQty(item.id, qty + 1, max)}
+                        disabled={qty >= max}
+                        className="h-7 w-7 rounded-full border border-border text-sm disabled:opacity-30"
+                      >
+                        +
+                      </button>
+                    </span>
+                    <span className="w-20 shrink-0 text-right">
+                      {formatMoney(unit.toString(), bill.currency)}
+                    </span>
                   </span>
-                  <span>{formatMoney(item.subtotalMinor, bill.currency)}</span>
-                </button>
+                </div>
               );
             })}
           </div>

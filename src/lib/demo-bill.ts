@@ -71,7 +71,7 @@ function hare(total: bigint, weights: bigint[]): bigint[] {
 export function demoSplit(
   bill: Bill,
   mode: SplitMode,
-  opts: { diners: number; mine: string[]; amountMinor: string },
+  opts: { diners: number; mine: Record<string, number>; amountMinor: string },
 ): SplitPreview {
   const outstanding = BigInt(bill.remainingVes);
   const rate = parseRate(bill.fxRateVesPerUnit ?? RATE.rate);
@@ -90,9 +90,12 @@ export function demoSplit(
     const parts = hare(outstanding, Array.from({ length: n }, () => 1n));
     allocations = parts.map((p, i) => alloc(`p${i + 1}`, p));
   } else if (mode === "ITEMS") {
-    const mineMinor = (bill.items ?? [])
-      .filter((i) => opts.mine.includes(i.id))
-      .reduce((a, i) => a + BigInt(i.subtotalMinor), 0n);
+    const mineMinor = (bill.items ?? []).reduce((a, i) => {
+      const qty = BigInt(opts.mine[i.id] ?? 0);
+      if (qty <= 0n) return a;
+      const max = BigInt(i.quantity || 1);
+      return a + (BigInt(i.subtotalMinor) * qty) / max;
+    }, 0n);
     const subtotal = BigInt(bill.subtotalMinor) || 1n;
     // Impuestos y servicio se prorratean sobre lo consumido.
     const share = applyRate((mineMinor * BigInt(bill.totalDue)) / subtotal, rate);

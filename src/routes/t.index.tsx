@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { GuestBillScreen } from "@/components/GuestBillScreen";
 
-type Search = { qr?: string };
+type Search = { qr?: string; demo?: string };
 
 export const Route = createFileRoute("/t/")({
   validateSearch: (search: Record<string, unknown>): Search =>
-    typeof search['qr'] === "string" ? { qr: search['qr'] } : {},
+    ({
+      ...(typeof search['qr'] === "string" ? { qr: search['qr'] } : {}),
+      ...(search['demo'] ? { demo: String(search['demo']) } : {}),
+    }),
   head: () => ({
     meta: [
       { title: "Tu cuenta — Splite" },
@@ -23,6 +26,6 @@ export const Route = createFileRoute("/t/")({
 });
 
 function GuestPage() {
-  const { qr } = Route.useSearch();
-  return <GuestBillScreen {...(qr ? { qr } : {})} />;
+  const { qr, demo } = Route.useSearch();
+  return <GuestBillScreen {...(qr ? { qr } : {})} demo={Boolean(demo)} />;
 }

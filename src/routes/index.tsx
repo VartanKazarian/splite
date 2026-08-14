@@ -52,14 +52,12 @@ function Landing() {
       <main className="mx-auto max-w-5xl px-5 pb-20">
         <section className="grid items-center gap-10 py-10 md:grid-cols-[1.1fr_0.9fr] md:py-16">
           <div>
-            <p className="mb-4 inline-flex rounded-full border border-border bg-secondary px-3 py-1 text-xs uppercase tracking-widest text-muted-foreground">
-              Pay at table · {restaurant.city}
-            </p>
             <h1 className="text-4xl leading-[1.05] md:text-6xl">{t("tagline")}</h1>
             <p className="mt-5 max-w-md text-base text-muted-foreground">{t("heroSub")}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/t"
+                search={{ demo: "1" }}
 
                 className="rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >

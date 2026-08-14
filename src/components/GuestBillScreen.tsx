@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { LangToggle } from "@/components/LangToggle";
 import { useI18n } from "@/lib/i18n";
@@ -21,6 +21,7 @@ import {
 
 
 import { ErrorBox } from "@/routes/dashboard";
+import { demoBill, demoSplit } from "@/lib/demo-bill";
 
 /** Referencia visual en Bs de un importe cotizado, a la tasa congelada de la cuenta. */
 function toVes(minor: string, rate: string | null): string {
@@ -40,13 +41,17 @@ function myShare(preview: SplitPreview, mode: SplitMode): string {
 }
 
 
-export function GuestBillScreen({ qr }: { qr?: string }) {
+export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: boolean }) {
   const { t } = useI18n();
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState<unknown>(null);
 
   // El QR trae un token firmado: se canjea una sola vez por sesión de invitado.
   useEffect(() => {
+    if (demo) {
+      setSessionReady(true);
+      return;
+    }
     let cancelled = false;
     (async () => {
       const clean = () => {
@@ -74,11 +79,11 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
     return () => {
       cancelled = true;
     };
-  }, [qr]);
+  }, [qr, demo]);
 
   const billQuery = useQuery({
-    queryKey: ["guest-bill"],
-    enabled: sessionReady,
+    queryKey: ["guest-bill", demo],
+    enabled: sessionReady && !demo,
     retry: false,
     // El personal añade productos mientras la gente está sentada: sondeo cada 5s.
     refetchInterval: 5000,
@@ -102,12 +107,20 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
   const [tipPct, setTipPct] = useState<number | null>(0);
   const [tipCustom, setTipCustom] = useState("");
 
-  const bill = billQuery.data ?? null;
+  const demoBillData = useMemo(() => (demo ? demoBill() : null), [demo]);
+  const bill = demo ? demoBillData : (billQuery.data ?? null);
   const rateStr = bill?.fxRateVesPerUnit ?? bill?.fxRate ?? null;
   const showVes = Boolean(bill && bill.currency !== "VES" && rateStr);
 
   const splitMutation = useMutation({
     mutationFn: async () => {
+      if (demo && bill) {
+        return demoSplit(bill, mode, {
+          diners,
+          mine,
+          amountMinor: parseMinorInput(amount) || "0",
+        });
+      }
       // Nadie escribe nombres: cada comensal usa el mismo QR y sólo marca lo suyo.
       const remaining = BigInt(bill?.remainingVes ?? bill?.totalDueVes ?? "0");
       let body: Record<string, unknown>;
@@ -167,7 +180,7 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
 
   const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : undefined);
 
-  if (sessionError || (!sessionReady && !qr)) {
+  if (!demo && (sessionError || (!sessionReady && !qr))) {
     const code = codeOf(sessionError);
     return (
       <Shell>
@@ -184,7 +197,7 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
     );
   }
 
-  if (!sessionReady || billQuery.isLoading) {
+  if (!demo && (!sessionReady || billQuery.isLoading)) {
     return (
       <Shell>
         <p className="text-sm text-muted-foreground">{t("loading")}</p>
@@ -192,7 +205,7 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
     );
   }
 
-  if (billQuery.isError) {
+  if (!demo && billQuery.isError) {
     const code = codeOf(billQuery.error);
     if (code === "GUEST_SESSION_INVALID") {
       guestSession.set(null);
@@ -248,6 +261,12 @@ export function GuestBillScreen({ qr }: { qr?: string }) {
         </Link>
         <LangToggle />
       </header>
+
+      {demo && (
+        <p className="mb-3 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-center text-[11px] uppercase tracking-widest text-muted-foreground">
+          {t("demoBanner")}
+        </p>
+      )}
 
       <div className="surface p-6">
         <h1 className="text-3xl">{t("yourBill")}</h1>

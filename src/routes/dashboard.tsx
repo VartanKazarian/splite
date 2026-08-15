@@ -684,6 +684,39 @@ function Dashboard() {
                   {t("copyLink")}
                 </button>
 
+                <button
+                  onClick={() => {
+                    const svg = document
+                      .getElementById("qr-print-source")
+                      ?.querySelector("svg")?.outerHTML;
+                    if (!svg) return toast.error(t("apiDown"));
+                    const win = window.open("", "_blank", "width=720,height=900");
+                    if (!win) return toast.error(t("apiDown"));
+                    const name = (selected?.name ?? "").replace(/[<>&]/g, "");
+                    win.document.write(`<!doctype html><html><head><meta charset="utf-8">
+<title>QR ${name}</title>
+<style>
+  @page { margin: 16mm; }
+  body { margin:0; font-family: Georgia, serif; color:#111;
+         display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .card { text-align:center; border:2px solid #C97C4B; border-radius:24px; padding:32px 40px; }
+  .name { font-size:34px; margin:0 0 4px; }
+  .kicker { font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:#8a8a8a; margin:0 0 18px; }
+  .qr svg { width:320px; height:320px; }
+  .hint { margin-top:18px; font-size:14px; color:#444; }
+</style></head><body><div class="card">
+  <p class="kicker">${t("qrFor")}</p>
+  <h1 class="name">${name}</h1>
+  <div class="qr">${svg}</div>
+  <p class="hint">${t("qrScanHint")}</p>
+</div><script>window.onload=function(){window.focus();window.print();}<\/script></body></html>`);
+                    win.document.close();
+                  }}
+                  className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
+                >
+                  {t("printQr")}
+                </button>
+
 
 
                 <button

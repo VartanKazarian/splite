@@ -689,9 +689,15 @@ function Dashboard() {
                     const svg = document
                       .getElementById("qr-print-source")
                       ?.querySelector("svg")?.outerHTML;
-                    if (!svg) return toast.error(t("apiDown"));
+                    if (!svg) {
+                      toast.error(t("apiDown"));
+                      return;
+                    }
                     const win = window.open("", "_blank", "width=720,height=900");
-                    if (!win) return toast.error(t("apiDown"));
+                    if (!win) {
+                      toast.error(t("apiDown"));
+                      return;
+                    }
                     const name = (selected?.name ?? "").replace(/[<>&]/g, "");
                     win.document.write(`<!doctype html><html><head><meta charset="utf-8">
 <title>QR ${name}</title>

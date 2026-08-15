@@ -56,24 +56,17 @@ function Landing() {
             <p className="mt-5 max-w-md text-base text-muted-foreground">{t("heroSub")}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                to="/t"
-                search={{ demo: "1" }}
-
-                className="rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                {t("ctaDemo")}
-              </Link>
-              <Link
-                to="/dashboard"
-                className="rounded-full border border-border px-6 py-3 text-sm transition-colors hover:bg-secondary"
-              >
-                {t("ctaLogin")}
-              </Link>
-              <Link
                 to="/registro"
                 className="rounded-full border border-border px-6 py-3 text-sm transition-colors hover:bg-secondary"
               >
                 {t("ctaRegister")}
+              </Link>
+              <Link
+                to="/t"
+                search={{ demo: "1" }}
+                className="rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                {t("ctaDemo")}
               </Link>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">{t("demoNote")}</p>

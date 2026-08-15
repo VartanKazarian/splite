@@ -37,7 +37,7 @@ function Landing() {
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-6">
-        <span className="font-display text-2xl">{t("brand")}</span>
+        <div />
         <div className="flex items-center gap-3">
           <LangToggle />
           <Link

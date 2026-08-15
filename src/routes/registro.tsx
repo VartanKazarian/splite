@@ -305,44 +305,6 @@ function Registro() {
                 )}
               </div>
 
-              <div className="mt-5">
-                <span className={labelClass} id="menuCurrency-label">
-                  ¿En qué moneda están los precios de tu menú?
-                </span>
-                <div
-                  role="radiogroup"
-                  aria-labelledby="menuCurrency-label"
-                  aria-describedby="menuCurrency-help"
-                  className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3"
-                >
-                  {(
-                    [
-                      ["VES", "Bolívares (VES)"],
-                      ["USD", "Dólares (USD)"],
-                      ["EUR", "Euros (EUR)"],
-                    ] as const
-                  ).map(([code, label]) => (
-                    <button
-                      key={code}
-                      type="button"
-                      role="radio"
-                      aria-checked={menuCurrency === code}
-                      onClick={() => setMenuCurrency(code)}
-                      className={`rounded-lg border px-4 py-3 text-base transition-colors ${
-                        menuCurrency === code
-                          ? "border-primary bg-primary/10 text-foreground"
-                          : "border-input bg-secondary text-muted-foreground"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <p id="menuCurrency-help" className="mt-2 text-xs text-muted-foreground">
-                  Splite siempre cobra en bolívares. Esto solo indica en qué moneda están escritos
-                  tus precios.
-                </p>
-              </div>
             </section>
 
             <section className="mt-10">

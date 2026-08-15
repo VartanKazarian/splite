@@ -69,6 +69,12 @@ function Landing() {
               >
                 {t("ctaLogin")}
               </Link>
+              <Link
+                to="/registro"
+                className="rounded-full border border-border px-6 py-3 text-sm transition-colors hover:bg-secondary"
+              >
+                {t("ctaRegister")}
+              </Link>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">{t("demoNote")}</p>
           </div>

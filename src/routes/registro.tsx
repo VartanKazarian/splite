@@ -167,7 +167,6 @@ function Registro() {
       rif: normalizeRif(values.rif),
       email: values.email.trim(),
       phone: values.phone.trim(),
-      menuCurrency,
     };
     if (Object.keys(profile).length > 0) body['profile'] = profile;
 

@@ -705,7 +705,7 @@ function Dashboard() {
   @page { margin: 16mm; }
   body { margin:0; font-family: Georgia, serif; color:#111;
          display:flex; align-items:center; justify-content:center; min-height:100vh; }
-  .card { text-align:center; border:2px solid #C97C4B; border-radius:24px; padding:32px 40px; }
+  .card { text-align:center; border:2px solid #2C7A5C; border-radius:24px; padding:32px 40px; }
   .name { font-size:34px; margin:0 0 4px; }
   .kicker { font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:#8a8a8a; margin:0 0 18px; }
   .qr svg { width:320px; height:320px; }

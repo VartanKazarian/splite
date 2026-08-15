@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const COPPER = "#C97C4B";
+const COPPER = "#2C7A5C";
 
 /** Marca al centro del QR (SVG inline como data URI). */
 const BRAND_LOGO =

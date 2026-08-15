@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MenuRouteImport } from './routes/menu'
+import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TIndexRouteImport } from './routes/t.index'
 import { Route as TSplatRouteImport } from './routes/t.$'
@@ -37,6 +38,11 @@ const MenuRoute = MenuRouteImport.update({
   path: '/menu',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegistroRoute = RegistroRouteImport.update({
+  id: '/registro',
+  path: '/registro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
   '/t/$': typeof TSplatRoute
   '/t/': typeof TIndexRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
   '/t/$': typeof TSplatRoute
   '/t': typeof TIndexRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
   '/t/$': typeof TSplatRoute
   '/t/': typeof TIndexRoute
@@ -84,15 +93,31 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/dashboard' | '/login' | '/menu' | '/settings' | '/t/$' | '/t/'
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/menu'
+    | '/registro'
+    | '/settings'
+    | '/t/$'
+    | '/t/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/menu' | '/settings' | '/t/$' | '/t'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/menu'
+    | '/registro'
+    | '/settings'
+    | '/t/$'
+    | '/t'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/login'
     | '/menu'
+    | '/registro'
     | '/settings'
     | '/t/$'
     | '/t/'
@@ -103,6 +128,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   MenuRoute: typeof MenuRoute
+  RegistroRoute: typeof RegistroRoute
   SettingsRoute: typeof SettingsRoute
   TSplatRoute: typeof TSplatRoute
   TIndexRoute: typeof TIndexRoute
@@ -138,6 +164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MenuRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/registro': {
+      id: '/registro'
+      path: '/registro'
+      fullPath: '/registro'
+      preLoaderRoute: typeof RegistroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -167,6 +200,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   MenuRoute: MenuRoute,
+  RegistroRoute: RegistroRoute,
   SettingsRoute: SettingsRoute,
   TSplatRoute: TSplatRoute,
   TIndexRoute: TIndexRoute,

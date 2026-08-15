@@ -160,8 +160,8 @@
   --border: oklch(0.915 0.008 80);
   --input: oklch(0.915 0.008 80);
   --ring: oklch(0.53 0.105 162);
-  background-color: var(--color-background);
-  color: var(--color-foreground);
+  background-color: var(--background);
+  color: var(--foreground);
   background-image: none;
 }
 

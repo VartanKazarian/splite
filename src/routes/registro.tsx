@@ -57,7 +57,6 @@ function Registro() {
     posSystem: "",
     notes: "",
   });
-  const [menuCurrency, setMenuCurrency] = useState<Currency>("VES");
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [pending, setPending] = useState(false);

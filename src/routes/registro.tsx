@@ -23,7 +23,6 @@ export const Route = createFileRoute("/registro")({
   component: Registro,
 });
 
-type Currency = "VES" | "USD" | "EUR";
 type FieldKey =
   | "restaurantName"
   | "rif"

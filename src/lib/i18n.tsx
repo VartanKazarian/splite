@@ -138,6 +138,7 @@ const dict = {
     currencyMismatchHint: "Sólo puedes añadir productos en la moneda de la cuenta. Ajusta la moneda del menú o el precio del producto.",
     copyLink: "Copiar enlace",
     qrScanHint: "Escanea para ver tu cuenta",
+    printQr: "Imprimir QR",
     rotateQrWarning:
       "Esto invalidará el código impreso de esta mesa. Tendrás que imprimirlo de nuevo. ¿Continuar?",
     continue: "Continuar",

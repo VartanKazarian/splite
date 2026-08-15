@@ -658,7 +658,7 @@ function Dashboard() {
           <aside className="surface h-fit p-6 text-center">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">{t("qrFor")}</p>
             <p className="mt-1 font-display text-3xl">{selected?.name ?? "—"}</p>
-            <div className="mt-5 flex justify-center animate-fade-in">
+            <div id="qr-print-source" className="mt-5 flex justify-center animate-fade-in">
               {guestUrl ? (
                 <QrCode value={guestUrl} size={240} />
               ) : (

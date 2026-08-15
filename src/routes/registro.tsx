@@ -62,7 +62,7 @@ function Registro() {
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [pending, setPending] = useState(false);
-  const [formError, setFormError] = useState<{ text: string; requestId?: string } | null>(null);
+  const [formError, setFormError] = useState<{ text: string; requestId?: string | undefined } | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const [submittedPhone, setSubmittedPhone] = useState<string | null>(null);
   const successRef = useRef<HTMLDivElement>(null);

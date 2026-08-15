@@ -368,6 +368,7 @@ const dict = {
     currencyMismatchHint: "You can only add products priced in the bill currency. Change the menu currency or the product price.",
     copyLink: "Copy link",
     qrScanHint: "Scan to view your bill",
+    printQr: "Print QR",
     rotateQrWarning:
       "This will invalidate the printed code for this table. You will have to print it again. Continue?",
     continue: "Continue",

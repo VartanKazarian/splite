@@ -580,7 +580,10 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
         )}
 
       </div>
+
+      <GuestPaymentPanel bill={bill} demo={demo} />
     </div>
+
   );
 }
 

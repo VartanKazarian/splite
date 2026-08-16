@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check } from "lucide-react";
-import { LangToggle } from "@/components/LangToggle";
+
 import { useI18n } from "@/lib/i18n";
 import { applyRate, parseRate } from "@/lib/fiscal";
 import {
@@ -272,7 +272,6 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> {t("brand")}
         </Link>
-        <LangToggle />
       </header>
 
       {demo && (
@@ -612,7 +611,6 @@ function Shell({ children }: { children: React.ReactNode }) {
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Mesa
         </Link>
-        <LangToggle />
       </header>
       <div className="surface p-6">{children}</div>
     </div>

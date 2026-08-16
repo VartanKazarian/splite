@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LangToggle } from "@/components/LangToggle";
+
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, staffSession } from "@/lib/api";
 
@@ -57,7 +57,6 @@ function Login() {
         <Link to="/" className="font-display text-2xl">
           {t("brand")}
         </Link>
-        <LangToggle />
       </header>
 
       <main className="flex flex-1 items-center justify-center px-5 pb-20">

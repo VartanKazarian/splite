@@ -331,6 +331,15 @@ export const guest = {
       auth: "guest",
     }),
 
+  /** Aviso de pago: crea un claim PENDING, nunca cierra ni paga la cuenta. */
+  paymentClaim: (body: PaymentClaimInput) =>
+    apiRequest<PaymentClaim>("/api/v1/guest/bill/payment-claims", {
+      method: "POST",
+      body,
+      auth: "guest",
+    }),
+
+
   endSession: async () => {
     await apiRequest<void>("/api/v1/guest/sessions", { method: "DELETE", auth: "guest" }).catch(
       () => undefined,

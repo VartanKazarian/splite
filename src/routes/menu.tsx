@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { LangToggle } from "@/components/LangToggle";
+
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
@@ -141,7 +141,6 @@ function MenuPage() {
           <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm">
             <ArrowLeft className="h-4 w-4" /> {t("backToDashboard")}
           </Link>
-          <LangToggle />
         </div>
       </header>
 

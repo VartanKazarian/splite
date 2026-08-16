@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Check, LogOut, Pencil, Plus, Trash2, Settings, TrendingUp, UtensilsCrossed, X } from "lucide-react";
 import { toast } from "sonner";
-import { LangToggle } from "@/components/LangToggle";
+
 import { QrCode } from "@/components/QrCode";
 import { AddProductsDialog } from "@/components/AddProductsDialog";
 import {
@@ -335,8 +335,6 @@ function Dashboard() {
             >
               <Settings className="h-4 w-4" /> {t("settings")}
             </Link>
-            <LangToggle />
-
             <button
               onClick={async () => {
                 await auth.logout();

@@ -1,10 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw } from "lucide-react";
-import { LangToggle } from "@/components/LangToggle";
 import { useI18n } from "@/lib/i18n";
-import { exchangeRate, formatFxRate, staffSession, type ExchangeRate } from "@/lib/api";
+import { exchangeRate, formatFxRate, staffSession } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
 
 export const Route = createFileRoute("/tasas")({
@@ -13,10 +12,10 @@ export const Route = createFileRoute("/tasas")({
       { title: "Tasas BCV — Splite" },
       {
         name: "description",
-        content: "Tasa oficial BCV del día y el histórico de fechas valor guardadas del restaurante.",
+        content: "Tasa oficial BCV del día para las cuentas del restaurante.",
       },
       { property: "og:title", content: "Tasas BCV — Splite" },
-      { property: "og:description", content: "Tasa del día y días anteriores guardados." },
+      { property: "og:description", content: "Tasa oficial BCV del día." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -24,52 +23,11 @@ export const Route = createFileRoute("/tasas")({
   component: RatesPage,
 });
 
-type HistoryEntry = { currency: string; rate: string; valueDate: string; source: string };
-
-const STORE_KEY = "splite.fx.history";
-
-function readHistory(): HistoryEntry[] {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as HistoryEntry[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-/** Cada lectura del BCV se archiva por (moneda, fecha valor): así queda el histórico. */
-function mergeHistory(data: ExchangeRate | undefined): HistoryEntry[] {
-  const current = readHistory();
-  if (!data) return current;
-  const next = [...current];
-  for (const [currency, r] of Object.entries(data.rates ?? {})) {
-    if (!r?.valueDate) continue;
-    const idx = next.findIndex((e) => e.currency === currency && e.valueDate === r.valueDate);
-    const entry: HistoryEntry = {
-      currency,
-      rate: r.rate,
-      valueDate: r.valueDate,
-      source: r.source,
-    };
-    if (idx >= 0) next[idx] = entry;
-    else next.push(entry);
-  }
-  next.sort((a, b) => (a.valueDate < b.valueDate ? 1 : a.valueDate > b.valueDate ? -1 : a.currency.localeCompare(b.currency)));
-  const trimmed = next.slice(0, 120);
-  try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(trimmed));
-  } catch {
-    /* almacenamiento lleno o bloqueado: el histórico es informativo */
-  }
-  return trimmed;
-}
 
 function RatesPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
     if (!staffSession.get()) navigate({ to: "/login" });
@@ -83,20 +41,6 @@ function RatesPage() {
     retry: false,
   });
 
-  useEffect(() => {
-    setHistory(mergeHistory(rates.data));
-  }, [rates.data]);
-
-  const grouped = useMemo(() => {
-    const map = new Map<string, HistoryEntry[]>();
-    for (const e of history) {
-      const list = map.get(e.valueDate) ?? [];
-      list.push(e);
-      map.set(e.valueDate, list);
-    }
-    return [...map.entries()];
-  }, [history]);
-
   if (!ready) return null;
 
   const today = Object.entries(rates.data?.rates ?? {});
@@ -108,7 +52,6 @@ function RatesPage() {
           <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm">
             <ArrowLeft className="h-4 w-4" /> {t("backToDashboard")}
           </Link>
-          <LangToggle />
         </div>
       </header>
 
@@ -145,37 +88,6 @@ function RatesPage() {
             ))}
           </ul>
           <p className="mt-3 text-xs text-muted-foreground">{t("settlementNote")}</p>
-        </section>
-
-        <section className="surface mt-6 p-6">
-          <h2 className="text-xl">{t("fxHistory")}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{t("fxHistoryNote")}</p>
-          {grouped.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">{t("fxHistoryEmpty")}</p>
-          ) : (
-            <div className="mt-4 space-y-4">
-              {grouped.map(([date, entries]) => (
-                <div key={date}>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    {t("valueDate")} {date}
-                  </p>
-                  <ul className="mt-2 space-y-2 text-sm">
-                    {entries.map((e) => (
-                      <li
-                        key={`${date}-${e.currency}`}
-                        className="flex justify-between border-b border-border pb-2"
-                      >
-                        <span className="text-muted-foreground">
-                          {e.currency} · {e.source}
-                        </span>
-                        <span>{formatFxRate(e.rate)} Bs.</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
         </section>
       </main>
     </div>

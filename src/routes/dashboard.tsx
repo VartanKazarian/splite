@@ -332,6 +332,12 @@ function Dashboard() {
               <UtensilsCrossed className="h-4 w-4" /> {t("manageMenu")}
             </Link>
             <Link
+              to="/tasas"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+            >
+              <TrendingUp className="h-4 w-4" /> {t("fxRates")}
+            </Link>
+            <Link
               to="/settings"
               className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
             >

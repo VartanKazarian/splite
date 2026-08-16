@@ -109,13 +109,6 @@ function Dashboard() {
   });
   const [rotateOpen, setRotateOpen] = useState(false);
 
-  // La tasa sólo tras cargar el token: antes de auth devolvía 401.
-  const rateQuery = useQuery({
-    queryKey: ["fx"],
-    queryFn: exchangeRate,
-    enabled: ready && me.isSuccess,
-    retry: false,
-  });
 
   const [amount, setAmount] = useState("");
   const [idemKey, setIdemKey] = useState(newIdempotencyKey());

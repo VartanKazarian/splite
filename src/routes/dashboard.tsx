@@ -766,25 +766,6 @@ function Dashboard() {
             )}
           </aside>
         </section>
-
-        <section className="mt-8 surface p-6">
-          <h2 className="text-xl">{t("exchangeRate")}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{t("fxSource")}</p>
-          {rateQuery.isError && <ErrorBox error={rateQuery.error} fallback={t("apiDown")} />}
-          <ul className="mt-4 space-y-2 text-sm">
-            {Object.entries(rateQuery.data?.rates ?? {}).map(([code, r]) => (
-              <li key={code} className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">
-                  {code} · {t("valueDate")} {r.valueDate ?? "—"} · {r.source}
-                </span>
-                <span>{r.rate} Bs.</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-muted-foreground">
-            {t("settlementNote")}
-          </p>
-        </section>
       </main>
     </div>
   );

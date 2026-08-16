@@ -21,7 +21,9 @@ import {
 
 
 import { ErrorBox } from "@/routes/dashboard";
+import { GuestPaymentPanel } from "@/components/GuestPaymentPanel";
 import { demoBill, demoSplit } from "@/lib/demo-bill";
+
 
 /** Referencia visual en Bs de un importe cotizado, a la tasa congelada de la cuenta. */
 function toVes(minor: string, rate: string | null): string {

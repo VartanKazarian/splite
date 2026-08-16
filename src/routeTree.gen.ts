@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as TasasRouteImport } from './routes/tasas'
 import { Route as TIndexRouteImport } from './routes/t.index'
 import { Route as TSplatRouteImport } from './routes/t.$'
 
@@ -48,6 +49,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TasasRoute = TasasRouteImport.update({
+  id: '/tasas',
+  path: '/tasas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TIndexRoute = TIndexRouteImport.update({
   id: '/t/',
   path: '/t/',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/menu': typeof MenuRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
+  '/tasas': typeof TasasRoute
   '/t/$': typeof TSplatRoute
   '/t/': typeof TIndexRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/menu': typeof MenuRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
+  '/tasas': typeof TasasRoute
   '/t/$': typeof TSplatRoute
   '/t': typeof TIndexRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/menu': typeof MenuRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
+  '/tasas': typeof TasasRoute
   '/t/$': typeof TSplatRoute
   '/t/': typeof TIndexRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/registro'
     | '/settings'
+    | '/tasas'
     | '/t/$'
     | '/t/'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/registro'
     | '/settings'
+    | '/tasas'
     | '/t/$'
     | '/t'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/registro'
     | '/settings'
+    | '/tasas'
     | '/t/$'
     | '/t/'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   MenuRoute: typeof MenuRoute
   RegistroRoute: typeof RegistroRoute
   SettingsRoute: typeof SettingsRoute
+  TasasRoute: typeof TasasRoute
   TSplatRoute: typeof TSplatRoute
   TIndexRoute: typeof TIndexRoute
 }
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tasas': {
+      id: '/tasas'
+      path: '/tasas'
+      fullPath: '/tasas'
+      preLoaderRoute: typeof TasasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/t/': {
       id: '/t/'
       path: '/t'
@@ -202,6 +222,7 @@ const rootRouteChildren: RootRouteChildren = {
   MenuRoute: MenuRoute,
   RegistroRoute: RegistroRoute,
   SettingsRoute: SettingsRoute,
+  TasasRoute: TasasRoute,
   TSplatRoute: TSplatRoute,
   TIndexRoute: TIndexRoute,
 }

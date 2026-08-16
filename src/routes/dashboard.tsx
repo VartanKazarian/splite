@@ -23,7 +23,6 @@ import {
   bills,
   errorFields,
   errorFieldsText,
-  exchangeRate,
   formatBps,
   formatFxRate,
   formatMinor,

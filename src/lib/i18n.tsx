@@ -111,6 +111,13 @@ const dict = {
     roleWAITER: "Mesonero",
     exchangeRate: "Tasa de cambio",
     fxSource: "Fuente BCV, sin tasa de respaldo",
+    fxRates: "Tasas",
+    refreshRates: "Actualizar",
+    todayRate: "Tasa vigente",
+    fxHistory: "Días anteriores",
+    fxHistoryNote:
+      "Cada fecha valor publicada por el BCV queda archivada en este panel al consultarla.",
+    fxHistoryEmpty: "Todavía no hay tasas guardadas.",
     largestRemainder: "Reparto por mayor resto: las partes suman exacto",
     amountVes: "Monto en Bs.",
     loading: "Cargando…",

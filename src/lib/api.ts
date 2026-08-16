@@ -331,6 +331,15 @@ export const guest = {
       auth: "guest",
     }),
 
+  /** Aviso de pago: crea un claim PENDING, nunca cierra ni paga la cuenta. */
+  paymentClaim: (body: PaymentClaimInput) =>
+    apiRequest<PaymentClaim>("/api/v1/guest/bill/payment-claims", {
+      method: "POST",
+      body,
+      auth: "guest",
+    }),
+
+
   endSession: async () => {
     await apiRequest<void>("/api/v1/guest/sessions", { method: "DELETE", auth: "guest" }).catch(
       () => undefined,
@@ -384,9 +393,37 @@ export type Bill = {
   usdReference?: string | null;
   itemCount?: number;
   items?: BillItem[];
+  /** Datos de Pago Móvil del restaurante; null si no los ha configurado. */
+  payee?: Payee | null;
+};
+
+/** Un Pago Móvil se direcciona por banco + teléfono + cédula/RIF: no hay número de cuenta. */
+export type Payee = {
+  bankCode: string;
+  bankName: string;
+  phone: string;
+  holderId: string;
+};
+
+/** Aviso de pago del comensal. NO paga la cuenta: el personal lo verifica. */
+export type PaymentClaim = {
+  id: string;
+  amountVes: Money;
+  status: "PENDING" | "CONFIRMED" | "REJECTED";
+  declaredReference: string;
+  createdAt: string;
+};
+
+export type PaymentClaimInput = {
+  amountVes: Money;
+  reference: string;
+  phoneOrigin?: string;
+  bankOrigin?: string;
 };
 
 export type SplitMode = "FULL" | "EQUAL" | "ITEMS" | "CUSTOM";
+
+
 
 export type SplitPreviewRequest = {
   mode: SplitMode;

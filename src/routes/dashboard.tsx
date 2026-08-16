@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check, LogOut, Pencil, Plus, Trash2, Settings, UtensilsCrossed, X } from "lucide-react";
+import { Check, LogOut, Pencil, Plus, Trash2, Settings, TrendingUp, UtensilsCrossed, X } from "lucide-react";
 import { toast } from "sonner";
 import { LangToggle } from "@/components/LangToggle";
 import { QrCode } from "@/components/QrCode";

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check, LogOut, Pencil, Plus, Trash2, Settings, UtensilsCrossed, X } from "lucide-react";
+import { Check, LogOut, Pencil, Plus, Trash2, Settings, TrendingUp, UtensilsCrossed, X } from "lucide-react";
 import { toast } from "sonner";
 import { LangToggle } from "@/components/LangToggle";
 import { QrCode } from "@/components/QrCode";
@@ -23,7 +23,6 @@ import {
   bills,
   errorFields,
   errorFieldsText,
-  exchangeRate,
   formatBps,
   formatFxRate,
   formatMinor,
@@ -109,13 +108,6 @@ function Dashboard() {
   });
   const [rotateOpen, setRotateOpen] = useState(false);
 
-  // La tasa sólo tras cargar el token: antes de auth devolvía 401.
-  const rateQuery = useQuery({
-    queryKey: ["fx"],
-    queryFn: exchangeRate,
-    enabled: ready && me.isSuccess,
-    retry: false,
-  });
 
   const [amount, setAmount] = useState("");
   const [idemKey, setIdemKey] = useState(newIdempotencyKey());
@@ -330,6 +322,12 @@ function Dashboard() {
               className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
             >
               <UtensilsCrossed className="h-4 w-4" /> {t("manageMenu")}
+            </Link>
+            <Link
+              to="/tasas"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+            >
+              <TrendingUp className="h-4 w-4" /> {t("fxRates")}
             </Link>
             <Link
               to="/settings"
@@ -759,25 +757,6 @@ function Dashboard() {
               </>
             )}
           </aside>
-        </section>
-
-        <section className="mt-8 surface p-6">
-          <h2 className="text-xl">{t("exchangeRate")}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{t("fxSource")}</p>
-          {rateQuery.isError && <ErrorBox error={rateQuery.error} fallback={t("apiDown")} />}
-          <ul className="mt-4 space-y-2 text-sm">
-            {Object.entries(rateQuery.data?.rates ?? {}).map(([code, r]) => (
-              <li key={code} className="flex justify-between border-b border-border pb-2">
-                <span className="text-muted-foreground">
-                  {code} · {t("valueDate")} {r.valueDate ?? "—"} · {r.source}
-                </span>
-                <span>{r.rate} Bs.</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-muted-foreground">
-            {t("settlementNote")}
-          </p>
         </section>
       </main>
     </div>

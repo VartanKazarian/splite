@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MenuRouteImport } from './routes/menu'
+import { Route as PagosRouteImport } from './routes/pagos'
 import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TasasRouteImport } from './routes/tasas'
@@ -37,6 +38,11 @@ const LoginRoute = LoginRouteImport.update({
 const MenuRoute = MenuRouteImport.update({
   id: '/menu',
   path: '/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagosRoute = PagosRouteImport.update({
+  id: '/pagos',
+  path: '/pagos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegistroRoute = RegistroRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/pagos': typeof PagosRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
   '/tasas': typeof TasasRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/pagos': typeof PagosRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
   '/tasas': typeof TasasRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/pagos': typeof PagosRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
   '/tasas': typeof TasasRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/menu'
+    | '/pagos'
     | '/registro'
     | '/settings'
     | '/tasas'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/menu'
+    | '/pagos'
     | '/registro'
     | '/settings'
     | '/tasas'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/menu'
+    | '/pagos'
     | '/registro'
     | '/settings'
     | '/tasas'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   MenuRoute: typeof MenuRoute
+  PagosRoute: typeof PagosRoute
   RegistroRoute: typeof RegistroRoute
   SettingsRoute: typeof SettingsRoute
   TasasRoute: typeof TasasRoute
@@ -175,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/menu'
       fullPath: '/menu'
       preLoaderRoute: typeof MenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagos': {
+      id: '/pagos'
+      path: '/pagos'
+      fullPath: '/pagos'
+      preLoaderRoute: typeof PagosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/registro': {
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   MenuRoute: MenuRoute,
+  PagosRoute: PagosRoute,
   RegistroRoute: RegistroRoute,
   SettingsRoute: SettingsRoute,
   TasasRoute: TasasRoute,

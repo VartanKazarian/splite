@@ -257,8 +257,12 @@ function SettingsPage() {
                 </button>
               </div>
             </section>
+
+            <PayoutSection />
+            <ProvidersSection />
           </>
         )}
+
       </main>
     </div>
   );

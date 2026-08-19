@@ -360,7 +360,7 @@ function PayoutSection() {
           <span className="text-muted-foreground">Banco</span>
           <select value={bankCode} onChange={(e) => setBankCode(e.target.value)} className={field}>
             <option value="">—</option>
-            {(banksQuery.data ?? []).map((b) => (
+            {(banksQuery.data ?? []).map((b: BankRef) => (
               <option key={b.code} value={b.code}>
                 {b.name} ({b.code})
               </option>
@@ -435,7 +435,7 @@ function ProvidersSection() {
     retry: false,
   });
 
-  const mercantil = (providersQuery.data ?? []).find((p) => p.provider === "MERCANTIL") ?? null;
+  const mercantil = (providersQuery.data ?? []).find((p: PaymentProviderConfig) => p.provider === "MERCANTIL") ?? null;
 
   const save = useMutation({
     mutationFn: () => account.setProvider("MERCANTIL", values),

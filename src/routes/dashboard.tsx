@@ -330,6 +330,18 @@ function Dashboard() {
               <TrendingUp className="h-4 w-4" /> {t("fxRates")}
             </Link>
             <Link
+              to="/pagos"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+            >
+              <BadgeCheck className="h-4 w-4" /> Pagos
+              {pendingCount > 0 && (
+                <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] text-primary-foreground">
+                  {pendingCount}
+                </span>
+              )}
+            </Link>
+
+            <Link
               to="/settings"
               className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
             >

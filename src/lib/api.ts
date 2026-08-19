@@ -408,10 +408,20 @@ export type Payee = {
 /** Aviso de pago del comensal. NO paga la cuenta: el personal lo verifica. */
 export type PaymentClaim = {
   id: string;
+  billId?: string;
   amountVes: Money;
-  status: "PENDING" | "CONFIRMED" | "REJECTED";
-  declaredReference: string;
+  status: "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+  paymentMethod?: "PAGO_MOVIL";
+  declaredReference: string | null;
   createdAt: string;
+  updatedAt?: string;
+};
+
+/** Lo que ve el personal: incluye el detalle corroborante del comensal. */
+export type StaffPaymentClaim = PaymentClaim & {
+  phoneOrigin?: string | null;
+  bankOrigin?: string | null;
+  declaredAt?: string | null;
 };
 
 export type PaymentClaimInput = {
@@ -419,6 +429,8 @@ export type PaymentClaimInput = {
   reference: string;
   phoneOrigin?: string;
   bankOrigin?: string;
+  /** Atribuye el aviso a una parte del reparto persistente. */
+  splitParticipantId?: string;
 };
 
 export type SplitMode = "FULL" | "EQUAL" | "ITEMS" | "CUSTOM";
@@ -428,7 +440,7 @@ export type SplitMode = "FULL" | "EQUAL" | "ITEMS" | "CUSTOM";
 export type SplitPreviewRequest = {
   mode: SplitMode;
   participants: { id: string; name?: string; amountVes?: Money }[];
-  claims?: { itemId: string; participantIds: string[] }[];
+  claims?: { itemId: string; quantity?: number; participantIds: string[] }[];
 };
 
 export type SplitPreview = {
@@ -443,6 +455,139 @@ export type SplitPreview = {
     usdReference: string | null;
   }[];
 };
+
+/** Una parte persistida del reparto: se paga contra su propio techo. */
+export type SplitParticipant = {
+  id: string;
+  ref: string;
+  name: string | null;
+  amountVes: Money;
+  amountPaidVes: Money;
+  remainingVes: Money;
+  settled: boolean;
+  usdReference: string | null;
+};
+
+/** Reparto acordado y guardado: las partes suman basisVes (saldo al acordarlo). */
+export type BillSplit = {
+  id: string;
+  billId: string;
+  mode: SplitMode;
+  status: "ACTIVE" | "VOID";
+  currency: "VES";
+  basisVes: Money;
+  createdByType: "STAFF" | "GUEST";
+  participants: SplitParticipant[];
+  createdAt?: string;
+};
+
+/** Guía estática de cómo obtener la clave C2P en cada banco. */
+export type C2PBankClave = {
+  bankCode: string;
+  bankName: string | null;
+  ttlMinutes: number | null;
+  ttlLabel: string;
+  amountBound: boolean;
+  strategy: { when: "anytime" | "at_payment"; reason: string } | null;
+  channels: {
+    channel: "APP" | "WEB" | "SMS";
+    text: string;
+    shortCode?: string;
+    smsBody?: string;
+    altShortCode?: string | null;
+  }[];
+};
+
+/** Cargo C2P contra la cuenta del propio comensal. La clave nunca se guarda. */
+export type C2PChargeRequest = {
+  amountVes: Money;
+  bankCode: string;
+  idNumber: string;
+  phone: string;
+  clave: string;
+  idempotencyKey: string;
+  splitParticipantId?: string;
+};
+
+export type C2PStatus = "SUCCEEDED" | "FAILED" | "IN_DOUBT" | "AMBIGUOUS";
+
+export type C2PChargeResult = {
+  paymentId: string;
+  status: C2PStatus;
+  invoiceNumber?: string;
+  bankReference?: string | null;
+  reason?: string | null;
+  safeToRetry?: boolean;
+  settlement?: PaymentResult;
+};
+
+export type C2PUnresolvedCharge = {
+  paymentId: string;
+  billId: string;
+  amountVes: Money;
+  status: "IN_DOUBT" | "AMBIGUOUS";
+  invoiceNumber: string;
+  payerBankCode: string;
+  payerBankName: string | null;
+  payerPhoneLast4: string;
+  candidateReferences: string[];
+  lastReason: string | null;
+  lastResolutionAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+};
+
+export type C2PResolution = {
+  paymentId: string;
+  status: C2PStatus;
+  bankReference?: string | null;
+  signals?: string[];
+  candidateReferences?: string[];
+  reason?: string | null;
+  requiresStaffReview?: boolean;
+  resolutionPending?: boolean;
+  retryAfterMinutes?: number;
+  alreadyResolved?: boolean;
+  safeToRetry?: boolean;
+  settlement?: PaymentResult;
+};
+
+/** Dónde cobra el restaurante. Splite nunca retiene el dinero. */
+export type Payout = {
+  bankCode: string;
+  bankName?: string | null;
+  chargeable?: boolean;
+  accountNumber: string;
+  phone: string;
+  holderId: string;
+};
+
+export type PaymentProviderConfig = {
+  provider: string;
+  configured: boolean;
+  enabled: boolean;
+  credentialsValidatedAt: string | null;
+  updatedAt: string;
+};
+
+export type BankRef = { code: string; name: string; chargeable: boolean };
+
+export type Account = {
+  id: string;
+  name: string;
+  rif: string | null;
+  menuCurrency: MenuCurrency;
+  vatBps: number;
+  serviceChargeBps: number;
+  payout: Payout | null;
+  plan?: {
+    tier: "TRIAL" | "STARTER" | "PRO" | "ENTERPRISE";
+    trialEndsAt: string | null;
+    trialDaysRemaining: number | null;
+  };
+  createdAt?: string;
+};
+
 
 export type ExchangeRate = {
   rates: Record<string, { rate: string; valueDate: string | null; source: string }>;

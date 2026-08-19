@@ -782,19 +782,96 @@ export const bills = {
       body,
       auth: "staff",
     }),
+  /** Reparto persistente creado por el personal. */
+  createSplit: (id: string, body: SplitPreviewRequest) =>
+    apiRequest<BillSplit>(`/api/v1/bills/${id}/splits`, { method: "POST", body, auth: "staff" }),
+  /** 404 mientras no haya reparto acordado: estado normal, no error. */
+  activeSplit: (id: string) =>
+    apiRequest<BillSplit>(`/api/v1/bills/${id}/splits/active`, { auth: "staff" }),
+  /** 409 SPLIT_HAS_PAYMENTS si alguna parte ya se pagó: entonces no se puede anular. */
+  voidSplit: (id: string, splitId: string) =>
+    apiRequest<BillSplit>(`/api/v1/bills/${id}/splits/${splitId}/void`, {
+      method: "POST",
+      auth: "staff",
+    }),
   /** La clave de idempotencia se genera una vez por intento y se reutiliza en cada reintento. */
-  pay: (id: string, amountMinorUnits: Money, idempotencyKey: string) =>
+  pay: (id: string, amountMinorUnits: Money, idempotencyKey: string, splitParticipantId?: string) =>
     apiRequest<PaymentResult>(`/api/v1/bills/${id}/payments`, {
       method: "POST",
       auth: "staff",
       headers: { "Idempotency-Key": idempotencyKey },
-      body: { billId: id, amountMinorUnits, currency: "VES", idempotencyKey },
+      body: {
+        billId: id,
+        amountMinorUnits,
+        currency: "VES",
+        idempotencyKey,
+        ...(splitParticipantId ? { splitParticipantId } : {}),
+      },
+    }),
+};
+
+/** Cola de verificación: avisos de pago y cargos C2P sin resolver. */
+export const payments = {
+  claims: (status: PaymentClaim["status"] = "PENDING", billId?: string) =>
+    apiRequest<{ data: StaffPaymentClaim[] }>(
+      `/api/v1/payments/claims?status=${status}&limit=100${billId ? `&billId=${billId}` : ""}`,
+      { auth: "staff" },
+    ).then((r) => r.data),
+  /** Confirmar acredita el dinero en la cuenta: sólo tras verlo en el banco. */
+  confirmClaim: (id: string) =>
+    apiRequest<{ claim: StaffPaymentClaim; settlement?: PaymentResult }>(
+      `/api/v1/payments/claims/${id}/confirm`,
+      { method: "POST", auth: "staff" },
+    ),
+  /** Rechazar deja constancia y libera la referencia para volver a declararla. */
+  rejectClaim: (id: string, reason?: string) =>
+    apiRequest<{ claim: StaffPaymentClaim }>(`/api/v1/payments/claims/${id}/reject`, {
+      method: "POST",
+      auth: "staff",
+      ...(reason ? { body: { reason } } : {}),
+    }),
+  c2pUnresolved: () =>
+    apiRequest<{ data: C2PUnresolvedCharge[] }>("/api/v1/payments/c2p/unresolved", {
+      auth: "staff",
+    }).then((r) => r.data),
+  /** Vuelve a preguntar al banco. Que no liquide nada es un desenlace normal. */
+  resolveC2P: (paymentId: string) =>
+    apiRequest<C2PResolution>(`/api/v1/payments/c2p/${paymentId}/resolve`, {
+      method: "POST",
+      auth: "staff",
+    }),
+};
+
+/** Datos del restaurante: dónde cobra y con qué credenciales bancarias. */
+export const account = {
+  get: () => apiRequest<Account>("/api/v1/account", { auth: "staff" }),
+  banks: () =>
+    apiRequest<{ data: BankRef[] }>("/api/v1/account/banks", { auth: "staff" }).then((r) => r.data),
+  /** Los cuatro campos juntos, o {} para borrarlos: un payee a medias no cobra. */
+  setPayout: (body: Record<string, string> | Record<string, never>) =>
+    apiRequest<Account>("/api/v1/account/payout", { method: "PUT", auth: "staff", body }),
+  providers: () =>
+    apiRequest<{ data: PaymentProviderConfig[] }>("/api/v1/account/payment-providers", {
+      auth: "staff",
+    }).then((r) => r.data),
+  /** Sólo OWNER. Las credenciales se sellan y nunca se devuelven. */
+  setProvider: (provider: string, credentials: Record<string, string>) =>
+    apiRequest<PaymentProviderConfig>(`/api/v1/account/payment-providers/${provider}`, {
+      method: "PUT",
+      auth: "staff",
+      body: credentials,
+    }),
+  deleteProvider: (provider: string) =>
+    apiRequest<void>(`/api/v1/account/payment-providers/${provider}`, {
+      method: "DELETE",
+      auth: "staff",
     }),
 };
 
 /** Requiere sesión de personal: sin Bearer devuelve AUTH_TOKEN_MISSING. */
 export const exchangeRate = () =>
   apiRequest<ExchangeRate>("/api/v1/exchange-rate", { auth: "staff" });
+
 
 
 export function newIdempotencyKey(): string {

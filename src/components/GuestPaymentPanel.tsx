@@ -226,10 +226,11 @@ export function GuestPaymentPanel({
 
   return (
     <div className="surface mt-4 p-6">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {(
           [
-            { id: "payee", label: "Pagar" },
+            { id: "payee", label: "Pago móvil" },
+            { id: "c2p", label: "Pagar con C2P" },
             { id: "claim", label: "Ya pagué" },
           ] as const
         ).map((x) => (
@@ -267,9 +268,9 @@ export function GuestPaymentPanel({
             />
             <CopyRow label="RIF/CI" display={payee.holderId} copyValue={payee.holderId} />
             <CopyRow
-              label="Monto"
-              display={formatMoney(bill.remainingVes ?? "0", "VES")}
-              copyValue={formatMinor(bill.remainingVes ?? "0").replace(/\./g, "")}
+              label={splitParticipantId ? "Tu parte" : "Monto"}
+              display={formatMoney(dueVes, "VES")}
+              copyValue={formatMinor(dueVes).replace(/\./g, "")}
             />
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
@@ -278,6 +279,15 @@ export function GuestPaymentPanel({
           </p>
         </div>
       )}
+
+      {tab === "c2p" && (
+        <GuestC2PForm
+          maxVes={dueVes}
+          demo={demo}
+          {...(splitParticipantId ? { splitParticipantId } : {})}
+        />
+      )}
+
 
       {tab === "claim" && (
         <div className="mt-5">

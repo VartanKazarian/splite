@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Check, Copy } from "lucide-react";
 
+import { GuestC2PForm } from "@/components/GuestC2PForm";
+
 import {
   ApiError,
   formatMinor,
@@ -116,15 +118,30 @@ function toClaimError(error: unknown): ClaimError {
   }
 }
 
-export function GuestPaymentPanel({ bill, demo = false }: { bill: Bill; demo?: boolean }) {
+export function GuestPaymentPanel({
+  bill,
+  demo = false,
+  splitParticipantId,
+  shareRemainingVes,
+}: {
+  bill: Bill;
+  demo?: boolean;
+  /** Parte del reparto persistente que este comensal está pagando. */
+  splitParticipantId?: string;
+  /** Techo de esa parte: el backend rechaza cualquier cosa por encima. */
+  shareRemainingVes?: string;
+}) {
   const payee: Payee | null =
     bill.payee ??
     (demo
       ? { bankCode: "0105", bankName: "Mercantil", phone: "04121234567", holderId: "J123456789" }
       : null);
 
-  const [tab, setTab] = useState<"payee" | "claim">("payee");
-  const [amount, setAmount] = useState(() => formatMinor(bill.remainingVes ?? "0"));
+  // Con reparto acordado, lo que toca pagar es la parte, no la cuenta entera.
+  const dueVes = shareRemainingVes ?? bill.remainingVes ?? "0";
+
+  const [tab, setTab] = useState<"payee" | "claim" | "c2p">("payee");
+  const [amount, setAmount] = useState(() => formatMinor(dueVes));
   const [reference, setReference] = useState("");
   const [phoneOrigin, setPhoneOrigin] = useState("");
   const [bankOrigin, setBankOrigin] = useState("");
@@ -135,8 +152,9 @@ export function GuestPaymentPanel({ bill, demo = false }: { bill: Bill; demo?: b
   const referenceRef = useRef<HTMLInputElement>(null);
   const successRef = useRef<HTMLDivElement>(null);
 
-  const remaining = BigInt(bill.remainingVes ?? "0");
+  const remaining = BigInt(dueVes);
   const billPaid = remaining === 0n;
+
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -161,6 +179,7 @@ export function GuestPaymentPanel({ bill, demo = false }: { bill: Bill; demo?: b
         reference: reference.trim(),
         ...(phoneOrigin.trim() ? { phoneOrigin: phoneOrigin.trim() } : {}),
         ...(bankOrigin.trim() ? { bankOrigin: bankOrigin.trim() } : {}),
+        ...(splitParticipantId ? { splitParticipantId } : {}),
       });
     },
     onSuccess: (data) => {
@@ -209,10 +228,11 @@ export function GuestPaymentPanel({ bill, demo = false }: { bill: Bill; demo?: b
 
   return (
     <div className="surface mt-4 p-6">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {(
           [
-            { id: "payee", label: "Pagar" },
+            { id: "payee", label: "Pago móvil" },
+            { id: "c2p", label: "Pagar con C2P" },
             { id: "claim", label: "Ya pagué" },
           ] as const
         ).map((x) => (
@@ -250,9 +270,9 @@ export function GuestPaymentPanel({ bill, demo = false }: { bill: Bill; demo?: b
             />
             <CopyRow label="RIF/CI" display={payee.holderId} copyValue={payee.holderId} />
             <CopyRow
-              label="Monto"
-              display={formatMoney(bill.remainingVes ?? "0", "VES")}
-              copyValue={formatMinor(bill.remainingVes ?? "0").replace(/\./g, "")}
+              label={splitParticipantId ? "Tu parte" : "Monto"}
+              display={formatMoney(dueVes, "VES")}
+              copyValue={formatMinor(dueVes).replace(/\./g, "")}
             />
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
@@ -261,6 +281,15 @@ export function GuestPaymentPanel({ bill, demo = false }: { bill: Bill; demo?: b
           </p>
         </div>
       )}
+
+      {tab === "c2p" && (
+        <GuestC2PForm
+          maxVes={dueVes}
+          demo={demo}
+          {...(splitParticipantId ? { splitParticipantId } : {})}
+        />
+      )}
+
 
       {tab === "claim" && (
         <div className="mt-5">

@@ -14,9 +14,11 @@ import {
   guestSession,
   parseMinorInput,
   type Bill,
+  type BillSplit,
   type MenuCurrency,
   type SplitMode,
   type SplitPreview,
+  type SplitPreviewRequest,
 } from "@/lib/api";
 
 
@@ -115,6 +117,41 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
   const rateStr = bill?.fxRateVesPerUnit ?? bill?.fxRate ?? null;
   const showVes = Boolean(bill && bill.currency !== "VES" && rateStr);
 
+  /** El cuerpo del reparto: idéntico para la previsualización y para acordarlo. */
+  const buildSplitBody = (): SplitPreviewRequest => {
+    const remaining = BigInt(bill?.remainingVes ?? bill?.totalDueVes ?? "0");
+    if (mode === "FULL") return { mode, participants: [{ id: "me" }] };
+    if (mode === "EQUAL") {
+      return {
+        mode,
+        participants: Array.from({ length: Math.max(2, diners) }, (_, i) => ({ id: `p${i + 1}` })),
+      };
+    }
+    if (mode === "ITEMS") {
+      return {
+        mode,
+        participants: [{ id: "me" }, { id: "others" }],
+        claims: (bill?.items ?? []).flatMap((item) => {
+          const qty = mine[item.id] ?? 0;
+          const rest = Math.max(0, (item.quantity ?? 1) - qty);
+          return [
+            ...(qty > 0 ? [{ itemId: item.id, quantity: qty, participantIds: ["me"] }] : []),
+            ...(rest > 0 ? [{ itemId: item.id, quantity: rest, participantIds: ["others"] }] : []),
+          ];
+        }),
+      };
+    }
+    const cents = BigInt(parseMinorInput(amount) || "0");
+    const rest = remaining > cents ? remaining - cents : 0n;
+    return {
+      mode,
+      participants: [
+        { id: "me", amountVes: cents.toString() },
+        { id: "others", amountVes: rest.toString() },
+      ],
+    };
+  };
+
   const splitMutation = useMutation({
     mutationFn: async () => {
       if (demo && bill) {
@@ -124,49 +161,44 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
           amountMinor: parseMinorInput(amount) || "0",
         });
       }
-      // Nadie escribe nombres: cada comensal usa el mismo QR y sólo marca lo suyo.
-      const remaining = BigInt(bill?.remainingVes ?? bill?.totalDueVes ?? "0");
-      let body: Record<string, unknown>;
-      if (mode === "FULL") {
-        body = { mode, participants: [{ id: "me" }] };
-      } else if (mode === "EQUAL") {
-        body = {
-          mode,
-          participants: Array.from({ length: Math.max(2, diners) }, (_, i) => ({ id: `p${i + 1}` })),
-        };
-      } else if (mode === "ITEMS") {
-        body = {
-          mode,
-          participants: [{ id: "me" }, { id: "others" }],
-          claims: (bill?.items ?? []).flatMap((item) => {
-            const qty = mine[item.id] ?? 0;
-            const rest = Math.max(0, (item.quantity ?? 1) - qty);
-            return [
-              ...(qty > 0
-                ? [{ itemId: item.id, quantity: qty, participantIds: ["me"] }]
-                : []),
-              ...(rest > 0
-                ? [{ itemId: item.id, quantity: rest, participantIds: ["others"] }]
-                : []),
-            ];
-          }),
-        };
-      } else {
-        const cents = BigInt(parseMinorInput(amount) || "0");
-        const rest = remaining > cents ? remaining - cents : 0n;
-        body = {
-          mode,
-          participants: [
-            { id: "me", amountVes: cents.toString() },
-            { id: "others", amountVes: rest.toString() },
-          ],
-        };
-      }
       // El reparto lo calcula el servidor: nunca se divide en el cliente.
-      return guest.splitPreview<SplitPreview>(body);
+      return guest.splitPreview<SplitPreview>(buildSplitBody());
     },
     onSuccess: setPreview,
     onError: () => setPreview(null),
+  });
+
+  /** La referencia de participante que le corresponde a quien está mirando. */
+  const myRef = mode === "EQUAL" ? "p1" : "me";
+
+  // Reparto ya acordado y guardado: cada parte se paga contra su propio techo.
+  const activeSplitQuery = useQuery({
+    queryKey: ["guest-split", demo],
+    enabled: sessionReady && !demo && Boolean(bill),
+    retry: false,
+    refetchInterval: 8000,
+    queryFn: async (): Promise<BillSplit | null> => {
+      try {
+        return await guest.activeSplit();
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+      }
+    },
+  });
+  const activeSplit = activeSplitQuery.data ?? null;
+
+  const [myParticipantRef, setMyParticipantRef] = useState<string | null>(null);
+  const myParticipant =
+    activeSplit?.participants.find((p) => p.ref === myParticipantRef) ?? null;
+
+  const confirmSplit = useMutation({
+    mutationFn: () => guest.createSplit(buildSplitBody()),
+    onSuccess: (split) => {
+      setMyParticipantRef(myRef);
+      activeSplitQuery.refetch();
+      return split;
+    },
   });
 
   // El cálculo aparece solo tras la selección, sin botón intermedio.
@@ -187,6 +219,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canSplit, mode, diners, JSON.stringify(mine), amount, bill?.totalDue, bill?.remainingVes]);
+
 
 
   const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : undefined);
@@ -578,13 +611,83 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
               </div>
             </div>
             <p className="mt-3 text-[11px] text-muted-foreground">{t("guestNoPay")}</p>
+
+            {!demo && !activeSplit && (
+              <div className="mt-4 border-t border-border pt-4">
+                <button
+                  disabled={confirmSplit.isPending}
+                  onClick={() => confirmSplit.mutate()}
+                  className="w-full rounded-lg border border-primary bg-primary/15 px-4 py-3 text-sm text-foreground disabled:opacity-40"
+                >
+                  {confirmSplit.isPending ? "Guardando…" : "Confirmar división"}
+                </button>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Al confirmarla, cada parte queda guardada y se paga por separado.
+                </p>
+                {confirmSplit.isError && (
+                  <ErrorBox error={confirmSplit.error} fallback={t("apiDown")} />
+                )}
+              </div>
+            )}
           </div>
         )}
 
       </div>
 
-      <GuestPaymentPanel bill={bill} demo={demo} />
+      {activeSplit && (
+        <div className="surface mt-4 p-6">
+          <h2 className="text-xl">División acordada</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Sobre {formatMoney(activeSplit.basisVes, "VES")} pendientes al acordarla.
+          </p>
+          <ul className="mt-4 space-y-2 text-sm">
+            {activeSplit.participants.map((p, i) => {
+              const isMine = p.ref === myParticipantRef;
+              return (
+                <li
+                  key={p.id}
+                  className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
+                    isMine ? "border-primary bg-primary/10" : "border-border"
+                  }`}
+                >
+                  <button
+                    onClick={() => setMyParticipantRef(p.ref)}
+                    className="flex-1 text-left"
+                  >
+                    <span>{p.name ?? (isMine ? "Tu parte" : `Comensal ${i + 1}`)}</span>
+                    <span className="ml-2 text-[11px] uppercase tracking-widest text-muted-foreground">
+                      {p.settled ? "Pagado" : "Pendiente"}
+                    </span>
+                  </button>
+                  <span className="text-right">
+                    <span className="block">{formatMoney(p.amountVes, "VES")}</span>
+                    {!p.settled && BigInt(p.amountPaidVes) > 0n && (
+                      <span className="block text-[11px] text-muted-foreground">
+                        Falta {formatMoney(p.remainingVes, "VES")}
+                      </span>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          {!myParticipantRef && (
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              Toca la parte que vas a pagar para que el pago se acredite a ella.
+            </p>
+          )}
+        </div>
+      )}
+
+      <GuestPaymentPanel
+        bill={bill}
+        demo={demo}
+        {...(myParticipant
+          ? { splitParticipantId: myParticipant.id, shareRemainingVes: myParticipant.remainingVes }
+          : {})}
+      />
     </div>
+
 
   );
 }

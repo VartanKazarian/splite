@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check, LogOut, Pencil, Plus, Trash2, Settings, TrendingUp, UtensilsCrossed, X } from "lucide-react";
+import { BadgeCheck, Check, LogOut, Pencil, Plus, Trash2, Settings, TrendingUp, UtensilsCrossed, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { QrCode } from "@/components/QrCode";
@@ -29,6 +29,7 @@ import {
   formatMoney,
   menu as menuApi,
   newIdempotencyKey,
+  payments,
   staffSession,
   tables as tablesApi,
   type Bill,
@@ -88,6 +89,17 @@ function Dashboard() {
     retry: false,
     refetchInterval: 8000,
   });
+
+  // Avisos de pago que esperan verificación: el badge es lo que hace que alguien los mire.
+  const claimsQuery = useQuery({
+    queryKey: ["payment-claims", "PENDING"],
+    queryFn: () => payments.claims("PENDING"),
+    enabled: ready && me.isSuccess,
+    retry: false,
+    refetchInterval: 20000,
+  });
+  const pendingCount = claimsQuery.data?.length ?? 0;
+
 
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
   const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
@@ -329,6 +341,18 @@ function Dashboard() {
             >
               <TrendingUp className="h-4 w-4" /> {t("fxRates")}
             </Link>
+            <Link
+              to="/pagos"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+            >
+              <BadgeCheck className="h-4 w-4" /> Pagos
+              {pendingCount > 0 && (
+                <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] text-primary-foreground">
+                  {pendingCount}
+                </span>
+              )}
+            </Link>
+
             <Link
               to="/settings"
               className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"

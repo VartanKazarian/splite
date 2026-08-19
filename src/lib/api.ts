@@ -331,6 +331,32 @@ export const guest = {
       auth: "guest",
     }),
 
+  /** Persiste el reparto acordado: a partir de aquí cada parte tiene su techo. */
+  createSplit: (body: SplitPreviewRequest) =>
+    apiRequest<BillSplit>("/api/v1/guest/bill/splits", { method: "POST", body, auth: "guest" }),
+
+  /** 404 cuando todavía no se ha acordado ningún reparto: estado normal. */
+  activeSplit: () => apiRequest<BillSplit>("/api/v1/guest/bill/splits/active", { auth: "guest" }),
+
+  /** Guía de claves por banco. Se pide en el momento del pago: la clave caduca. */
+  c2pBanks: () =>
+    apiRequest<{ data: C2PBankClave[] }>("/api/v1/guest/c2p/banks", { auth: "guest" }).then(
+      (r) => r.data,
+    ),
+
+  /**
+   * Cargo C2P. La clave es de un solo uso y jamás se guarda ni se registra.
+   * La clave de idempotencia se genera una vez por intento: reintentar con otra
+   * puede cobrar dos veces.
+   */
+  c2pCharge: (body: C2PChargeRequest) =>
+    apiRequest<C2PChargeResult>("/api/v1/guest/bill/c2p", {
+      method: "POST",
+      body,
+      auth: "guest",
+      headers: { "Idempotency-Key": body.idempotencyKey },
+    }),
+
   /** Aviso de pago: crea un claim PENDING, nunca cierra ni paga la cuenta. */
   paymentClaim: (body: PaymentClaimInput) =>
     apiRequest<PaymentClaim>("/api/v1/guest/bill/payment-claims", {
@@ -338,6 +364,7 @@ export const guest = {
       body,
       auth: "guest",
     }),
+
 
 
   endSession: async () => {
@@ -408,10 +435,20 @@ export type Payee = {
 /** Aviso de pago del comensal. NO paga la cuenta: el personal lo verifica. */
 export type PaymentClaim = {
   id: string;
+  billId?: string;
   amountVes: Money;
-  status: "PENDING" | "CONFIRMED" | "REJECTED";
-  declaredReference: string;
+  status: "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+  paymentMethod?: "PAGO_MOVIL";
+  declaredReference: string | null;
   createdAt: string;
+  updatedAt?: string;
+};
+
+/** Lo que ve el personal: incluye el detalle corroborante del comensal. */
+export type StaffPaymentClaim = PaymentClaim & {
+  phoneOrigin?: string | null;
+  bankOrigin?: string | null;
+  declaredAt?: string | null;
 };
 
 export type PaymentClaimInput = {
@@ -419,6 +456,8 @@ export type PaymentClaimInput = {
   reference: string;
   phoneOrigin?: string;
   bankOrigin?: string;
+  /** Atribuye el aviso a una parte del reparto persistente. */
+  splitParticipantId?: string;
 };
 
 export type SplitMode = "FULL" | "EQUAL" | "ITEMS" | "CUSTOM";
@@ -428,7 +467,7 @@ export type SplitMode = "FULL" | "EQUAL" | "ITEMS" | "CUSTOM";
 export type SplitPreviewRequest = {
   mode: SplitMode;
   participants: { id: string; name?: string; amountVes?: Money }[];
-  claims?: { itemId: string; participantIds: string[] }[];
+  claims?: { itemId: string; quantity?: number; participantIds: string[] }[];
 };
 
 export type SplitPreview = {
@@ -443,6 +482,139 @@ export type SplitPreview = {
     usdReference: string | null;
   }[];
 };
+
+/** Una parte persistida del reparto: se paga contra su propio techo. */
+export type SplitParticipant = {
+  id: string;
+  ref: string;
+  name: string | null;
+  amountVes: Money;
+  amountPaidVes: Money;
+  remainingVes: Money;
+  settled: boolean;
+  usdReference: string | null;
+};
+
+/** Reparto acordado y guardado: las partes suman basisVes (saldo al acordarlo). */
+export type BillSplit = {
+  id: string;
+  billId: string;
+  mode: SplitMode;
+  status: "ACTIVE" | "VOID";
+  currency: "VES";
+  basisVes: Money;
+  createdByType: "STAFF" | "GUEST";
+  participants: SplitParticipant[];
+  createdAt?: string;
+};
+
+/** Guía estática de cómo obtener la clave C2P en cada banco. */
+export type C2PBankClave = {
+  bankCode: string;
+  bankName: string | null;
+  ttlMinutes: number | null;
+  ttlLabel: string;
+  amountBound: boolean;
+  strategy: { when: "anytime" | "at_payment"; reason: string } | null;
+  channels: {
+    channel: "APP" | "WEB" | "SMS";
+    text: string;
+    shortCode?: string;
+    smsBody?: string;
+    altShortCode?: string | null;
+  }[];
+};
+
+/** Cargo C2P contra la cuenta del propio comensal. La clave nunca se guarda. */
+export type C2PChargeRequest = {
+  amountVes: Money;
+  bankCode: string;
+  idNumber: string;
+  phone: string;
+  clave: string;
+  idempotencyKey: string;
+  splitParticipantId?: string;
+};
+
+export type C2PStatus = "SUCCEEDED" | "FAILED" | "IN_DOUBT" | "AMBIGUOUS";
+
+export type C2PChargeResult = {
+  paymentId: string;
+  status: C2PStatus;
+  invoiceNumber?: string;
+  bankReference?: string | null;
+  reason?: string | null;
+  safeToRetry?: boolean;
+  settlement?: PaymentResult;
+};
+
+export type C2PUnresolvedCharge = {
+  paymentId: string;
+  billId: string;
+  amountVes: Money;
+  status: "IN_DOUBT" | "AMBIGUOUS";
+  invoiceNumber: string;
+  payerBankCode: string;
+  payerBankName: string | null;
+  payerPhoneLast4: string;
+  candidateReferences: string[];
+  lastReason: string | null;
+  lastResolutionAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+};
+
+export type C2PResolution = {
+  paymentId: string;
+  status: C2PStatus;
+  bankReference?: string | null;
+  signals?: string[];
+  candidateReferences?: string[];
+  reason?: string | null;
+  requiresStaffReview?: boolean;
+  resolutionPending?: boolean;
+  retryAfterMinutes?: number;
+  alreadyResolved?: boolean;
+  safeToRetry?: boolean;
+  settlement?: PaymentResult;
+};
+
+/** Dónde cobra el restaurante. Splite nunca retiene el dinero. */
+export type Payout = {
+  bankCode: string;
+  bankName?: string | null;
+  chargeable?: boolean;
+  accountNumber: string;
+  phone: string;
+  holderId: string;
+};
+
+export type PaymentProviderConfig = {
+  provider: string;
+  configured: boolean;
+  enabled: boolean;
+  credentialsValidatedAt: string | null;
+  updatedAt: string;
+};
+
+export type BankRef = { code: string; name: string; chargeable: boolean };
+
+export type Account = {
+  id: string;
+  name: string;
+  rif: string | null;
+  menuCurrency: MenuCurrency;
+  vatBps: number;
+  serviceChargeBps: number;
+  payout: Payout | null;
+  plan?: {
+    tier: "TRIAL" | "STARTER" | "PRO" | "ENTERPRISE";
+    trialEndsAt: string | null;
+    trialDaysRemaining: number | null;
+  };
+  createdAt?: string;
+};
+
 
 export type ExchangeRate = {
   rates: Record<string, { rate: string; valueDate: string | null; source: string }>;
@@ -610,19 +782,96 @@ export const bills = {
       body,
       auth: "staff",
     }),
+  /** Reparto persistente creado por el personal. */
+  createSplit: (id: string, body: SplitPreviewRequest) =>
+    apiRequest<BillSplit>(`/api/v1/bills/${id}/splits`, { method: "POST", body, auth: "staff" }),
+  /** 404 mientras no haya reparto acordado: estado normal, no error. */
+  activeSplit: (id: string) =>
+    apiRequest<BillSplit>(`/api/v1/bills/${id}/splits/active`, { auth: "staff" }),
+  /** 409 SPLIT_HAS_PAYMENTS si alguna parte ya se pagó: entonces no se puede anular. */
+  voidSplit: (id: string, splitId: string) =>
+    apiRequest<BillSplit>(`/api/v1/bills/${id}/splits/${splitId}/void`, {
+      method: "POST",
+      auth: "staff",
+    }),
   /** La clave de idempotencia se genera una vez por intento y se reutiliza en cada reintento. */
-  pay: (id: string, amountMinorUnits: Money, idempotencyKey: string) =>
+  pay: (id: string, amountMinorUnits: Money, idempotencyKey: string, splitParticipantId?: string) =>
     apiRequest<PaymentResult>(`/api/v1/bills/${id}/payments`, {
       method: "POST",
       auth: "staff",
       headers: { "Idempotency-Key": idempotencyKey },
-      body: { billId: id, amountMinorUnits, currency: "VES", idempotencyKey },
+      body: {
+        billId: id,
+        amountMinorUnits,
+        currency: "VES",
+        idempotencyKey,
+        ...(splitParticipantId ? { splitParticipantId } : {}),
+      },
+    }),
+};
+
+/** Cola de verificación: avisos de pago y cargos C2P sin resolver. */
+export const payments = {
+  claims: (status: PaymentClaim["status"] = "PENDING", billId?: string) =>
+    apiRequest<{ data: StaffPaymentClaim[] }>(
+      `/api/v1/payments/claims?status=${status}&limit=100${billId ? `&billId=${billId}` : ""}`,
+      { auth: "staff" },
+    ).then((r) => r.data),
+  /** Confirmar acredita el dinero en la cuenta: sólo tras verlo en el banco. */
+  confirmClaim: (id: string) =>
+    apiRequest<{ claim: StaffPaymentClaim; settlement?: PaymentResult }>(
+      `/api/v1/payments/claims/${id}/confirm`,
+      { method: "POST", auth: "staff" },
+    ),
+  /** Rechazar deja constancia y libera la referencia para volver a declararla. */
+  rejectClaim: (id: string, reason?: string) =>
+    apiRequest<{ claim: StaffPaymentClaim }>(`/api/v1/payments/claims/${id}/reject`, {
+      method: "POST",
+      auth: "staff",
+      ...(reason ? { body: { reason } } : {}),
+    }),
+  c2pUnresolved: () =>
+    apiRequest<{ data: C2PUnresolvedCharge[] }>("/api/v1/payments/c2p/unresolved", {
+      auth: "staff",
+    }).then((r) => r.data),
+  /** Vuelve a preguntar al banco. Que no liquide nada es un desenlace normal. */
+  resolveC2P: (paymentId: string) =>
+    apiRequest<C2PResolution>(`/api/v1/payments/c2p/${paymentId}/resolve`, {
+      method: "POST",
+      auth: "staff",
+    }),
+};
+
+/** Datos del restaurante: dónde cobra y con qué credenciales bancarias. */
+export const account = {
+  get: () => apiRequest<Account>("/api/v1/account", { auth: "staff" }),
+  banks: () =>
+    apiRequest<{ data: BankRef[] }>("/api/v1/account/banks", { auth: "staff" }).then((r) => r.data),
+  /** Los cuatro campos juntos, o {} para borrarlos: un payee a medias no cobra. */
+  setPayout: (body: Record<string, string> | Record<string, never>) =>
+    apiRequest<Account>("/api/v1/account/payout", { method: "PUT", auth: "staff", body }),
+  providers: () =>
+    apiRequest<{ data: PaymentProviderConfig[] }>("/api/v1/account/payment-providers", {
+      auth: "staff",
+    }).then((r) => r.data),
+  /** Sólo OWNER. Las credenciales se sellan y nunca se devuelven. */
+  setProvider: (provider: string, credentials: Record<string, string>) =>
+    apiRequest<PaymentProviderConfig>(`/api/v1/account/payment-providers/${provider}`, {
+      method: "PUT",
+      auth: "staff",
+      body: credentials,
+    }),
+  deleteProvider: (provider: string) =>
+    apiRequest<void>(`/api/v1/account/payment-providers/${provider}`, {
+      method: "DELETE",
+      auth: "staff",
     }),
 };
 
 /** Requiere sesión de personal: sin Bearer devuelve AUTH_TOKEN_MISSING. */
 export const exchangeRate = () =>
   apiRequest<ExchangeRate>("/api/v1/exchange-rate", { auth: "staff" });
+
 
 
 export function newIdempotencyKey(): string {

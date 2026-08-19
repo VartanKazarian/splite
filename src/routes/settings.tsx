@@ -7,13 +7,17 @@ import { LangToggle } from "@/components/LangToggle";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
+  account,
   errorFieldsText,
   formatBps,
   menu,
   parseBpsInput,
   staffSession,
+  type BankRef,
   type MenuCurrency,
+  type PaymentProviderConfig,
 } from "@/lib/api";
+
 import { ErrorBox } from "@/routes/dashboard";
 
 export const Route = createFileRoute("/settings")({
@@ -257,9 +261,269 @@ function SettingsPage() {
                 </button>
               </div>
             </section>
+
+            <PayoutSection />
+            <ProvidersSection />
           </>
         )}
+
       </main>
     </div>
   );
 }
+
+/**
+ * Dónde cobra el restaurante. Los cuatro campos van juntos: un payee a medias
+ * se ve configurado en pantalla y no puede recibir dinero.
+ */
+function PayoutSection() {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+
+  const accountQuery = useQuery({
+    queryKey: ["account"],
+    queryFn: () => account.get(),
+    retry: false,
+  });
+  const banksQuery = useQuery({
+    queryKey: ["account-banks"],
+    queryFn: () => account.banks(),
+    retry: false,
+  });
+
+  const [bankCode, setBankCode] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [phone, setPhone] = useState("");
+  const [holderId, setHolderId] = useState("");
+
+  useEffect(() => {
+    const p = accountQuery.data?.payout;
+    if (!p) return;
+    setBankCode(p.bankCode ?? "");
+    setAccountNumber(p.accountNumber ?? "");
+    setPhone(p.phone ?? "");
+    setHolderId(p.holderId ?? "");
+  }, [accountQuery.data]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      account.setPayout({
+        bankCode,
+        accountNumber: accountNumber.replace(/\D/g, ""),
+        phone: phone.replace(/\D/g, ""),
+        holderId: holderId.trim().toUpperCase(),
+      }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["account"], data);
+      toast.success("Datos de cobro guardados");
+    },
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        const fields = errorFieldsText(error);
+        toast.error(fields ? `${error.code} · ${fields}` : `${error.code} · ${error.message}`);
+      } else toast.error(t("apiDown"));
+    },
+  });
+
+  const clear = useMutation({
+    mutationFn: () => account.setPayout({}),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["account"], data);
+      setBankCode("");
+      setAccountNumber("");
+      setPhone("");
+      setHolderId("");
+      toast.success("Datos de cobro eliminados");
+    },
+  });
+
+  const field =
+    "mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring";
+
+  const complete =
+    /^[0-9]{4}$/.test(bankCode) &&
+    /^[0-9]{20}$/.test(accountNumber.replace(/\D/g, "")) &&
+    phone.replace(/\D/g, "").length >= 10 &&
+    /^[VEJPG][0-9]{6,9}$/.test(holderId.trim().toUpperCase());
+
+  return (
+    <section className="surface mt-6 p-6">
+      <h2 className="text-xl">Datos de cobro (Pago Móvil)</h2>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Es lo que ve el comensal para pagarte. Splite nunca retiene el dinero: va de su banco al
+        tuyo.
+      </p>
+      {accountQuery.isError && <ErrorBox error={accountQuery.error} fallback={t("apiDown")} />}
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <label className="text-sm">
+          <span className="text-muted-foreground">Banco</span>
+          <select value={bankCode} onChange={(e) => setBankCode(e.target.value)} className={field}>
+            <option value="">—</option>
+            {(banksQuery.data ?? []).map((b: BankRef) => (
+              <option key={b.code} value={b.code}>
+                {b.name} ({b.code})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="text-muted-foreground">Número de cuenta (20 dígitos)</span>
+          <input
+            inputMode="numeric"
+            value={accountNumber}
+            onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 20))}
+            className={field}
+          />
+        </label>
+        <label className="text-sm">
+          <span className="text-muted-foreground">Teléfono afiliado</span>
+          <input
+            inputMode="numeric"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
+            className={field}
+          />
+        </label>
+        <label className="text-sm">
+          <span className="text-muted-foreground">RIF o cédula del titular</span>
+          <input
+            value={holderId}
+            onChange={(e) => setHolderId(e.target.value.toUpperCase().slice(0, 10))}
+            placeholder="J123456789"
+            className={field}
+          />
+        </label>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          disabled={!complete || save.isPending}
+          onClick={() => save.mutate()}
+          className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
+        >
+          {t("save")}
+        </button>
+        {accountQuery.data?.payout && (
+          <button
+            disabled={clear.isPending}
+            onClick={() => clear.mutate()}
+            className="rounded-full border border-border px-5 py-3 text-sm disabled:opacity-40"
+          >
+            Eliminar
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+const MERCANTIL_FIELDS = ["merchantId", "clientId", "secretKey", "integratorId", "terminalId"] as const;
+
+/**
+ * Credenciales del banco para cobrar C2P dentro de la app. Sólo OWNER.
+ * Nunca se devuelven: la pantalla sólo puede decir si están configuradas.
+ */
+function ProvidersSection() {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const [values, setValues] = useState<Record<string, string>>({});
+
+  const providersQuery = useQuery({
+    queryKey: ["payment-providers"],
+    queryFn: () => account.providers(),
+    retry: false,
+  });
+
+  const mercantil = (providersQuery.data ?? []).find((p: PaymentProviderConfig) => p.provider === "MERCANTIL") ?? null;
+
+  const save = useMutation({
+    mutationFn: () => account.setProvider("MERCANTIL", values),
+    onSuccess: () => {
+      setValues({});
+      queryClient.invalidateQueries({ queryKey: ["payment-providers"] });
+      toast.success("Credenciales guardadas. El banco tiene que validarlas antes de activarse.");
+    },
+    onError: (error) => {
+      if (error instanceof ApiError) toast.error(`${error.code} · ${error.message}`);
+      else toast.error(t("apiDown"));
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: () => account.deleteProvider("MERCANTIL"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payment-providers"] });
+      toast.success("Credenciales eliminadas");
+    },
+  });
+
+  const forbidden =
+    providersQuery.error instanceof ApiError &&
+    (providersQuery.error.code === "FORBIDDEN_ROLE" || providersQuery.error.status === 403);
+
+  if (forbidden) return null;
+
+  const filled = MERCANTIL_FIELDS.every((f) => (values[f] ?? "").trim().length > 0);
+  const field =
+    "mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring";
+
+  return (
+    <section className="surface mt-6 p-6">
+      <h2 className="text-xl">Cobro C2P (Mercantil)</h2>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Permite que el comensal pague desde su banco sin salir de la app. Las credenciales se
+        guardan cifradas y nunca se vuelven a mostrar.
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-widest">
+        <span className="rounded-full border border-border px-2.5 py-1 text-muted-foreground">
+          {mercantil?.configured ? "Credenciales guardadas" : "Sin credenciales"}
+        </span>
+        <span className="rounded-full border border-border px-2.5 py-1 text-muted-foreground">
+          {mercantil?.enabled ? "Rail activo" : "Rail inactivo"}
+        </span>
+        {mercantil?.configured && !mercantil.credentialsValidatedAt && (
+          <span className="rounded-full border border-amber-500/50 px-2.5 py-1 text-muted-foreground">
+            Sin validar con el banco
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        {MERCANTIL_FIELDS.map((f) => (
+          <label key={f} className="text-sm">
+            <span className="text-muted-foreground">{f}</span>
+            <input
+              type="password"
+              autoComplete="off"
+              value={values[f] ?? ""}
+              onChange={(e) => setValues((prev) => ({ ...prev, [f]: e.target.value }))}
+              className={field}
+            />
+          </label>
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          disabled={!filled || save.isPending}
+          onClick={() => save.mutate()}
+          className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
+        >
+          Guardar credenciales
+        </button>
+        {mercantil?.configured && (
+          <button
+            disabled={remove.isPending}
+            onClick={() => remove.mutate()}
+            className="rounded-full border border-destructive px-5 py-3 text-sm text-destructive disabled:opacity-40"
+          >
+            Eliminar
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+

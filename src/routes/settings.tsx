@@ -7,13 +7,17 @@ import { LangToggle } from "@/components/LangToggle";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
+  account,
   errorFieldsText,
   formatBps,
   menu,
   parseBpsInput,
   staffSession,
+  type BankRef,
   type MenuCurrency,
+  type PaymentProviderConfig,
 } from "@/lib/api";
+
 import { ErrorBox } from "@/routes/dashboard";
 
 export const Route = createFileRoute("/settings")({

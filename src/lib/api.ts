@@ -331,6 +331,32 @@ export const guest = {
       auth: "guest",
     }),
 
+  /** Persiste el reparto acordado: a partir de aquí cada parte tiene su techo. */
+  createSplit: (body: SplitPreviewRequest) =>
+    apiRequest<BillSplit>("/api/v1/guest/bill/splits", { method: "POST", body, auth: "guest" }),
+
+  /** 404 cuando todavía no se ha acordado ningún reparto: estado normal. */
+  activeSplit: () => apiRequest<BillSplit>("/api/v1/guest/bill/splits/active", { auth: "guest" }),
+
+  /** Guía de claves por banco. Se pide en el momento del pago: la clave caduca. */
+  c2pBanks: () =>
+    apiRequest<{ data: C2PBankClave[] }>("/api/v1/guest/c2p/banks", { auth: "guest" }).then(
+      (r) => r.data,
+    ),
+
+  /**
+   * Cargo C2P. La clave es de un solo uso y jamás se guarda ni se registra.
+   * La clave de idempotencia se genera una vez por intento: reintentar con otra
+   * puede cobrar dos veces.
+   */
+  c2pCharge: (body: C2PChargeRequest) =>
+    apiRequest<C2PChargeResult>("/api/v1/guest/bill/c2p", {
+      method: "POST",
+      body,
+      auth: "guest",
+      headers: { "Idempotency-Key": body.idempotencyKey },
+    }),
+
   /** Aviso de pago: crea un claim PENDING, nunca cierra ni paga la cuenta. */
   paymentClaim: (body: PaymentClaimInput) =>
     apiRequest<PaymentClaim>("/api/v1/guest/bill/payment-claims", {
@@ -338,6 +364,7 @@ export const guest = {
       body,
       auth: "guest",
     }),
+
 
 
   endSession: async () => {

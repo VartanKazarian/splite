@@ -14,9 +14,11 @@ import {
   guestSession,
   parseMinorInput,
   type Bill,
+  type BillSplit,
   type MenuCurrency,
   type SplitMode,
   type SplitPreview,
+  type SplitPreviewRequest,
 } from "@/lib/api";
 
 

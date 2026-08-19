@@ -688,7 +688,6 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
       />
     </div>
 
-    </div>
 
   );
 }

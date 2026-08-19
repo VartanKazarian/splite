@@ -115,6 +115,41 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
   const rateStr = bill?.fxRateVesPerUnit ?? bill?.fxRate ?? null;
   const showVes = Boolean(bill && bill.currency !== "VES" && rateStr);
 
+  /** El cuerpo del reparto: idéntico para la previsualización y para acordarlo. */
+  const buildSplitBody = (): SplitPreviewRequest => {
+    const remaining = BigInt(bill?.remainingVes ?? bill?.totalDueVes ?? "0");
+    if (mode === "FULL") return { mode, participants: [{ id: "me" }] };
+    if (mode === "EQUAL") {
+      return {
+        mode,
+        participants: Array.from({ length: Math.max(2, diners) }, (_, i) => ({ id: `p${i + 1}` })),
+      };
+    }
+    if (mode === "ITEMS") {
+      return {
+        mode,
+        participants: [{ id: "me" }, { id: "others" }],
+        claims: (bill?.items ?? []).flatMap((item) => {
+          const qty = mine[item.id] ?? 0;
+          const rest = Math.max(0, (item.quantity ?? 1) - qty);
+          return [
+            ...(qty > 0 ? [{ itemId: item.id, quantity: qty, participantIds: ["me"] }] : []),
+            ...(rest > 0 ? [{ itemId: item.id, quantity: rest, participantIds: ["others"] }] : []),
+          ];
+        }),
+      };
+    }
+    const cents = BigInt(parseMinorInput(amount) || "0");
+    const rest = remaining > cents ? remaining - cents : 0n;
+    return {
+      mode,
+      participants: [
+        { id: "me", amountVes: cents.toString() },
+        { id: "others", amountVes: rest.toString() },
+      ],
+    };
+  };
+
   const splitMutation = useMutation({
     mutationFn: async () => {
       if (demo && bill) {
@@ -124,49 +159,44 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
           amountMinor: parseMinorInput(amount) || "0",
         });
       }
-      // Nadie escribe nombres: cada comensal usa el mismo QR y sólo marca lo suyo.
-      const remaining = BigInt(bill?.remainingVes ?? bill?.totalDueVes ?? "0");
-      let body: Record<string, unknown>;
-      if (mode === "FULL") {
-        body = { mode, participants: [{ id: "me" }] };
-      } else if (mode === "EQUAL") {
-        body = {
-          mode,
-          participants: Array.from({ length: Math.max(2, diners) }, (_, i) => ({ id: `p${i + 1}` })),
-        };
-      } else if (mode === "ITEMS") {
-        body = {
-          mode,
-          participants: [{ id: "me" }, { id: "others" }],
-          claims: (bill?.items ?? []).flatMap((item) => {
-            const qty = mine[item.id] ?? 0;
-            const rest = Math.max(0, (item.quantity ?? 1) - qty);
-            return [
-              ...(qty > 0
-                ? [{ itemId: item.id, quantity: qty, participantIds: ["me"] }]
-                : []),
-              ...(rest > 0
-                ? [{ itemId: item.id, quantity: rest, participantIds: ["others"] }]
-                : []),
-            ];
-          }),
-        };
-      } else {
-        const cents = BigInt(parseMinorInput(amount) || "0");
-        const rest = remaining > cents ? remaining - cents : 0n;
-        body = {
-          mode,
-          participants: [
-            { id: "me", amountVes: cents.toString() },
-            { id: "others", amountVes: rest.toString() },
-          ],
-        };
-      }
       // El reparto lo calcula el servidor: nunca se divide en el cliente.
-      return guest.splitPreview<SplitPreview>(body);
+      return guest.splitPreview<SplitPreview>(buildSplitBody());
     },
     onSuccess: setPreview,
     onError: () => setPreview(null),
+  });
+
+  /** La referencia de participante que le corresponde a quien está mirando. */
+  const myRef = mode === "EQUAL" ? "p1" : "me";
+
+  // Reparto ya acordado y guardado: cada parte se paga contra su propio techo.
+  const activeSplitQuery = useQuery({
+    queryKey: ["guest-split", demo],
+    enabled: sessionReady && !demo && Boolean(bill),
+    retry: false,
+    refetchInterval: 8000,
+    queryFn: async (): Promise<BillSplit | null> => {
+      try {
+        return await guest.activeSplit();
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+      }
+    },
+  });
+  const activeSplit = activeSplitQuery.data ?? null;
+
+  const [myParticipantRef, setMyParticipantRef] = useState<string | null>(null);
+  const myParticipant =
+    activeSplit?.participants.find((p) => p.ref === myParticipantRef) ?? null;
+
+  const confirmSplit = useMutation({
+    mutationFn: () => guest.createSplit(buildSplitBody()),
+    onSuccess: (split) => {
+      setMyParticipantRef(myRef);
+      activeSplitQuery.refetch();
+      return split;
+    },
   });
 
   // El cálculo aparece solo tras la selección, sin botón intermedio.
@@ -187,6 +217,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canSplit, mode, diners, JSON.stringify(mine), amount, bill?.totalDue, bill?.remainingVes]);
+
 
 
   const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : undefined);

@@ -89,6 +89,17 @@ function Dashboard() {
     refetchInterval: 8000,
   });
 
+  // Avisos de pago que esperan verificación: el badge es lo que hace que alguien los mire.
+  const claimsQuery = useQuery({
+    queryKey: ["payment-claims", "PENDING"],
+    queryFn: () => payments.claims("PENDING"),
+    enabled: ready && me.isSuccess,
+    retry: false,
+    refetchInterval: 20000,
+  });
+  const pendingCount = claimsQuery.data?.length ?? 0;
+
+
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
   const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
 

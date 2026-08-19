@@ -116,15 +116,30 @@ function toClaimError(error: unknown): ClaimError {
   }
 }
 
-export function GuestPaymentPanel({ bill, demo = false }: { bill: Bill; demo?: boolean }) {
+export function GuestPaymentPanel({
+  bill,
+  demo = false,
+  splitParticipantId,
+  shareRemainingVes,
+}: {
+  bill: Bill;
+  demo?: boolean;
+  /** Parte del reparto persistente que este comensal está pagando. */
+  splitParticipantId?: string;
+  /** Techo de esa parte: el backend rechaza cualquier cosa por encima. */
+  shareRemainingVes?: string;
+}) {
   const payee: Payee | null =
     bill.payee ??
     (demo
       ? { bankCode: "0105", bankName: "Mercantil", phone: "04121234567", holderId: "J123456789" }
       : null);
 
-  const [tab, setTab] = useState<"payee" | "claim">("payee");
-  const [amount, setAmount] = useState(() => formatMinor(bill.remainingVes ?? "0"));
+  // Con reparto acordado, lo que toca pagar es la parte, no la cuenta entera.
+  const dueVes = shareRemainingVes ?? bill.remainingVes ?? "0";
+
+  const [tab, setTab] = useState<"payee" | "claim" | "c2p">("payee");
+  const [amount, setAmount] = useState(() => formatMinor(dueVes));
   const [reference, setReference] = useState("");
   const [phoneOrigin, setPhoneOrigin] = useState("");
   const [bankOrigin, setBankOrigin] = useState("");
@@ -135,8 +150,9 @@ export function GuestPaymentPanel({ bill, demo = false }: { bill: Bill; demo?: b
   const referenceRef = useRef<HTMLInputElement>(null);
   const successRef = useRef<HTMLDivElement>(null);
 
-  const remaining = BigInt(bill.remainingVes ?? "0");
+  const remaining = BigInt(dueVes);
   const billPaid = remaining === 0n;
+
 
   useEffect(() => {
     if (cooldown <= 0) return;

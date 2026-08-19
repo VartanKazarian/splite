@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Check, Copy } from "lucide-react";
 
+import { GuestC2PForm } from "@/components/GuestC2PForm";
+
 import {
   ApiError,
   formatMinor,

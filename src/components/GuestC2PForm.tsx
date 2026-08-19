@@ -24,12 +24,10 @@ const ID_TYPES = ["V", "E", "J", "G", "P", "C"] as const;
  *    el cargo siga sin resolverse. Generar otra puede cobrar dos veces.
  */
 export function GuestC2PForm({
-  billId,
   maxVes,
   demo,
   splitParticipantId,
 }: {
-  billId: string;
   maxVes: string;
   demo: boolean;
   splitParticipantId?: string;

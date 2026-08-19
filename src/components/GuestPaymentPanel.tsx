@@ -177,6 +177,7 @@ export function GuestPaymentPanel({
         reference: reference.trim(),
         ...(phoneOrigin.trim() ? { phoneOrigin: phoneOrigin.trim() } : {}),
         ...(bankOrigin.trim() ? { bankOrigin: bankOrigin.trim() } : {}),
+        ...(splitParticipantId ? { splitParticipantId } : {}),
       });
     },
     onSuccess: (data) => {

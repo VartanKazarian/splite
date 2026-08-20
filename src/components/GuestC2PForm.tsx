@@ -26,12 +26,11 @@ const ID_TYPES = ["V", "E", "J", "G", "P", "C"] as const;
 export function GuestC2PForm({
   maxVes,
   demo,
-  splitParticipantId,
 }: {
   maxVes: string;
   demo: boolean;
-  splitParticipantId?: string;
 }) {
+
   const banksQuery = useQuery({
     queryKey: ["c2p-banks"],
     enabled: !demo,
@@ -95,8 +94,8 @@ export function GuestC2PForm({
         phone: phone.replace(/\D/g, ""),
         clave,
         idempotencyKey: idemRef.current,
-        ...(splitParticipantId ? { splitParticipantId } : {}),
       });
+
     },
     onSettled: () => {
       // La clave no sobrevive al envío, ni siquiera en memoria del formulario.

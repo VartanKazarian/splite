@@ -282,13 +282,8 @@ export function GuestPaymentPanel({
         </div>
       )}
 
-      {tab === "c2p" && (
-        <GuestC2PForm
-          maxVes={dueVes}
-          demo={demo}
-          {...(splitParticipantId ? { splitParticipantId } : {})}
-        />
-      )}
+      {tab === "c2p" && <GuestC2PForm maxVes={dueVes} demo={demo} />}
+
 
 
       {tab === "claim" && (

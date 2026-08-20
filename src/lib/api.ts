@@ -451,7 +451,26 @@ export type StaffPaymentClaim = PaymentClaim & {
   declaredAt?: string | null;
 };
 
+/** Cuántos avisos esperan y desde cuándo. La antigüedad la calcula el servidor. */
+export type ClaimsSummary = {
+  pending: number;
+  oldestPendingAt: string | null;
+  oldestPendingAgeSeconds: number | null;
+};
+
+/** Propinas de un periodo, separadas por cómo llegaron: efectivo ya está en caja. */
+export type TipsReport = {
+  from: string;
+  to: string;
+  currency: "VES";
+  totalTipsVes: Money;
+  inTillVes: Money;
+  owedToStaffVes: Money;
+  unclassifiedVes: Money;
+};
+
 export type PaymentClaimInput = {
+
   amountVes: Money;
   reference: string;
   phoneOrigin?: string;
@@ -525,7 +544,12 @@ export type C2PBankClave = {
   }[];
 };
 
-/** Cargo C2P contra la cuenta del propio comensal. La clave nunca se guarda. */
+/**
+ * Cargo C2P contra la cuenta del propio comensal. La clave nunca se guarda.
+ * El contrato no admite atribuir el cargo a una parte del reparto: el techo de
+ * la parte se respeta en el monto, no en un campo extra (el backend rechaza
+ * propiedades desconocidas con VALIDATION_FAILED).
+ */
 export type C2PChargeRequest = {
   amountVes: Money;
   bankCode: string;
@@ -533,8 +557,8 @@ export type C2PChargeRequest = {
   phone: string;
   clave: string;
   idempotencyKey: string;
-  splitParticipantId?: string;
 };
+
 
 export type C2PStatus = "SUCCEEDED" | "FAILED" | "IN_DOUBT" | "AMBIGUOUS";
 
@@ -817,6 +841,19 @@ export const payments = {
       `/api/v1/payments/claims?status=${status}&limit=100${billId ? `&billId=${billId}` : ""}`,
       { auth: "staff" },
     ).then((r) => r.data),
+  /**
+   * Un agregado barato para saber que alguien espera sin abrir la cola.
+   * Se consulta a intervalo humano (15–30 s): comparte el límite de peticiones.
+   */
+  claimsSummary: () =>
+    apiRequest<ClaimsSummary>("/api/v1/payments/claims/summary", { auth: "staff" }),
+  /** Propinas del periodo: `from` inclusivo y `to` exclusivo, para que los turnos no se solapen. */
+  tips: (from: string, to: string) =>
+    apiRequest<TipsReport>(
+      `/api/v1/payments/tips?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      { auth: "staff" },
+    ),
+
   /** Confirmar acredita el dinero en la cuenta: sólo tras verlo en el banco. */
   confirmClaim: (id: string) =>
     apiRequest<{ claim: StaffPaymentClaim; settlement?: PaymentResult }>(

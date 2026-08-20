@@ -34,7 +34,17 @@ export const Route = createFileRoute("/pagos")({
   component: PaymentsPage,
 });
 
+/** La espera se muestra en la unidad que importa: minutos, no segundos exactos. */
+function formatWait(seconds: number) {
+  if (seconds < 60) return "menos de un minuto";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} h ${minutes % 60} min`;
+}
+
 function PaymentsPage() {
+
   const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -53,6 +63,16 @@ function PaymentsPage() {
     refetchInterval: 15000,
   });
 
+  // Agregado barato: dice que alguien espera y desde cuándo, sin recorrer la cola.
+  const summaryQuery = useQuery({
+    queryKey: ["payment-claims-summary"],
+    queryFn: () => payments.claimsSummary(),
+    enabled: ready,
+    retry: false,
+    refetchInterval: 20000,
+  });
+
+
   const unresolvedQuery = useQuery({
     queryKey: ["c2p-unresolved"],
     queryFn: () => payments.c2pUnresolved(),
@@ -61,14 +81,32 @@ function PaymentsPage() {
     refetchInterval: 30000,
   });
 
+  // Propinas del día en curso: `to` exclusivo, para que un turno no cuente dos veces.
+  const tipsQuery = useQuery({
+    queryKey: ["payment-tips-today"],
+    queryFn: () => {
+      const from = new Date();
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(from);
+      to.setDate(to.getDate() + 1);
+      return payments.tips(from.toISOString(), to.toISOString());
+    },
+    enabled: ready,
+    retry: false,
+    staleTime: 60000,
+  });
+
   const fail = (error: unknown) =>
     toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["payment-claims"] });
+    queryClient.invalidateQueries({ queryKey: ["payment-claims-summary"] });
+    queryClient.invalidateQueries({ queryKey: ["payment-tips-today"] });
     queryClient.invalidateQueries({ queryKey: ["c2p-unresolved"] });
     queryClient.invalidateQueries({ queryKey: ["floor"] });
   };
+
 
   // Confirmar acredita el dinero: sólo después de verlo en el banco.
   const confirmClaim = useMutation({
@@ -130,10 +168,20 @@ function PaymentsPage() {
         </p>
 
         <section className="surface mt-6 p-6">
-          <h2 className="text-xl">Avisos de pago móvil</h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-xl">Avisos de pago móvil</h2>
+            {summaryQuery.data && summaryQuery.data.pending > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {summaryQuery.data.pending} en espera
+                {summaryQuery.data.oldestPendingAgeSeconds != null &&
+                  ` · el más antiguo lleva ${formatWait(summaryQuery.data.oldestPendingAgeSeconds)}`}
+              </p>
+            )}
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Un aviso no paga nada hasta que lo confirmas. Busca la referencia en tu app del banco.
           </p>
+
           {claimsQuery.isError && <ErrorBox error={claimsQuery.error} fallback={t("apiDown")} />}
           {claimsQuery.isSuccess && claimsQuery.data.length === 0 && (
             <p className="mt-4 text-sm text-muted-foreground">No hay avisos por verificar.</p>
@@ -222,6 +270,36 @@ function PaymentsPage() {
             ))}
           </ul>
         </section>
+
+        {tipsQuery.data && (
+          <section className="surface mt-6 p-6">
+            <h2 className="text-xl">Propinas de hoy</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              El efectivo ya está en caja; lo electrónico lo tiene el restaurante y se le debe al
+              personal.
+            </p>
+            <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+              <div>
+                <dt className="text-xs text-muted-foreground">Total</dt>
+                <dd className="mt-1">{formatMoney(tipsQuery.data.totalTipsVes, "VES")}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">En caja</dt>
+                <dd className="mt-1">{formatMoney(tipsQuery.data.inTillVes, "VES")}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Debido al personal</dt>
+                <dd className="mt-1">{formatMoney(tipsQuery.data.owedToStaffVes, "VES")}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Sin clasificar</dt>
+                <dd className="mt-1">{formatMoney(tipsQuery.data.unclassifiedVes, "VES")}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
+
+
 
         <section className="surface mt-6 p-6">
           <h2 className="text-xl">Cargos C2P sin resolver</h2>

@@ -769,7 +769,51 @@ export const menu = {
       `/api/v1/menu/products/${id}${permanent ? "?permanent=true" : ""}`,
       { method: "DELETE", auth: "staff" },
     ),
+  /** Sube una foto/PDF del menú y devuelve un borrador. No escribe nada. */
+  ocrExtract: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return apiRequest<MenuOcrDraft>("/api/v1/menu/ocr-extract", {
+      method: "POST",
+      auth: "staff",
+      body: form,
+    });
+  },
+  /** Confirma las filas revisadas: se validan como productos escritos a mano. */
+  ocrImport: (items: { name: string; priceMinorUnits: Money; description?: string | null }[]) =>
+    apiRequest<MenuOcrImportResult>("/api/v1/menu/ocr-import", {
+      method: "POST",
+      auth: "staff",
+      body: { items },
+    }),
 };
+
+export type MenuOcrDraftItem = {
+  name?: string;
+  description?: string | null;
+  section?: string | null;
+  priceText?: string | null;
+  priceMinorUnits?: string | null;
+  needsPrice?: boolean;
+  duplicateName?: boolean;
+  currency?: MenuCurrency;
+};
+
+export type MenuOcrDraft = {
+  items?: MenuOcrDraftItem[];
+  pages?: number;
+  currency?: MenuCurrency;
+  currencyGuess?: string | null;
+  notes?: string | null;
+  needsReview?: number;
+};
+
+export type MenuOcrImportResult = {
+  importedCount?: number;
+  items?: Product[];
+  errors?: { index?: number; name?: string; code?: string; message?: string }[];
+};
+
 
 
 export const bills = {

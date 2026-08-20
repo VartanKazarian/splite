@@ -348,6 +348,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/guest/bill/splits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Agree a persistent split of the guest's bill
+         * @description Authenticated with a guest session. **Takes no bill id** — the table comes from the session.
+         *
+         *     Stores an agreed split so each diner can then pay their own share (by Pago Móvil claim or
+         *     C2P) and no one can pay more than their share. The shares sum to the outstanding balance by
+         *     construction. One live split per bill: void the current one before agreeing another.
+         */
+        post: operations["createGuestSplit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/guest/bill/splits/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The split currently governing the guest's bill
+         * @description Authenticated with a guest session.
+         *
+         *     Returns the ACTIVE split, or the most recent STALE one if the bill changed after it was
+         *     agreed — a diner who ordered another round needs to be told their split no longer covers the
+         *     bill, not shown an empty screen. **Branch on `status`.** 404 means no split was ever agreed.
+         */
+        get: operations["getGuestActiveSplit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/guest/bill/split/preview": {
         parameters: {
             query?: never;
@@ -543,6 +591,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tables/floor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every table with the bill open on it
+         * @description Any authenticated staff role. What an owner dashboard renders.
+         *
+         *     One call instead of 1 + N: listing tables and then asking each for its open bill costs
+         *     a request per table on every poll. `openBill` is null for a free table rather than absent,
+         *     so the shape does not change with occupancy.
+         */
+        get: operations["getFloor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tables/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create the tables a restaurant has
+         * @description Roles: OWNER, MANAGER. Say how many tables the restaurant has and the missing ones are
+         *     created as `<prefix> 1` … `<prefix> N`.
+         *
+         *     Idempotent, and it never deletes: raising the count later adds only the new tables, and
+         *     lowering it removes nothing — a table that already carries bills is not something a
+         *     number in a form should be able to destroy.
+         */
+        post: operations["createTablesInBulk"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tables/{tableId}": {
         parameters: {
             query?: never;
@@ -717,6 +814,34 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bills/tables/{tableId}/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take an order for a table
+         * @description Roles: OWNER, MANAGER, CASHIER, WAITER. **Opens the table's bill if it does not have one**,
+         *     then adds every line in a single transaction.
+         *
+         *     This is the shape of the work: a waiter has a table and a list of things, not a bill id.
+         *     Doing it with the primitives means asking whether a bill exists, creating one if not, and
+         *     posting each line — and leaving half an order behind if one call fails.
+         *
+         *     `opened` says whether this call started the bill, so the UI can say "table opened" rather
+         *     than guessing. Prices are snapshotted per line, as everywhere else.
+         */
+        post: operations["orderForTable"];
         delete?: never;
         options?: never;
         head?: never;
@@ -950,6 +1075,84 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/bills/{id}/splits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Agree a persistent split of a bill
+         * @description Roles: OWNER, MANAGER, CASHIER, WAITER.
+         *
+         *     The advisory preview computes the same numbers; this stores them, so a group settles
+         *     against one agreed plan from several phones. Shares sum to the outstanding balance by
+         *     construction, and the database refuses a split that does not. One live split per bill —
+         *     409 `SPLIT_ALREADY_EXISTS` until the current one is voided.
+         *
+         *     The bill must be **OPEN**: 409 `BILL_NOT_OPEN` otherwise. A split of a closed or voided
+         *     bill is a plan nobody can settle — the shares compute, and then every payment against
+         *     them is refused, one diner at a time, at the till.
+         */
+        post: operations["createBillSplit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bills/{id}/splits/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The split currently governing the bill
+         * @description Roles: OWNER, MANAGER, CASHIER, WAITER.
+         *
+         *     Returns the ACTIVE split, or the most recent STALE one if the bill changed after a split
+         *     was agreed. **Branch on `status`** — a STALE split is returned precisely so a client can say
+         *     "the bill changed, agree a new split" rather than showing nothing. 404 means this bill never
+         *     had one.
+         */
+        get: operations["getBillActiveSplit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bills/{id}/splits/{splitId}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Void a split
+         * @description Roles: OWNER, MANAGER, CASHIER.
+         *
+         *     Refused once any share has been paid into — 409 `SPLIT_HAS_PAYMENTS`. A plan people have
+         *     started settling against is a record, not a draft; change it by agreeing a fresh split on the
+         *     remaining balance.
+         */
+        post: operations["voidBillSplit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bills/{id}/split/preview": {
         parameters: {
             query?: never;
@@ -1173,13 +1376,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Settings. */
+                /** @description Settings, including charge rates. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MenuSettings"];
+                        "application/json": components["schemas"]["MenuCharges"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -1195,6 +1398,35 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/menu/settings/charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set the IVA and service charge rates
+         * @description Roles: OWNER, MANAGER. Rates are **basis points**: 1600 is 16%, 1000 is 10%. Send either,
+         *     or both.
+         *
+         *     Both are snapshotted onto a bill when it opens, so changing them never reprices a meal
+         *     already being eaten — and a bill that is already open **keeps the rates it started with**.
+         *     The response reports how many open bills are therefore unaffected; close or void one if it
+         *     needs the new figures.
+         *
+         *     Both default to 0, including for Venezuela's statutory 16%: a restaurant is configured
+         *     deliberately rather than by a migration guessing.
+         */
+        patch: operations["setMenuCharges"];
         trace?: never;
     };
     "/api/v1/menu/settings/currency": {
@@ -1245,6 +1477,73 @@ export interface paths {
                 500: components["responses"]["ServerError"];
             };
         };
+        trace?: never;
+    };
+    "/api/v1/menu/ocr-extract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read a menu from a photo or PDF
+         * @description Roles: OWNER, MANAGER.
+         *
+         *     Upload one menu file as `multipart/form-data` in the field **`file`** — JPEG, PNG, WebP or
+         *     PDF. A PDF is rasterised page by page, up to the configured page cap.
+         *
+         *     **This writes nothing.** It returns a draft for a person to check, then
+         *     `POST /api/v1/menu/ocr-import` commits what they confirmed. The division is deliberate and
+         *     is the same one a declared Pago Móvil uses: OCR misreads prices, and a wrong price is
+         *     charged to every diner who orders that dish until somebody notices.
+         *
+         *     Rows the reader could not price arrive with `priceMinorUnits: null` and `needsPrice: true`
+         *     rather than being dropped — the item is real, and hiding it sends staff hunting for what was
+         *     missed. Rows sharing a name are flagged `duplicateName`, since the menu is unique on
+         *     (restaurant, name).
+         *
+         *     Rate limited to 10 per minute: each call costs money at a third party.
+         *
+         *     503 `MENU_OCR_NOT_CONFIGURED` when the deployment has no vision provider configured.
+         */
+        post: operations["extractMenuFromUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/menu/ocr-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commit reviewed menu items
+         * @description Roles: OWNER, MANAGER.
+         *
+         *     Writes the items a staff member confirmed. The extraction has no authority here — this body
+         *     is equally valid having uploaded nothing, and is validated exactly like a hand-typed product.
+         *
+         *     Products are created active, in the **restaurant's** menu currency; the request cannot name
+         *     one, since that would allow a EUR product onto a VES menu.
+         *
+         *     **Partial success is normal.** Each row is inserted inside its own savepoint, so one
+         *     duplicate name rejects that row and keeps the rest — look at `errors` as well as
+         *     `importedCount`.
+         */
+        post: operations["importMenuItems"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/menu/products": {
@@ -1339,12 +1638,20 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Deactivate a menu product
-         * @description Roles: OWNER, MANAGER. A soft delete: a bill already referencing the product must stay readable.
+         * Remove a menu product
+         * @description Roles: OWNER, MANAGER. Deactivates by default — a bill already referencing the product
+         *     must stay readable.
+         *
+         *     `?permanent=true` deletes the row outright. That is safe: `bill_items.product_id` is
+         *     ON DELETE SET NULL and every line carries its own name and price snapshot, so an old bill
+         *     stays exactly as it was served and only loses the reporting link. Use it to clear products
+         *     left behind by a menu-currency change.
          */
         delete: {
             parameters: {
-                query?: never;
+                query?: {
+                    permanent?: boolean;
+                };
                 header?: never;
                 path: {
                     id: components["parameters"]["ProductId"];
@@ -1409,6 +1716,554 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/guest/bill/payment-claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Declare a Pago Móvil the diner has already sent
+         * @description Authenticated with a guest session. **Takes no bill id** — the table comes from the session.
+         *
+         *     Creates a claim and settles nothing. The money went from the diner's bank to the
+         *     restaurant's without passing through Splite, so no API of ours can see it arrive; the only
+         *     honest thing this can do is carry the diner's word to somebody who can check the bank app.
+         *
+         *     `bills.amountPaidVes` is untouched until a member of staff confirms it through
+         *     `POST /api/v1/payments/claims/{id}/confirm`. A bill that showed itself as paid because
+         *     somebody typed a number into a form would be worse than one showing nothing, because the
+         *     restaurant would stop asking.
+         *
+         *     A claim is not a reservation: two diners may each claim the whole balance, and only the
+         *     first confirmation can succeed.
+         */
+        post: operations["declarePaymentClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/claims/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How many declared payments are waiting, and for how long
+         * @description Any authenticated staff role — including WAITER, unlike confirming. A waiter cannot decide
+         *     that money arrived, but they are the person standing in the room and should be able to see
+         *     that somebody is waiting on the till.
+         *
+         *     This exists because nothing else tells staff a claim arrived. A diner declares a Pago Móvil,
+         *     nothing moves until a person finds it in the bank app, and if nobody opens the queue the
+         *     diner leaves believing they have paid. Separate from `GET /claims` so a badge on every screen
+         *     is not pulling full claim rows, payer phone numbers included, to render a number.
+         */
+        get: operations["getPaymentClaimsSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Declared payments awaiting verification
+         * @description Any authenticated staff role. Defaults to PENDING, which is the queue somebody has to work.
+         */
+        get: operations["listPaymentClaims"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/claims/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the money arrived, and settle the bill
+         * @description Roles: OWNER, MANAGER, CASHIER. A waiter can take an order; deciding that money arrived
+         *     is a cashier's job upwards.
+         *
+         *     This is the moment the bill moves. It goes through the same settlement path as a staff
+         *     split and a provider webhook, so a confirmed claim cannot overpay a bill or close one that
+         *     was voided while it sat in the queue — 409 `PAYMENT_EXCEEDS_BALANCE` and `BILL_NOT_OPEN`
+         *     are both reachable here and both mean the claim should be rejected instead.
+         */
+        post: operations["confirmPaymentClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/claims/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record that the money could not be found
+         * @description Roles: OWNER, MANAGER, CASHIER.
+         *
+         *     FAILED rather than deleted: if a diner insists they paid, the record of what they declared
+         *     and who rejected it is the only way to settle the argument. Rejecting also releases the
+         *     reference, so a diner who simply mistyped can declare again.
+         */
+        post: operations["rejectPaymentClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/guest/c2p/banks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How to obtain a C2P clave, per bank
+         * @description Authenticated with a guest session. Static reference data: the channels, SMS short codes and
+         *     bodies, and clave lifetime for every bank Splite can charge by C2P.
+         *
+         *     The step of the C2P flow Splite does not control is the diner asking their own bank for a
+         *     single-use clave. `strategy.when` is the field to act on — a clave that lasts five minutes
+         *     (Banplus) or is bound to the amount (100% Banco) must be fetched at payment time, not when
+         *     the diner sits down.
+         *
+         *     Optional `idType` and `idNumber` fill the diner's identity into the SMS bodies that take it.
+         */
+        get: operations["listC2PBankClaves"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/guest/bill/c2p": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Charge the diner's bank account by C2P
+         * @description Authenticated with a guest session. **Takes no bill id** — the table comes from the session.
+         *
+         *     Unlike `payment-claims`, this moves money. The diner supplies a single-use clave from their
+         *     own bank and Splite asks Mercantil to pull the amount, so the response is an outcome rather
+         *     than a message to staff.
+         *
+         *     **Handle all four statuses.** `IN_DOUBT` is the one that matters: the bank did not tell us
+         *     what happened, the debit may have landed, and Mercantil does not promise that invoice
+         *     numbers deduplicate. Offering a retry there is how a diner pays twice for one dinner.
+         *
+         *     Rate limited far more tightly than the rest of the guest surface — 8 per 5 minutes per
+         *     session — because each attempt burns a clave the diner had to fetch from their bank and
+         *     consumes the restaurant's quota with Mercantil.
+         *
+         *     `Idempotency-Key` is mandatory. A client that never saw the response replays the original
+         *     outcome instead of raising a second charge.
+         */
+        post: operations["chargeC2P"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/tips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tips taken over a period
+         * @description Any authenticated staff role — this is the figure a shift is divided by, and whoever hands
+         *     the money out has to be able to read it.
+         *
+         *     `from` is inclusive and `to` exclusive, so consecutive shifts tile without counting the
+         *     boundary twice. Both are required: a report whose period was guessed is a number somebody
+         *     hands out money against.
+         *
+         *     **Only SUCCEEDED payments count.** A tip on an unverified Pago Móvil claim is money a diner
+         *     *says* they sent, and paying staff against it is the mistake the confirmation step exists to
+         *     prevent. IN_DOUBT and AMBIGUOUS C2P charges are excluded for the same reason.
+         */
+        get: operations["getTipsReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/c2p/unresolved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * C2P charges that reached no settled state
+         * @description Any authenticated staff role.
+         *
+         *     `IN_DOUBT` means the bank never told us what happened. `AMBIGUOUS` means it has money
+         *     matching the amount that nothing ties to this diner, or it confirmed a debit that could not
+         *     be credited to the bill.
+         *
+         *     This queue is what makes refusing to guess usable. A charge nobody is looking at is
+         *     indistinguishable from one that was lost.
+         */
+        get: operations["listUnresolvedC2PCharges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/c2p/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask Mercantil what happened to an in-doubt charge
+         * @description Roles: OWNER, MANAGER, CASHIER. This can settle a bill, so it is a cashier's job upwards.
+         *
+         *     Settles only when a bank movement matches on **both** the amount and the last four digits
+         *     of the payer's phone. Amount alone is a filter, never a decision: two tables owing the same
+         *     total is the ordinary case in a restaurant, and matching on amount would settle one table
+         *     with the other's money.
+         *
+         *     A movement it cannot attribute moves the charge to `AMBIGUOUS` with the candidate
+         *     references attached. Re-running an `AMBIGUOUS` charge returns it unchanged — the system has
+         *     already said it cannot tell them apart, and asking again will not change that.
+         *
+         *     Inside the settlement window a missing movement returns `resolutionPending` rather than
+         *     failing the charge: interbank settlement is not instant, and failing a debit still in
+         *     flight is the same double-charge error in slower motion.
+         *
+         *     409 `PAYMENT_REFERENCE_ALREADY_USED` means the movement it matched had already settled a
+         *     different payment. The charge stays unresolved.
+         */
+        post: operations["resolveC2PCharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inbound payment notification from a provider
+         * @description No session: a provider has no login. The **HMAC signature is the credential**, and it is
+         *     verified before the body is read, recorded or acted on.
+         *
+         *     Headers: `X-Webhook-Signature` (hex HMAC-SHA256) and `X-Webhook-Timestamp` (unix seconds).
+         *     The signed value is `{timestamp}.{rawBody}`, so a captured signature cannot be replayed
+         *     against a different body, and the timestamp is inside the MAC rather than merely beside it.
+         *     The tolerance window is two-sided: a far-future timestamp is as invalid as a stale one.
+         *
+         *     A signature may be used **once**. Single-use is enforced in Redis and fails closed — if the
+         *     replay store is unreachable this answers 503 `WEBHOOK_REPLAY_PROTECTION_UNAVAILABLE`
+         *     rather than risk handling a money-moving callback twice.
+         *
+         *     The **amount is taken from our own record, never from the body.** A valid signature proves
+         *     who sent the delivery and nothing more; settling whatever figure it names would let a
+         *     compromised provider key rewrite a bill.
+         *
+         *     **202 means stop sending this.** Settled, a duplicate of something settled, or a body that
+         *     never named a payment and never will however many times it is resent. Providers retry on
+         *     any non-2xx and on timeouts where we in fact succeeded, so answering a duplicate with an
+         *     error teaches one to retry forever. Read `settled` and `reason` for what happened.
+         *
+         *     **It does not cover a delivery we merely failed to process.** A callback can overtake the
+         *     commit of our own PENDING row, and answering 202 to that loses a real settlement
+         *     permanently — the money has moved and the bill never closes. Those answer 503
+         *     `WEBHOOK_PAYMENT_UNRESOLVED` with `Retry-After`, as do database failures.
+         *
+         *     Send an `eventId`. Duplicate detection is a primary key on `(provider, eventId)` written
+         *     inside the settling transaction, which is durable and event-scoped; the signature-keyed
+         *     Redis entry is a ten-minute optimisation that a re-signed retry does not match. Without an
+         *     `eventId` the only protection left is the payment status check, which cannot tell two
+         *     events for one payment apart. A failed attempt claims nothing, so the retry can succeed.
+         *
+         *     Only the `SPLITE` provider exists today; a real acquirer is an entry in the adapter table.
+         */
+        post: operations["receiveWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/banks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Venezuelan banks a payee can be configured against
+         * @description Any authenticated staff role.
+         *
+         *     Read `chargeable` rather than assuming: a restaurant may name any bank, because that is
+         *     where diners send money whether or not we integrate with it, but only a bank with a module
+         *     can take part in an in-app payment. Nothing is chargeable today.
+         *
+         *     **The list is unverified against Sudeban's register.** The codes are load-bearing — a wrong
+         *     one sends money to another institution — and it must be confirmed before production.
+         */
+        get: operations["listBanks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/payment-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Which bank rails this restaurant has credentials for
+         * @description Any authenticated staff role. Returns metadata only — there is no endpoint that returns a
+         *     stored credential, and the schema has no field that could carry one.
+         *
+         *     `supported` lists the providers this deployment has an adapter for.
+         */
+        get: operations["listPaymentProviders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/payment-providers/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Store bank API credentials
+         * @description **OWNER only** — not MANAGER, who may set the payee. The payee says where money should be
+         *     sent; these let software move it, which is a different kind of authority.
+         *
+         *     The body shape is per provider, because no two banks agree on what a credential is.
+         *     MERCANTIL takes `merchantId`, `clientId`, `secretKey`, `integratorId` and `terminalId`.
+         *     Unknown fields are rejected rather than stored: a blob that carries whatever was sent is
+         *     where a stray password ends up, sealed forever and invisible to review.
+         *
+         *     Credentials are sealed with AES-256-GCM before they reach the database and are never
+         *     returned. Replacing them resets `enabled` to false and clears `credentialsValidatedAt` —
+         *     new credentials are unproven credentials, and a mistyped key must not leave a rail
+         *     switched on and quietly broken.
+         *
+         *     Answers 503 `PAYMENT_CREDENTIALS_KEY_MISSING` when the deployment has no encryption key
+         *     configured. That is configuration, not a bug, and the code says so.
+         */
+        put: operations["putPaymentProviderCredentials"];
+        post?: never;
+        /**
+         * Remove bank API credentials
+         * @description OWNER only. Removes the row outright; there is nothing to keep once the credentials are gone.
+         */
+        delete: operations["deletePaymentProviderCredentials"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/payout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set or clear where the restaurant is paid
+         * @description Roles: OWNER, MANAGER. This is the address money is sent to — getting it wrong does not
+         *     degrade the product, it pays a stranger — so it is not a change a waiter makes from the
+         *     floor.
+         *
+         *     Send all four fields, or `{}` to clear. The account number must begin with its own bank
+         *     code, which is checked here rather than left to a database CHECK so the error names the
+         *     field.
+         */
+        put: operations["setPayout"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The signed-in restaurant's own record and plan
+         * @description Any authenticated staff role.
+         *
+         *     The source of the trial banner. Note what it does **not** do: nothing in the API refuses
+         *     service when a trial lapses. Which action a lapsed restaurant loses is a pricing decision,
+         *     and the obvious candidate is the wrong one — cutting off bills mid-service strands a dining
+         *     room full of seated diners over an unpaid invoice. Until that is decided deliberately, the
+         *     dates are reported and the client warns.
+         */
+        get: operations["getAccount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/restaurants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a restaurant for review
+         * @description Public. Creates **no tenant and no account.** It records the submission and emails the
+         *     Splite onboarding team, who read it and telephone the restaurant. The applicant gets an
+         *     acknowledgement saying exactly that.
+         *
+         *     Access is granted later, by a person: after the call, the team runs
+         *     `npm run onboarding -- invite <id>`, which mails the single-use link that
+         *     `POST /api/v1/onboarding/verify` consumes. There is no HTTP route for that step —
+         *     every authenticated surface here is scoped to a tenant the caller belongs to, and there
+         *     is no platform-operator role to authorise it.
+         *
+         *     Returns the same 202 to everyone, including when the address or RIF already belongs to a
+         *     live account. Anything else would make this an account-enumeration oracle, which is what
+         *     `/auth/login` pays for a decoy Argon2 hash to avoid. The duplicate is reported to the
+         *     reviewer instead, which is where a human should be looking at it anyway.
+         *
+         *     Rate limited to 5/hour per source address **and** 3/hour per recipient, both fail-closed.
+         *     The per-recipient limit is the one that matters: this endpoint sends mail to an address the
+         *     caller chooses, so a distributed caller stays under any per-IP budget while filling one
+         *     person's inbox.
+         */
+        post: operations["submitLead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Consume the link, create the restaurant, sign the owner in
+         * @description Public, but requires a token that the Splite team sent by email after approving the
+         *     submission. Nothing mints that token except `npm run onboarding -- invite <id>`.
+         *
+         *     Creates the restaurant, its OWNER user and the menu defaults (IVA 1600 bps, servicio
+         *     1000 bps) in **one transaction**, then issues a session — the address is proven and the
+         *     password was chosen in this same request, so a login screen here would only ask for what
+         *     was just typed.
+         *
+         *     A human having approved the lead is *not* why this step exists: being vouched for is not
+         *     the same as controlling the inbox, and staff email is globally unique. The tenant is still
+         *     born only inside the transaction that spends the token.
+         *
+         *     The link is single-use and expiring. `ONBOARDING_TOKEN_INVALID` covers absent, spent and
+         *     expired alike: a caller has no legitimate use for the difference, and separating them would
+         *     reveal which links exist.
+         */
+        post: operations["verifySignup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1419,7 +2274,7 @@ export interface components {
                  * @description Stable identifier for what went wrong. Branch on this, never on `message`. A code always carries the same HTTP status.
                  * @enum {string}
                  */
-                code: "VALIDATION_FAILED" | "BILL_ID_MISMATCH" | "INVALID_AMOUNT" | "INVALID_MONETARY_VALUE" | "WEBHOOK_BODY_UNVERIFIABLE" | "SPLIT_PARTICIPANTS_INVALID" | "SPLIT_CLAIMS_INCOMPLETE" | "SPLIT_CLAIM_UNKNOWN" | "SPLIT_AMOUNT_MISMATCH" | "AUTH_TOKEN_MISSING" | "AUTH_TOKEN_INVALID" | "INVALID_CREDENTIALS" | "GUEST_SESSION_MISSING" | "GUEST_SESSION_INVALID" | "QR_INVALID" | "WEBHOOK_SIGNATURE_MISSING" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_TIMESTAMP_OUT_OF_TOLERANCE" | "FORBIDDEN_ROLE" | "CROSS_TENANT_DENIED" | "CORS_ORIGIN_NOT_ALLOWED" | "NOT_FOUND" | "BILL_NOT_FOUND" | "BILL_ITEM_NOT_FOUND" | "TABLE_NOT_FOUND" | "PRODUCT_NOT_FOUND" | "RESTAURANT_NOT_FOUND" | "OPEN_BILL_NOT_FOUND" | "OPEN_BILL_EXISTS" | "BILL_NOT_OPEN" | "BILL_NOT_ITEMISED" | "TOTAL_BELOW_AMOUNT_PAID" | "PRODUCT_INACTIVE" | "SPLIT_NOT_ITEMISED" | "SPLIT_NOTHING_OUTSTANDING" | "BILL_HAS_PAYMENTS" | "PAYMENT_EXCEEDS_BALANCE" | "PAYMENT_STATE_INVALID" | "IDEMPOTENCY_KEY_REUSED" | "IDEMPOTENCY_IN_FLIGHT" | "TABLE_NAME_TAKEN" | "PRODUCT_NAME_TAKEN" | "MENU_CURRENCY_MISMATCH" | "WEBHOOK_ALREADY_PROCESSED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "FX_UNAVAILABLE" | "WEBHOOK_REPLAY_PROTECTION_UNAVAILABLE" | "SHUTTING_DOWN" | "INTERNAL_ERROR";
+                code: "VALIDATION_FAILED" | "BILL_ID_MISMATCH" | "INVALID_AMOUNT" | "INVALID_MONETARY_VALUE" | "WEBHOOK_BODY_UNVERIFIABLE" | "MENU_OCR_UNSUPPORTED_MEDIA" | "MENU_OCR_FILE_REQUIRED" | "MENU_OCR_PDF_UNREADABLE" | "MENU_OCR_FILE_TOO_LARGE" | "SPLIT_PARTICIPANTS_INVALID" | "SPLIT_CLAIMS_INCOMPLETE" | "SPLIT_CLAIM_UNKNOWN" | "SPLIT_AMOUNT_MISMATCH" | "AUTH_TOKEN_MISSING" | "AUTH_TOKEN_INVALID" | "INVALID_CREDENTIALS" | "GUEST_SESSION_MISSING" | "GUEST_SESSION_INVALID" | "ONBOARDING_TOKEN_INVALID" | "QR_INVALID" | "WEBHOOK_SIGNATURE_MISSING" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_TIMESTAMP_OUT_OF_TOLERANCE" | "FORBIDDEN_ROLE" | "CROSS_TENANT_DENIED" | "CORS_ORIGIN_NOT_ALLOWED" | "NOT_FOUND" | "BILL_NOT_FOUND" | "BILL_ITEM_NOT_FOUND" | "TABLE_NOT_FOUND" | "PRODUCT_NOT_FOUND" | "RESTAURANT_NOT_FOUND" | "OPEN_BILL_NOT_FOUND" | "PAYMENT_CLAIM_NOT_FOUND" | "SPLIT_NOT_FOUND" | "SPLIT_SHARE_NOT_FOUND" | "WEBHOOK_PROVIDER_UNKNOWN" | "OPEN_BILL_EXISTS" | "BILL_NOT_OPEN" | "BILL_NOT_ITEMISED" | "TOTAL_BELOW_AMOUNT_PAID" | "PRODUCT_INACTIVE" | "SPLIT_NOT_ITEMISED" | "SPLIT_NOTHING_OUTSTANDING" | "BILL_HAS_PAYMENTS" | "PAYMENT_EXCEEDS_BALANCE" | "PAYMENT_STATE_INVALID" | "IDEMPOTENCY_KEY_REUSED" | "IDEMPOTENCY_IN_FLIGHT" | "TABLE_NAME_TAKEN" | "PRODUCT_NAME_TAKEN" | "MENU_CURRENCY_MISMATCH" | "WEBHOOK_ALREADY_PROCESSED" | "EMAIL_ALREADY_REGISTERED" | "RIF_ALREADY_REGISTERED" | "PAYMENT_REFERENCE_ALREADY_USED" | "PAYMENT_CLAIM_NOT_PENDING" | "SPLIT_ALREADY_EXISTS" | "SPLIT_NOT_ACTIVE" | "SPLIT_STALE" | "SPLIT_HAS_PAYMENTS" | "SPLIT_SHARE_OVERPAID" | "PAYMENT_CREDENTIALS_UNREADABLE" | "PAYMENT_PROVIDER_UNKNOWN" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "FX_UNAVAILABLE" | "WEBHOOK_PAYMENT_UNRESOLVED" | "WEBHOOK_REPLAY_PROTECTION_UNAVAILABLE" | "SHUTTING_DOWN" | "PAYMENT_CREDENTIALS_KEY_MISSING" | "PAYMENT_PROVIDER_MISCONFIGURED" | "PAYMENT_RESOLUTION_UNAVAILABLE" | "MENU_OCR_NOT_CONFIGURED" | "MENU_OCR_UNAVAILABLE" | "MENU_OCR_UNREADABLE_RESPONSE" | "INTERNAL_ERROR";
                 /** @description Human-readable and subject to change without notice. Never parse it. 5xx messages are always the literal string "Internal Server Error". */
                 message: string;
                 /** @description Structured context for this code, always present and possibly empty. See x-error-details for what each code carries. */
@@ -1557,6 +2412,20 @@ export interface components {
             removedId?: string;
             bill?: components["schemas"]["Bill"];
         };
+        /** @description What a table just ordered. One call, however many things. */
+        OrderRequest: {
+            items: {
+                /** Format: uuid */
+                productId: string;
+                /** @default 1 */
+                quantity: number;
+            }[];
+        };
+        OrderResult: {
+            /** @description True when this order opened the table's bill. */
+            opened?: boolean;
+            bill?: components["schemas"]["BillWithItems"];
+        };
         AddBillItemRequest: {
             /** Format: uuid */
             productId: string;
@@ -1604,6 +2473,22 @@ export interface components {
             currency: "VES";
             /** @description Used when the Idempotency-Key header is absent. */
             idempotencyKey: string;
+            /**
+             * Format: uuid
+             * @description Optional. Settle one participant share of a persistent split; the payment may not exceed what is left on that share, and is refused with 409 SPLIT_STALE if the bill changed after the split was agreed.
+             */
+            splitParticipantId?: string;
+            /**
+             * @description Optional voluntary tip, default 0. Added to what the payer hands over, **never to the bill** — `amountMinorUnits` alone settles it.
+             * @example 756710
+             */
+            tipMinorUnits?: string;
+            /**
+             * @description Optional. How the money arrived at the till. Send it when a tip is involved: it is what separates a cash tip already in the drawer from an electronic one the restaurant owes its staff, and an unset method is reported as unclassified rather than guessed. `C2P` and `PAGO_MOVIL` are not accepted here — those are set by the rails that own them.
+             * @default SPLITE
+             * @enum {string}
+             */
+            paymentMethod: "CASH" | "CARD" | "TRANSFER" | "SPLITE" | "OTHER";
         };
         PaymentResult: {
             /** Format: uuid */
@@ -1641,6 +2526,21 @@ export interface components {
             fxRate?: string | null;
             fxSource?: string | null;
             usdReference?: components["schemas"]["UsdReference"];
+            /**
+             * @description The tip on this payment. Excluded from every bill figure above.
+             * @example 756710
+             */
+            tipVes?: string;
+            /**
+             * @description What the payer actually handed over: the settled amount plus the tip.
+             * @example 756710
+             */
+            totalChargedVes?: string;
+            /**
+             * @description Present only when a confirmed claim reached the bill but could not be credited to the share it named — the split went stale or was voided while the claim sat in the queue. The money is settled; the split will still show that diner as owing, and this says why.
+             * @enum {string}
+             */
+            shareDetached?: "SPLIT_STALE" | "SPLIT_NOT_ACTIVE" | "SPLIT_SHARE_OVERPAID" | "SPLIT_SHARE_NOT_FOUND";
         };
         SplitPreviewRequest: {
             /**
@@ -1692,6 +2592,183 @@ export interface components {
                  */
                 amountVes?: string;
                 usdReference?: string | null;
+            }[];
+        };
+        /** @description A persistent split: an agreed plan for who pays which part of a bill. The participant shares sum to basisVes, the outstanding balance when the split was agreed, and each share is paid down independently under its own ceiling. Not a second source of truth for how much the bill has been paid. */
+        BillSplit: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            billId?: string;
+            /** @enum {string} */
+            mode?: "FULL" | "EQUAL" | "ITEMS" | "CUSTOM";
+            /**
+             * @description ACTIVE governs the bill. STALE means the bill total changed after the split was agreed — it takes no further payments and the group must agree another; money already paid into it stays on the bill. VOID was discarded deliberately, which is only possible while nothing had been paid in.
+             * @enum {string}
+             */
+            status?: "ACTIVE" | "STALE" | "VOID";
+            /** @constant */
+            currency?: "VES";
+            /**
+             * @description The outstanding balance the shares divide. Frozen at creation, so it does not follow a bill that changes afterwards — that is what STALE records.
+             * @example 756710
+             */
+            basisVes?: string;
+            /** @enum {string} */
+            createdByType?: "STAFF" | "GUEST";
+            participants?: {
+                /**
+                 * Format: uuid
+                 * @description The persisted share id. Cite it on a payment to settle this share.
+                 */
+                id?: string;
+                /** @description The client-supplied participant label the split was created with. */
+                ref?: string;
+                name?: string | null;
+                /**
+                 * @description The assigned share.
+                 * @example 756710
+                 */
+                amountVes?: string;
+                /**
+                 * @description How much of the share has settled.
+                 * @example 756710
+                 */
+                amountPaidVes?: string;
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                remainingVes?: string;
+                settled?: boolean;
+                usdReference?: string | null;
+            }[];
+            /** @description ITEMS only. Which persisted participant claimed which line. */
+            claims?: {
+                /** Format: uuid */
+                billItemId?: string;
+                /** Format: uuid */
+                participantId?: string;
+            }[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        /** @description The two numbers a screen needs to say somebody is waiting, without opening the queue. Cheap enough to poll — one indexed aggregate — but poll at a human interval (15–30s), not per second: this shares the API rate limit with everything else the till is doing. */
+        ClaimsSummary: {
+            /** @description Declared payments awaiting verification. */
+            pending?: number;
+            /**
+             * Format: date-time
+             * @description When the longest-waiting claim was declared. Null when the queue is empty.
+             */
+            oldestPendingAt?: string | null;
+            /** @description How long that claim has been waiting, computed server-side so a skewed client clock cannot turn a fresh claim into an alarming one. This is the figure worth showing: a count alone cannot tell a claim that arrived ten seconds ago from one ignored for an hour, and the second is a diner who has probably left believing they paid. */
+            oldestPendingAgeSeconds?: number | null;
+        };
+        /** @description Tips over a period, and how they arrived. The split by arrival is the point: a cash tip is already in the till, an electronic one is a debt to staff until it is paid out. */
+        TipsReport: {
+            /**
+             * Format: date-time
+             * @description Inclusive.
+             */
+            from?: string;
+            /**
+             * Format: date-time
+             * @description Exclusive, so consecutive shifts tile without double-counting.
+             */
+            to?: string;
+            /** @constant */
+            currency?: "VES";
+            /**
+             * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+             * @example 756710
+             */
+            totalTipsVes?: string;
+            /**
+             * @description Tips taken as cash. The money is physically present; only its division is open.
+             * @example 756710
+             */
+            inTillVes?: string;
+            /**
+             * @description Tips that arrived electronically (CARD, TRANSFER, PAGO_MOVIL, C2P), so the restaurant holds them and owes them out.
+             * @example 756710
+             */
+            owedToStaffVes?: string;
+            /**
+             * @description Tips on payments whose method was not recorded (SPLITE, OTHER). Reported separately rather than folded into either figure above: calling them cash cancels a real debt to staff, and calling them electronic pays out money already in the drawer. The three always sum to `totalTipsVes`.
+             * @example 756710
+             */
+            unclassifiedVes?: string;
+            byMethod?: {
+                paymentMethod?: string;
+                payments?: number;
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                tipsVes?: string;
+            }[];
+        };
+        /** @description What a vision model read off an uploaded menu. A **draft**: nothing has been written. Every row carries the price as printed alongside the parsed value, because the reviewer is checking one against the other. */
+        MenuOcrDraft: {
+            items?: {
+                name?: string;
+                description?: string | null;
+                /** @description The heading it appeared under, e.g. "Entradas". */
+                section?: string | null;
+                /** @description Exactly as printed on the menu — "12,50", "Bs. 8,00". */
+                priceText?: string | null;
+                /** @description The parsed price, or null when it could not be read. Null is a result, not an error: that row needs a human. */
+                priceMinorUnits?: string | null;
+                /** @description True when priceMinorUnits is null. Block import until it is fixed or the row is removed. */
+                needsPrice?: boolean;
+                /** @description True when another drafted row shares this name. The menu is unique on (restaurant, name), so one must be renamed before import. */
+                duplicateName?: boolean;
+                /**
+                 * @description The restaurant's menu currency, not the model's guess.
+                 * @enum {string}
+                 */
+                currency?: "VES" | "USD" | "EUR";
+            }[];
+            /** @description Pages read. Always 1 for an image; up to MENU_OCR_MAX_PDF_PAGES for a PDF. */
+            pages?: number;
+            /**
+             * @description The restaurant's configured menu currency. Prices import in this.
+             * @enum {string}
+             */
+            currency?: "VES" | "USD" | "EUR";
+            /** @description What the model thought the menu was priced in. **Reported, never applied** — a menu printed in dollars does not change what this restaurant charges in. A mismatch is for the reviewer to notice. */
+            currencyGuess?: string | null;
+            /** @description Anything the model could not read. */
+            notes?: string | null;
+            /** @description Rows flagged with needsPrice or duplicateName. */
+            needsReview?: number;
+        };
+        /** @description The items a staff member confirmed. Validated exactly like hand-typed products — the extraction carries no authority here, and this body is equally valid having uploaded nothing. */
+        MenuOcrImportRequest: {
+            items: {
+                name: string;
+                description?: string | null;
+                /**
+                 * @description Zero is allowed: a garnish or a refill can be free.
+                 * @example 756710
+                 */
+                priceMinorUnits: string;
+            }[];
+        };
+        /** @description Partial success is normal. Each row is inserted in its own savepoint, so a duplicate name rejects that row and keeps the rest. */
+        MenuOcrImportResult: {
+            importedCount?: number;
+            items?: components["schemas"]["Product"][];
+            /** @description Rows that were not imported, by their index in the request. */
+            errors?: {
+                index?: number;
+                name?: string;
+                /** @enum {string} */
+                code?: "PRODUCT_NAME_TAKEN";
+                message?: string;
             }[];
         };
         /** @description A bill as a diner sees it. Narrower than Bill: internal identifiers and rate provenance are withheld, since this is the least trusted surface in the API. */
@@ -1748,6 +2825,8 @@ export interface components {
             usdReference?: components["schemas"]["UsdReference"];
             itemCount?: number;
             items?: components["schemas"]["BillItem"][];
+            /** @description Who to pay. Null when the restaurant has not configured a payee, in which case the diner cannot pay from their phone at all — the bill can be read and not settled. */
+            payee?: components["schemas"]["GuestPayee"] | null;
             /** Format: date-time */
             updatedAt?: string;
         };
@@ -1760,6 +2839,77 @@ export interface components {
             active?: boolean;
             /** Format: date-time */
             createdAt?: string;
+        };
+        FloorTable: components["schemas"]["Table"] & {
+            /** @description Summary only: enough to render a floor plan, without the line items. */
+            openBill?: {
+                /** Format: uuid */
+                id?: string;
+                /** @enum {string} */
+                status?: "OPEN";
+                /** @enum {string} */
+                currency?: "VES" | "USD" | "EUR";
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                subtotalMinor?: string;
+                vatBps?: number;
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                vatMinor?: string;
+                serviceChargeBps?: number;
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                serviceChargeMinor?: string;
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                totalDue?: string;
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                totalDueVes?: string;
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                amountPaidVes?: string;
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                remainingVes?: string;
+                fxRateVesPerUnit?: string | null;
+                usdReference?: string | null;
+                itemCount?: number;
+                /** Format: date-time */
+                updatedAt?: string;
+            } | null;
+        };
+        FloorList: {
+            data?: components["schemas"]["FloorTable"][];
+        };
+        BulkTablesRequest: {
+            /** @description How many tables the restaurant has. */
+            count: number;
+            /**
+             * @description Joined to the number with a space: "Mesa" gives "Mesa 1", "Mesa 2".
+             * @default Mesa
+             */
+            prefix: string;
+        };
+        BulkTablesResult: {
+            created?: number;
+            alreadyExisted?: number;
+            /** @description Every active table afterwards. */
+            data?: components["schemas"]["Table"][];
         };
         TableList: {
             data?: components["schemas"]["Table"][];
@@ -1842,6 +2992,27 @@ export interface components {
             /** @enum {string} */
             menuCurrency?: "VES" | "USD" | "EUR";
         };
+        /** @description Restaurant settings including the charge rates, as basis points. */
+        MenuCharges: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** @enum {string} */
+            menuCurrency?: "VES" | "USD" | "EUR";
+            /** @description IVA. 1600 = 16%. */
+            vatBps?: number;
+            /** @description Servicio. 1000 = 10%. */
+            serviceChargeBps?: number;
+        };
+        /** @description At least one rate. Basis points, so no float touches a rate. */
+        MenuChargesRequest: {
+            vatBps?: number;
+            serviceChargeBps?: number;
+        };
+        MenuChargesResult: components["schemas"]["MenuCharges"] & {
+            /** @description Bills already open, which keep the rates they opened with. */
+            openBillsUnaffected?: number;
+        };
         MenuCurrencyRequest: {
             /** @enum {string} */
             currency: "VES" | "USD" | "EUR";
@@ -1885,8 +3056,10 @@ export interface components {
             expiresIn?: number;
         };
         QrToken: {
+            /** @description Signed, and readable: it names its restaurant and table in plain base64url. It is useful only because it is signed, not because it is opaque. */
             token?: string;
-            expiresIn?: number;
+            /** @description Null by default, meaning the code never expires — it is printed onto a table. Rotating the table nonce is what revokes one. A positive value appears only where QR_TTL_SECONDS is set. */
+            expiresIn?: number | null;
         };
         ExchangeRate: {
             /** @description VES per unit of each supported currency. BCV publishes USD and EUR together. */
@@ -1920,6 +3093,328 @@ export interface components {
             postgres?: "up" | "down";
             /** @enum {string} */
             redis?: "up" | "down";
+        };
+        /** @description What the restaurant says about itself. Every field is optional — a required qualifying question is one people type "n/a" into, which looks like an answer and is not. Nothing operational reads this. */
+        SignupProfile: {
+            /** @description How many tables the dining room has. */
+            tableCount?: number;
+            staffCount?: number;
+            /** @description Whatever they run today — a POS name, "Excel", "cuaderno". Free text on purpose: an enum would only list the systems we already thought of. */
+            posSystem?: string;
+            monthlyCovers?: number;
+            /** @description The free box. */
+            notes?: string;
+        };
+        SignupRequest: {
+            restaurantName: string;
+            /**
+             * @description Venezuelan tax id. Accepted in any spelling — `J-12345678-9`, `j123456789` — and normalised to letter + 9 digits before it is stored or compared. The mod-11 check digit is computed and recorded but **not** enforced: turning away a real restaurant at the registration form is a worse failure than storing one malformed tax id.
+             * @example J-12345678-4
+             */
+            rif: string;
+            /**
+             * Format: email
+             * @description The owner's address. No password is collected here.
+             */
+            email: string;
+            /**
+             * @description Required: the next thing that happens to this submission is that somebody telephones it. Validated loosely on purpose — `+58 412 1234567`, `0412-1234567` and `04121234567` are the same line written by different people, and rejecting two of those spellings loses the restaurant rather than teaching it ours.
+             * @example +58 412 1234567
+             */
+            phone: string;
+            /**
+             * @default VES
+             * @enum {string}
+             */
+            menuCurrency: "VES" | "USD" | "EUR";
+            profile?: components["schemas"]["SignupProfile"];
+        };
+        /** @description Identical whether or not the address was already registered. Anything else would make this endpoint an account-enumeration oracle, which is the exact thing /auth/login goes to the trouble of a decoy password hash to avoid. */
+        SignupAccepted: {
+            /** @enum {string} */
+            status?: "RECEIVED";
+            /** Format: email */
+            email?: string;
+        };
+        VerifyRequest: {
+            /** @description From the emailed link. Single use, and expires. */
+            token: string;
+            /** @description Set here rather than at signup, so no credential is stored against an unverified address and the public endpoint never runs Argon2id. */
+            password: string;
+        };
+        /** @description What the restaurant is paying for. Nothing is refused when a trial lapses — see GET /api/v1/account. */
+        Plan: {
+            /** @enum {string} */
+            tier?: "TRIAL" | "STARTER" | "PRO" | "ENTERPRISE";
+            /** Format: date-time */
+            trialEndsAt?: string | null;
+            /** @description Computed server-side, and negative once past. A browser doing this subtraction uses the visitor's clock and timezone, which reads as expired a day early for anyone whose laptop is set wrong. */
+            trialDaysRemaining?: number | null;
+        };
+        Account: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** @description Null for restaurants that predate self-service registration. */
+            rif?: string | null;
+            /** @enum {string} */
+            menuCurrency?: "VES" | "USD" | "EUR";
+            vatBps?: number;
+            serviceChargeBps?: number;
+            payout?: components["schemas"]["Payout"] | null;
+            plan?: components["schemas"]["Plan"];
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        /** @description A payment a diner says they made. It settles nothing on its own: `bills.amountPaidVes` is untouched while the claim is PENDING, because money Splite cannot see arrive is not money that has arrived. */
+        PaymentClaim: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            billId?: string;
+            /**
+             * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+             * @example 756710
+             */
+            amountVes?: string;
+            /**
+             * @description The voluntary tip declared with this payment. Settles nothing on the bill.
+             * @example 756710
+             */
+            tipVes?: string;
+            /**
+             * @description `amountVes + tipVes` — the figure to look for in the bank app.
+             * @example 756710
+             */
+            totalPaidVes?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+            /** @enum {string} */
+            paymentMethod?: "PAGO_MOVIL";
+            /** @description Normalised to digits. What the payer transcribed from their bank, and what staff will look for in the bank app. */
+            declaredReference?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        StaffPaymentClaim: components["schemas"]["PaymentClaim"] & {
+            phoneOrigin?: string | null;
+            bankOrigin?: string | null;
+            /** Format: date-time */
+            declaredAt?: string | null;
+        };
+        DeclareClaimRequest: {
+            /**
+             * @description VES céntimos. May be part of the bill: splitting is the point.
+             * @example 756710
+             */
+            amountVes: string;
+            /** @description The reference the payer's bank assigned. Required — a claim without one asks staff to find an unidentified transfer among the evening's takings. Digits, spaces, dots and dashes; normalised to digits before storage, so one reference cannot claim two bills by being typed differently. */
+            reference: string;
+            /** @description Optional. Not proof, but it is how a movement is found quickly. */
+            phoneOrigin?: string;
+            /** @description Optional. */
+            bankOrigin?: string;
+            /**
+             * Format: uuid
+             * @description Optional. Attribute this declared payment to a split share, credited when staff confirm it.
+             */
+            splitParticipantId?: string;
+            /**
+             * @description Optional voluntary tip, default 0. Part of the same transfer: staff verify `amountVes + tipVes` as one figure against the bank app.
+             * @example 756710
+             */
+            tipVes?: string;
+        };
+        /** @description A charge against the diner's own bank account. Every field except the amount belongs to the diner's relationship with their bank, not with Splite. */
+        C2PChargeRequest: {
+            /**
+             * @description VES céntimos. May be part of the bill: splitting is the point.
+             * @example 756710
+             */
+            amountVes: string;
+            /** @description The diner's own bank, which is where the debit comes from. Must be a known Venezuelan bank code. */
+            bankCode: string;
+            /** @description Cédula or RIF of the account holder, e.g. V12345678. */
+            idNumber: string;
+            /** @description The mobile line the account is registered to. Must be a Venezuelan mobile prefix (0412, 0414, 0416, 0424, 0426). */
+            phone: string;
+            /** @description The single-use clave the diner obtained from their own bank. Used once and never stored — there is no column for it, and it is redacted out of every diagnostic. Claves expire, and how fast depends on the bank: some give six hours, at least one gives five minutes. */
+            clave: string;
+            /** @description Used when the Idempotency-Key header is absent. Mandatory here: it is what makes a lost connection safe to retry. */
+            idempotencyKey: string;
+        };
+        /**
+         * @description The outcome of a C2P charge. **All four statuses must be handled**, and the difference
+         *     between two of them is the difference between a diner paying once and paying twice.
+         *
+         *     - `SUCCEEDED` — settled. `settlement` carries the new bill figures.
+         *     - `FAILED` — the bank rejected it. Safe to offer a retry with a fresh clave.
+         *     - `IN_DOUBT` — the bank did not answer conclusively. **Do not offer a retry.** The debit
+         *       may have landed; Mercantil does not promise that invoice numbers deduplicate. Staff
+         *       resolve it from `POST /api/v1/payments/c2p/{id}/resolve`.
+         *     - `AMBIGUOUS` — the debit is confirmed and could not be credited to the bill, usually
+         *       because the bill closed while the charge was in flight. Needs a person, and a refund.
+         */
+        C2PChargeResult: {
+            /**
+             * Format: uuid
+             * @description The ledger row this charge created.
+             */
+            paymentId: string;
+            /** @enum {string} */
+            status: "SUCCEEDED" | "FAILED" | "IN_DOUBT" | "AMBIGUOUS";
+            /** @description Splite's correlation id in Mercantil's records. Not an idempotency key. */
+            invoiceNumber?: string;
+            /** @description The bank movement that settled it, when there is one. */
+            bankReference?: string | null;
+            /** @description Why it failed or needs review. Human-readable; never parse it. */
+            reason?: string | null;
+            /** @description Present on IN_DOUBT. The charge is unresolved and must not be retried. */
+            requiresResolution?: boolean;
+            /** @description Present on AMBIGUOUS. */
+            requiresStaffReview?: boolean;
+            settlement?: components["schemas"]["PaymentResult"];
+        };
+        /** @description A C2P charge waiting on a person or on the settlement window. */
+        C2PUnresolvedCharge: {
+            /** Format: uuid */
+            paymentId?: string;
+            /** Format: uuid */
+            billId?: string;
+            /**
+             * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+             * @example 756710
+             */
+            amountVes?: string;
+            /** @enum {string} */
+            status?: "IN_DOUBT" | "AMBIGUOUS";
+            invoiceNumber?: string;
+            payerBankCode?: string;
+            payerBankName?: string | null;
+            /** @description Four digits, which is all that is stored. Enough to tell two simultaneous payers apart in the bank app, and not a phone number. */
+            payerPhoneLast4?: string;
+            /** @description Bank movements that matched on amount, including the ones rejected for not identifying the payer. The list to hand a restaurant insisting the money is there. */
+            candidateReferences?: string[];
+            lastReason?: string | null;
+            /** Format: date-time */
+            lastResolutionAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description What asking the bank produced. A charge that settles nothing is a normal outcome here, not an error: closing the wrong bill is worse than closing none. */
+        C2PResolution: {
+            /** Format: uuid */
+            paymentId: string;
+            /** @enum {string} */
+            status: "SUCCEEDED" | "FAILED" | "IN_DOUBT" | "AMBIGUOUS";
+            /** @description Set when a movement was matched and spent. */
+            bankReference?: string | null;
+            /** @description What identified the payer. Always includes `amount`; a settlement additionally requires `phone_last4`. */
+            signals?: string[];
+            /** @description On AMBIGUOUS: the movements that matched on amount and could not be told apart. */
+            candidateReferences?: string[];
+            reason?: string | null;
+            requiresStaffReview?: boolean;
+            /** @description The settlement window has not passed, so a missing movement proves nothing yet. */
+            resolutionPending?: boolean;
+            /** @description How long until asking again is worthwhile. */
+            retryAfterMinutes?: number;
+            /** @description Something else resolved it first. Not an error. */
+            alreadyResolved?: boolean;
+            /** @description Whether raising a fresh charge is safe. True only on FAILED, where the bank was asked about the right period and no debit landed. Explicitly **false** when a charge outlives the six-hour search window: nothing there establishes that the diner was not debited, so it goes to AMBIGUOUS for a person rather than being reported as retryable. Absent means no claim either way — never read absence as true. */
+            safeToRetry?: boolean;
+            settlement?: components["schemas"]["PaymentResult"];
+        };
+        /** @description How a diner obtains a single-use C2P clave at one bank. Static reference data from the acquirer communication, not per-diner. */
+        C2PBankClave: {
+            bankCode?: string;
+            bankName?: string | null;
+            /** @description How long the clave lives. `null` means until the close of the banking day. */
+            ttlMinutes?: number | null;
+            /** @description Human-readable form of the TTL. */
+            ttlLabel?: string;
+            /** @description The clave carries the amount, so it dies if the bill changes. Always fetch it at payment time. */
+            amountBound?: boolean;
+            /** @description When to fetch the clave, derived from the TTL and amountBound. */
+            strategy?: {
+                /** @enum {string} */
+                when?: "anytime" | "at_payment";
+                reason?: string;
+            } | null;
+            /** @description Only the channels this bank actually offers. */
+            channels?: {
+                /** @enum {string} */
+                channel?: "APP" | "WEB" | "SMS";
+                /** @description Ready-to-display instruction. */
+                text?: string;
+                /** @description SMS only: the short code to text. */
+                shortCode?: string;
+                /** @description SMS only: the message body. */
+                smsBody?: string;
+                /** @description SMS only: an alternate short code for a different carrier. */
+                altShortCode?: string | null;
+                note?: string | null;
+            }[];
+        };
+        /** @description Where the restaurant is paid. Splite never holds the money — a Pago Móvil goes from the diner's account to the restaurant's — so this is what a diner needs on screen in order to pay at all. */
+        Payout: {
+            /** @example 0105 */
+            bankCode?: string;
+            bankName?: string | null;
+            /** @description Whether a payment can be raised through this bank in-app, as opposed to the diner being told where to send one. False for every bank today: naming a bank is not a claim that we integrate with it. */
+            chargeable?: boolean;
+            accountNumber?: string;
+            /** @description Digits only. The number the Pago Móvil is registered to. */
+            phone?: string;
+            /**
+             * @description Cédula or RIF the account is held under. Not assumed from the restaurant RIF — plenty of small places bank on the owner's cédula.
+             * @example J123456789
+             */
+            holderId?: string;
+        };
+        /** @description The same details as a diner needs them. **No account number**: a Pago Móvil is addressed by bank, phone and identity document, and publishing a restaurant's account to anyone who scans a sticker should be a decision rather than a side effect of reusing a mapper. */
+        GuestPayee: {
+            bankCode?: string;
+            bankName?: string | null;
+            phone?: string;
+            holderId?: string;
+        };
+        /** @description All four fields together, or an empty object to clear. A half-filled payee looks configured on screen and cannot receive money, and that failure lands on a diner holding a phone rather than on whoever filled the form in. */
+        PayoutRequest: {
+            bankCode?: string;
+            /** @description Must begin with its own bank code — a Venezuelan account number carries it — so the two fields are checked against each other. Catches the right account entered under the wrong bank. */
+            accountNumber?: string;
+            /** @description Written any way; stored as digits. */
+            phone?: string;
+            holderId?: string;
+        };
+        /** @description A stored bank credential set, as anything outside the adapter may see it. **No field here can carry a secret** — `configured` is a boolean because the alternative, a masked tail like `sk_live_••••4821`, is a leak with a decoration on it, and the four characters shown are the four an attacker needed to confirm a guess. There is no read endpoint for the credentials themselves. */
+        PaymentProviderConfig: {
+            /** @example MERCANTIL */
+            provider?: string;
+            configured?: boolean;
+            /** @description Whether the rail is live. Storing credentials does not switch it on, and it cannot be switched on until they have been proven against the bank. */
+            enabled?: boolean;
+            /**
+             * Format: date-time
+             * @description When the credentials were last exercised successfully against the bank. Null means unproven, and `enabled` cannot be true.
+             */
+            credentialsValidatedAt?: string | null;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        WebhookAck: {
+            received?: boolean;
+            settled?: boolean;
+            /**
+             * @description Why the delivery did or did not settle anything. Accepted and un-settled is a normal outcome, not an error.
+             * @enum {string}
+             */
+            reason?: "SETTLED" | "DUPLICATE" | "FAILED" | "IGNORED" | "PROVIDER_MISMATCH" | "UNATTRIBUTED";
         };
     };
     responses: {
@@ -2064,6 +3559,60 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    createGuestSplit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description The split was agreed and stored. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillSplit"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    getGuestActiveSplit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The active split. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillSplit"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     previewGuestSplit: {
         parameters: {
             query?: never;
@@ -2088,6 +3637,184 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    getFloor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The floor. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FloorList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    createTablesInBulk: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkTablesRequest"];
+            };
+        };
+        responses: {
+            /** @description Tables created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkTablesResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    orderForTable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tableId: components["parameters"]["TableId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderRequest"];
+            };
+        };
+        responses: {
+            /** @description Order taken. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createBillSplit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BillId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description The split was agreed and stored. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillSplit"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    getBillActiveSplit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BillId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The active split. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillSplit"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    voidBillSplit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["BillId"];
+                splitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The split, now VOID. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillSplit"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
@@ -2177,6 +3904,669 @@ export interface operations {
             };
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["ServerError"];
+        };
+    };
+    setMenuCharges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuChargesRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MenuChargesResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    extractMenuFromUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description JPEG, PNG, WebP or PDF. Bounded by MENU_OCR_MAX_UPLOAD_BYTES (8 MB default).
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The draft. Nothing was written. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MenuOcrDraft"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    importMenuItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuOcrImportRequest"];
+            };
+        };
+        responses: {
+            /** @description What was imported, and what was not. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MenuOcrImportResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    declarePaymentClaim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclareClaimRequest"];
+            };
+        };
+        responses: {
+            /** @description Claim recorded, awaiting verification. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentClaim"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    getPaymentClaimsSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The queue, as two numbers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimsSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    listPaymentClaims: {
+        parameters: {
+            query?: {
+                billId?: string;
+                status?: "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Claims, oldest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["StaffPaymentClaim"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    confirmPaymentClaim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settled. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    rejectPaymentClaim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description "No aparece" and "el monto no coincide" are different problems. */
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Rejected. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffPaymentClaim"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    listC2PBankClaves: {
+        parameters: {
+            query?: {
+                idType?: "V" | "E" | "J" | "G" | "P" | "C";
+                idNumber?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The clave guide, one entry per chargeable bank, ordered by name. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["C2PBankClave"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    chargeC2P: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Takes precedence over `idempotencyKey` in the body. Replaying a completed key returns the stored response instead of charging again; reusing a key with a different payload is a 409. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["C2PChargeRequest"];
+            };
+        };
+        responses: {
+            /** @description The charge was raised. Read `status` for what happened. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["C2PChargeResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getTipsReport: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tips over the period. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TipsReport"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    listUnresolvedC2PCharges: {
+        parameters: {
+            query?: {
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unresolved charges, oldest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["C2PUnresolvedCharge"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    resolveC2PCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What asking the bank produced. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["C2PResolution"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    receiveWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @example SPLITE */
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Delivery accepted. Check `settled`. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookAck"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listBanks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Banks, ordered by name. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: {
+                            code?: string;
+                            name?: string;
+                            chargeable?: boolean;
+                        }[];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    listPaymentProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configured providers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["PaymentProviderConfig"][];
+                        supported?: string[];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    putPaymentProviderCredentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @example MERCANTIL */
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Stored. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProviderConfig"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    deletePaymentProviderCredentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    setPayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description The account, with its payee. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    getAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The restaurant and its plan. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    submitLead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupRequest"];
+            };
+        };
+        responses: {
+            /** @description Received. The onboarding team has been notified; no account exists yet. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupAccepted"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    verifySignup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Restaurant created and signed in. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"] & {
+                        restaurant?: components["schemas"]["Account"];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
 }

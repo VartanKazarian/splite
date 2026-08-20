@@ -94,8 +94,8 @@ export function GuestC2PForm({
         phone: phone.replace(/\D/g, ""),
         clave,
         idempotencyKey: idemRef.current,
-        ...(splitParticipantId ? { splitParticipantId } : {}),
       });
+
     },
     onSettled: () => {
       // La clave no sobrevive al envío, ni siquiera en memoria del formulario.

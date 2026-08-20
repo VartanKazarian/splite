@@ -525,7 +525,12 @@ export type C2PBankClave = {
   }[];
 };
 
-/** Cargo C2P contra la cuenta del propio comensal. La clave nunca se guarda. */
+/**
+ * Cargo C2P contra la cuenta del propio comensal. La clave nunca se guarda.
+ * El contrato no admite atribuir el cargo a una parte del reparto: el techo de
+ * la parte se respeta en el monto, no en un campo extra (el backend rechaza
+ * propiedades desconocidas con VALIDATION_FAILED).
+ */
 export type C2PChargeRequest = {
   amountVes: Money;
   bankCode: string;
@@ -533,8 +538,8 @@ export type C2PChargeRequest = {
   phone: string;
   clave: string;
   idempotencyKey: string;
-  splitParticipantId?: string;
 };
+
 
 export type C2PStatus = "SUCCEEDED" | "FAILED" | "IN_DOUBT" | "AMBIGUOUS";
 

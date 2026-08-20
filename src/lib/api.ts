@@ -218,8 +218,11 @@ async function rawRequest<T>(path: string, opts: RequestOptions = {}): Promise<T
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: opts.method ?? "GET",
     headers,
-    ...(opts.body === undefined ? {} : { body: JSON.stringify(opts.body) }),
+    ...(opts.body === undefined
+      ? {}
+      : { body: isForm ? (opts.body as FormData) : JSON.stringify(opts.body) }),
   });
+
 
   if (response.status === 204) return undefined as T;
 

@@ -53,6 +53,16 @@ function PaymentsPage() {
     refetchInterval: 15000,
   });
 
+  // Agregado barato: dice que alguien espera y desde cuándo, sin recorrer la cola.
+  const summaryQuery = useQuery({
+    queryKey: ["payment-claims-summary"],
+    queryFn: () => payments.claimsSummary(),
+    enabled: ready,
+    retry: false,
+    refetchInterval: 20000,
+  });
+
+
   const unresolvedQuery = useQuery({
     queryKey: ["c2p-unresolved"],
     queryFn: () => payments.c2pUnresolved(),

@@ -197,8 +197,11 @@ type RequestOptions = {
 };
 
 async function rawRequest<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+  const isForm = typeof FormData !== "undefined" && opts.body instanceof FormData;
   const headers: Record<string, string> = { Accept: "application/json", ...opts.headers };
-  if (opts.body !== undefined) headers["Content-Type"] = "application/json";
+  // Con FormData el navegador pone el boundary: fijar Content-Type lo rompe.
+  if (opts.body !== undefined && !isForm) headers["Content-Type"] = "application/json";
+
 
   if (opts.auth === "staff") {
     const s = staffSession.get();

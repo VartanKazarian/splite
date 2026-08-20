@@ -451,7 +451,26 @@ export type StaffPaymentClaim = PaymentClaim & {
   declaredAt?: string | null;
 };
 
+/** Cuántos avisos esperan y desde cuándo. La antigüedad la calcula el servidor. */
+export type ClaimsSummary = {
+  pending: number;
+  oldestPendingAt: string | null;
+  oldestPendingAgeSeconds: number | null;
+};
+
+/** Propinas de un periodo, separadas por cómo llegaron: efectivo ya está en caja. */
+export type TipsReport = {
+  from: string;
+  to: string;
+  currency: "VES";
+  totalTipsVes: Money;
+  inTillVes: Money;
+  owedToStaffVes: Money;
+  unclassifiedVes: Money;
+};
+
 export type PaymentClaimInput = {
+
   amountVes: Money;
   reference: string;
   phoneOrigin?: string;

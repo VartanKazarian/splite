@@ -130,10 +130,20 @@ function PaymentsPage() {
         </p>
 
         <section className="surface mt-6 p-6">
-          <h2 className="text-xl">Avisos de pago móvil</h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-xl">Avisos de pago móvil</h2>
+            {summaryQuery.data && summaryQuery.data.pending > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {summaryQuery.data.pending} en espera
+                {summaryQuery.data.oldestPendingAgeSeconds != null &&
+                  ` · el más antiguo lleva ${formatWait(summaryQuery.data.oldestPendingAgeSeconds)}`}
+              </p>
+            )}
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Un aviso no paga nada hasta que lo confirmas. Busca la referencia en tu app del banco.
           </p>
+
           {claimsQuery.isError && <ErrorBox error={claimsQuery.error} fallback={t("apiDown")} />}
           {claimsQuery.isSuccess && claimsQuery.data.length === 0 && (
             <p className="mt-4 text-sm text-muted-foreground">No hay avisos por verificar.</p>

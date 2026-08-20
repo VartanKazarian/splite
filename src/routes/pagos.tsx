@@ -271,6 +271,36 @@ function PaymentsPage() {
           </ul>
         </section>
 
+        {tipsQuery.data && (
+          <section className="surface mt-6 p-6">
+            <h2 className="text-xl">Propinas de hoy</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              El efectivo ya está en caja; lo electrónico lo tiene el restaurante y se le debe al
+              personal.
+            </p>
+            <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+              <div>
+                <dt className="text-xs text-muted-foreground">Total</dt>
+                <dd className="mt-1">{formatMoney(tipsQuery.data.totalTipsVes, "VES")}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">En caja</dt>
+                <dd className="mt-1">{formatMoney(tipsQuery.data.inTillVes, "VES")}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Debido al personal</dt>
+                <dd className="mt-1">{formatMoney(tipsQuery.data.owedToStaffVes, "VES")}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Sin clasificar</dt>
+                <dd className="mt-1">{formatMoney(tipsQuery.data.unclassifiedVes, "VES")}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
+
+
+
         <section className="surface mt-6 p-6">
           <h2 className="text-xl">Cargos C2P sin resolver</h2>
           <p className="mt-1 text-xs text-muted-foreground">

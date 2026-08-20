@@ -822,6 +822,19 @@ export const payments = {
       `/api/v1/payments/claims?status=${status}&limit=100${billId ? `&billId=${billId}` : ""}`,
       { auth: "staff" },
     ).then((r) => r.data),
+  /**
+   * Un agregado barato para saber que alguien espera sin abrir la cola.
+   * Se consulta a intervalo humano (15–30 s): comparte el límite de peticiones.
+   */
+  claimsSummary: () =>
+    apiRequest<ClaimsSummary>("/api/v1/payments/claims/summary", { auth: "staff" }),
+  /** Propinas del periodo: `from` inclusivo y `to` exclusivo, para que los turnos no se solapen. */
+  tips: (from: string, to: string) =>
+    apiRequest<TipsReport>(
+      `/api/v1/payments/tips?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      { auth: "staff" },
+    ),
+
   /** Confirmar acredita el dinero en la cuenta: sólo tras verlo en el banco. */
   confirmClaim: (id: string) =>
     apiRequest<{ claim: StaffPaymentClaim; settlement?: PaymentResult }>(

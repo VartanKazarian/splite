@@ -34,7 +34,17 @@ export const Route = createFileRoute("/pagos")({
   component: PaymentsPage,
 });
 
+/** La espera se muestra en la unidad que importa: minutos, no segundos exactos. */
+function formatWait(seconds: number) {
+  if (seconds < 60) return "menos de un minuto";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} h ${minutes % 60} min`;
+}
+
 function PaymentsPage() {
+
   const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();

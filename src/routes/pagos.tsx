@@ -81,14 +81,32 @@ function PaymentsPage() {
     refetchInterval: 30000,
   });
 
+  // Propinas del día en curso: `to` exclusivo, para que un turno no cuente dos veces.
+  const tipsQuery = useQuery({
+    queryKey: ["payment-tips-today"],
+    queryFn: () => {
+      const from = new Date();
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(from);
+      to.setDate(to.getDate() + 1);
+      return payments.tips(from.toISOString(), to.toISOString());
+    },
+    enabled: ready,
+    retry: false,
+    staleTime: 60000,
+  });
+
   const fail = (error: unknown) =>
     toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["payment-claims"] });
+    queryClient.invalidateQueries({ queryKey: ["payment-claims-summary"] });
+    queryClient.invalidateQueries({ queryKey: ["payment-tips-today"] });
     queryClient.invalidateQueries({ queryKey: ["c2p-unresolved"] });
     queryClient.invalidateQueries({ queryKey: ["floor"] });
   };
+
 
   // Confirmar acredita el dinero: sólo después de verlo en el banco.
   const confirmClaim = useMutation({

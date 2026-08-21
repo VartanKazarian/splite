@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { MenuOcrImport } from "@/components/MenuOcrImport";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
@@ -214,10 +215,12 @@ function MenuPage() {
                   onClick={() => create.mutate()}
                   className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
                 >
-                  <Plus className="h-4 w-4" /> {t("addProduct")}
+                <Plus className="h-4 w-4" /> {t("addProduct")}
                 </button>
               </div>
             </section>
+
+            <MenuOcrImport onImported={refresh} />
 
             <section className="surface mt-6 p-6">
               <h2 className="text-xl">{t("items")}</h2>

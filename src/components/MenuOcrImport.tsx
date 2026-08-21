@@ -36,9 +36,14 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
       if (!draft.items?.length) toast.error("No se pudo leer ningún producto de la imagen.");
     },
     onError: (error) => {
-      if (!(error instanceof ApiError)) return toast.error("No se pudo contactar con el servidor.");
-      if (error.code === "MENU_OCR_NOT_CONFIGURED")
-        return toast.error("La lectura automática de menús no está disponible en este servidor.");
+      if (!(error instanceof ApiError)) {
+        toast.error("No se pudo contactar con el servidor.");
+        return;
+      }
+      if (error.code === "MENU_OCR_NOT_CONFIGURED") {
+        toast.error("La lectura automática de menús no está disponible en este servidor.");
+        return;
+      }
       toast.error(`${error.code} · ${error.message}`);
     },
   });
@@ -62,7 +67,10 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
       onImported();
     },
     onError: (error) => {
-      if (!(error instanceof ApiError)) return toast.error("No se pudo contactar con el servidor.");
+      if (!(error instanceof ApiError)) {
+        toast.error("No se pudo contactar con el servidor.");
+        return;
+      }
       toast.error(`${error.code} · ${error.message}`);
     },
   });

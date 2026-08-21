@@ -328,22 +328,22 @@ function Dashboard() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <Link
               to="/menu"
-              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+              className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary sm:flex-none"
             >
               <UtensilsCrossed className="h-4 w-4" /> {t("manageMenu")}
             </Link>
             <Link
               to="/tasas"
-              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+              className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary sm:flex-none"
             >
               <TrendingUp className="h-4 w-4" /> {t("fxRates")}
             </Link>
             <Link
               to="/pagos"
-              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+              className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary sm:flex-none"
             >
               <BadgeCheck className="h-4 w-4" /> Pagos
               {pendingCount > 0 && (
@@ -355,7 +355,7 @@ function Dashboard() {
 
             <Link
               to="/settings"
-              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+              className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary sm:flex-none"
             >
               <Settings className="h-4 w-4" /> {t("settings")}
             </Link>
@@ -365,7 +365,7 @@ function Dashboard() {
                 queryClient.clear();
                 navigate({ to: "/" });
               }}
-              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+              className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary sm:flex-none"
             >
               <LogOut className="h-4 w-4" /> {t("logout")}
             </button>

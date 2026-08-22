@@ -16,6 +16,7 @@ import {
   type BankRef,
   type MenuCurrency,
   type PaymentProviderConfig,
+  type StaffRole,
 } from "@/lib/api";
 
 import { ErrorBox } from "@/routes/dashboard";
@@ -51,10 +52,15 @@ function SettingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
+  const [role, setRole] = useState<StaffRole | null>(null);
 
   useEffect(() => {
-    if (!staffSession.get()) navigate({ to: "/login" });
-    else setReady(true);
+    const s = staffSession.get();
+    if (!s) navigate({ to: "/login" });
+    else {
+      setRole(s.user.role);
+      setReady(true);
+    }
   }, [navigate]);
 
   const settings = useQuery({
@@ -147,9 +153,12 @@ function SettingsPage() {
 
   if (!ready) return null;
 
+  const canManageMenu = role === "OWNER" || role === "MANAGER";
   const forbidden =
-    settings.error instanceof ApiError &&
-    (settings.error.code === "FORBIDDEN_ROLE" || settings.error.status === 403);
+    !canManageMenu ||
+    (settings.error instanceof ApiError &&
+      (settings.error.code === "FORBIDDEN_ROLE" || settings.error.status === 403));
+  const loading = settings.isLoading;
 
   return (
     <div className="min-h-screen">
@@ -170,12 +179,22 @@ function SettingsPage() {
           <section className="surface mt-6 p-6">
             <p className="text-sm text-muted-foreground">{t("menuForbidden")}</p>
           </section>
+        ) : loading ? (
+          <div className="mt-6 space-y-6">
+            {[0, 1].map((i) => (
+              <section key={i} className="surface p-6">
+                <div className="h-5 w-40 animate-pulse rounded bg-secondary" />
+                <div className="mt-4 h-11 w-full animate-pulse rounded-lg bg-secondary" />
+                <div className="mt-3 h-11 w-2/3 animate-pulse rounded-lg bg-secondary" />
+              </section>
+            ))}
+          </div>
         ) : (
           <>
             <section className="surface mt-6 p-6">
               <h2 className="text-xl">{t("menuCurrency")}</h2>
               {settings.isError && <ErrorBox error={settings.error} fallback={t("apiDown")} />}
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {CURRENCIES.map((c) => (
                   <button
                     key={c}
@@ -225,10 +244,10 @@ function SettingsPage() {
                     value={vat}
                     inputMode="decimal"
                     onChange={(e) => setVat(e.target.value)}
-                    placeholder="16"
+
                     className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
                   />
-                  <span className="mt-1 block text-[11px] text-muted-foreground">
+                  <span className="mt-1 block text-[11px] tabular-nums text-muted-foreground">
                     {formatBps(bpsFromInput(vat) ?? 0)} · {bpsFromInput(vat) ?? "—"} bps
                   </span>
                 </label>
@@ -238,16 +257,16 @@ function SettingsPage() {
                     value={service}
                     inputMode="decimal"
                     onChange={(e) => setService(e.target.value)}
-                    placeholder="10"
+
                     className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
                   />
-                  <span className="mt-1 block text-[11px] text-muted-foreground">
+                  <span className="mt-1 block text-[11px] tabular-nums text-muted-foreground">
                     {formatBps(bpsFromInput(service) ?? 0)} · {bpsFromInput(service) ?? "—"} bps
                   </span>
                 </label>
               </div>
               <p className="mt-3 text-[11px] text-muted-foreground">{t("ratesHint")}</p>
-              <div className="mt-4 flex items-center gap-3">
+              <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button
                   disabled={
                     saveCharges.isPending ||
@@ -262,8 +281,8 @@ function SettingsPage() {
               </div>
             </section>
 
-            <PayoutSection />
-            <ProvidersSection />
+            {(role === "OWNER" || role === "MANAGER") && <PayoutSection />}
+            {role === "OWNER" && <ProvidersSection />}
           </>
         )}
 

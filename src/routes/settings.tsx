@@ -153,9 +153,12 @@ function SettingsPage() {
 
   if (!ready) return null;
 
+  const canManageMenu = role === "OWNER" || role === "MANAGER";
   const forbidden =
-    settings.error instanceof ApiError &&
-    (settings.error.code === "FORBIDDEN_ROLE" || settings.error.status === 403);
+    !canManageMenu ||
+    (settings.error instanceof ApiError &&
+      (settings.error.code === "FORBIDDEN_ROLE" || settings.error.status === 403));
+  const loading = settings.isLoading;
 
   return (
     <div className="min-h-screen">

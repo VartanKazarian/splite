@@ -244,7 +244,7 @@ function SettingsPage() {
                     value={vat}
                     inputMode="decimal"
                     onChange={(e) => setVat(e.target.value)}
-                    placeholder="16"
+
                     className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
                   />
                   <span className="mt-1 block text-[11px] tabular-nums text-muted-foreground">
@@ -257,7 +257,7 @@ function SettingsPage() {
                     value={service}
                     inputMode="decimal"
                     onChange={(e) => setService(e.target.value)}
-                    placeholder="10"
+
                     className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
                   />
                   <span className="mt-1 block text-[11px] tabular-nums text-muted-foreground">
@@ -266,7 +266,7 @@ function SettingsPage() {
                 </label>
               </div>
               <p className="mt-3 text-[11px] text-muted-foreground">{t("ratesHint")}</p>
-              <div className="mt-4 flex items-center gap-3">
+              <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button
                   disabled={
                     saveCharges.isPending ||

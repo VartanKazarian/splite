@@ -247,7 +247,7 @@ function SettingsPage() {
                     placeholder="16"
                     className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
                   />
-                  <span className="mt-1 block text-[11px] text-muted-foreground">
+                  <span className="mt-1 block text-[11px] tabular-nums text-muted-foreground">
                     {formatBps(bpsFromInput(vat) ?? 0)} · {bpsFromInput(vat) ?? "—"} bps
                   </span>
                 </label>
@@ -260,7 +260,7 @@ function SettingsPage() {
                     placeholder="10"
                     className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
                   />
-                  <span className="mt-1 block text-[11px] text-muted-foreground">
+                  <span className="mt-1 block text-[11px] tabular-nums text-muted-foreground">
                     {formatBps(bpsFromInput(service) ?? 0)} · {bpsFromInput(service) ?? "—"} bps
                   </span>
                 </label>
@@ -281,8 +281,8 @@ function SettingsPage() {
               </div>
             </section>
 
-            <PayoutSection />
-            <ProvidersSection />
+            {(role === "OWNER" || role === "MANAGER") && <PayoutSection />}
+            {role === "OWNER" && <ProvidersSection />}
           </>
         )}
 

@@ -52,10 +52,15 @@ function SettingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
+  const [role, setRole] = useState<StaffRole | null>(null);
 
   useEffect(() => {
-    if (!staffSession.get()) navigate({ to: "/login" });
-    else setReady(true);
+    const s = staffSession.get();
+    if (!s) navigate({ to: "/login" });
+    else {
+      setRole(s.user.role);
+      setReady(true);
+    }
   }, [navigate]);
 
   const settings = useQuery({

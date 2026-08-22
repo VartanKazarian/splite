@@ -16,6 +16,7 @@ import {
   type BankRef,
   type MenuCurrency,
   type PaymentProviderConfig,
+  type StaffRole,
 } from "@/lib/api";
 
 import { ErrorBox } from "@/routes/dashboard";

@@ -179,12 +179,22 @@ function SettingsPage() {
           <section className="surface mt-6 p-6">
             <p className="text-sm text-muted-foreground">{t("menuForbidden")}</p>
           </section>
+        ) : loading ? (
+          <div className="mt-6 space-y-6">
+            {[0, 1].map((i) => (
+              <section key={i} className="surface p-6">
+                <div className="h-5 w-40 animate-pulse rounded bg-secondary" />
+                <div className="mt-4 h-11 w-full animate-pulse rounded-lg bg-secondary" />
+                <div className="mt-3 h-11 w-2/3 animate-pulse rounded-lg bg-secondary" />
+              </section>
+            ))}
+          </div>
         ) : (
           <>
             <section className="surface mt-6 p-6">
               <h2 className="text-xl">{t("menuCurrency")}</h2>
               {settings.isError && <ErrorBox error={settings.error} fallback={t("apiDown")} />}
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {CURRENCIES.map((c) => (
                   <button
                     key={c}

@@ -7,13 +7,13 @@ import { ApiError, auth, staffSession } from "@/lib/api";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Entrar al panel — Mesa" },
+      { title: "Entrar al panel — Splite" },
       {
         name: "description",
-        content: "Acceso del restaurante al panel de mesas, QR y pagos de Mesa.",
+        content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
-      { property: "og:title", content: "Entrar al panel — Mesa" },
-      { property: "og:description", content: "Panel de mesas, QR y pagos para restaurantes." },
+      { property: "og:title", content: "Entrar al panel — Splite" },
+      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
     ],
   }),
   component: Login,

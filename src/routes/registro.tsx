@@ -9,12 +9,12 @@ export const Route = createFileRoute("/registro")({
       {
         name: "description",
         content:
-          "Déjanos los datos de tu restaurante y te llamamos para poner en marcha Splite: QR por mesa, división de cuenta y pagos.",
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
       { property: "og:title", content: "Registra tu restaurante — Splite" },
       {
         property: "og:description",
-        content: "Solicita el alta de tu restaurante en Splite. Te llamamos para activarte.",
+        content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

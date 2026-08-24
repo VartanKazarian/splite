@@ -24,13 +24,13 @@ import { ErrorBox } from "@/routes/dashboard";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Configuración del restaurante — Mesa" },
+      { title: "Configuración del restaurante — Splite" },
       {
         name: "description",
-        content: "Moneda del menú, IVA y servicio en basis points para las cuentas nuevas.",
+        content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
-      { property: "og:title", content: "Configuración del restaurante — Mesa" },
-      { property: "og:description", content: "Moneda del menú, IVA y cargo por servicio." },
+      { property: "og:title", content: "Configuración del restaurante — Splite" },
+      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

@@ -12,10 +12,10 @@ export const Route = createFileRoute("/tasas")({
       { title: "Tasas BCV — Splite" },
       {
         name: "description",
-        content: "Tasa oficial BCV del día para las cuentas del restaurante.",
+        content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
       { property: "og:title", content: "Tasas BCV — Splite" },
-      { property: "og:description", content: "Tasa oficial BCV del día." },
+      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

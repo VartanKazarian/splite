@@ -64,10 +64,15 @@ function Login() {
           <h1 className="text-3xl">{t("login")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("loginSub")}</p>
 
-          <label className="mt-6 block text-xs uppercase tracking-widest text-muted-foreground">
+          <label
+            htmlFor="login-email"
+            className="mt-6 block text-xs uppercase tracking-widest text-muted-foreground"
+          >
             {t("email")}
           </label>
           <input
+            id="login-email"
+            name="email"
             type="email"
             required
             autoComplete="email"
@@ -76,10 +81,15 @@ function Login() {
             className="mt-2 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
           />
 
-          <label className="mt-4 block text-xs uppercase tracking-widest text-muted-foreground">
+          <label
+            htmlFor="login-password"
+            className="mt-4 block text-xs uppercase tracking-widest text-muted-foreground"
+          >
             {t("password")}
           </label>
           <input
+            id="login-password"
+            name="password"
             type="password"
             required
             autoComplete="current-password"

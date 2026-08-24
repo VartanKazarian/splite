@@ -21,13 +21,13 @@ import { ErrorBox } from "@/routes/dashboard";
 export const Route = createFileRoute("/menu")({
   head: () => ({
     meta: [
-      { title: "Menú del restaurante — Mesa" },
+      { title: "Menú del restaurante — Splite" },
       {
         name: "description",
-        content: "Crea productos, fija precios en céntimos y elige la moneda del menú.",
+        content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
-      { property: "og:title", content: "Menú del restaurante — Mesa" },
-      { property: "og:description", content: "Productos, precios y moneda del menú." },
+      { property: "og:title", content: "Menú del restaurante — Splite" },
+      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
     ],
   }),
   component: MenuPage,

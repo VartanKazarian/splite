@@ -21,9 +21,9 @@ import {
   SplitMockup,
 } from "@/components/marketing/Mockups";
 
-const TITLE = "Splite — Cada cliente paga lo suyo, tu equipo no divide la cuenta";
+const TITLE = "Splite — Pay at table para restaurantes modernos";
 const DESC =
-  "Splite es la herramienta para restaurantes que elimina el trabajo de dividir y cobrar cuentas: un QR por mesa, cada comensal elige lo que consumió y paga su parte.";
+  "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.";
 
 export const Route = createFileRoute("/")({
   head: () => ({

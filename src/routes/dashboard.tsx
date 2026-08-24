@@ -42,13 +42,13 @@ import {
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Panel del restaurante — Mesa" },
+      { title: "Panel del restaurante — Splite" },
       {
         name: "description",
-        content: "Mesas abiertas, códigos QR, cuentas y pagos en tiempo real del restaurante.",
+        content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
-      { property: "og:title", content: "Panel del restaurante — Mesa" },
-      { property: "og:description", content: "Mesas abiertas, QR, cuentas y pagos en vivo." },
+      { property: "og:title", content: "Panel del restaurante — Splite" },
+      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
     ],
   }),
   component: Dashboard,

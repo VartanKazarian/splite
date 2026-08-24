@@ -14,10 +14,10 @@ export const Route = createFileRoute("/t/")({
       { title: "Tu cuenta — Splite" },
       {
         name: "description",
-        content: "Escanea el QR de tu mesa, revisa la cuenta y divídela sin instalar nada.",
+        content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
       { property: "og:title", content: "Tu cuenta — Splite" },
-      { property: "og:description", content: "Divide la cuenta del restaurante desde tu móvil." },
+      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

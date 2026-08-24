@@ -23,10 +23,10 @@ export const Route = createFileRoute("/pagos")({
       {
         name: "description",
         content:
-          "Avisos de pago móvil por verificar y cargos C2P sin resolver del restaurante.",
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
       { property: "og:title", content: "Verificación de pagos — Splite" },
-      { property: "og:description", content: "Confirma o rechaza pagos declarados por los comensales." },
+      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

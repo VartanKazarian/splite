@@ -94,6 +94,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c4684a029351a50ab7525e855f2d9221/id-preview-5cab6856--b2c5c7ee-96f5-4253-b5fb-e4d39f958e9d.lovable.app-1786127887508.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c4684a029351a50ab7525e855f2d9221/id-preview-5cab6856--b2c5c7ee-96f5-4253-b5fb-e4d39f958e9d.lovable.app-1786127887508.png" },
+      <meta name="google-site-verification" content="xcKZYGfBHKsmRvI-POFUilb7g1rWM8oe8-WafMDgmT4" />
     ],
     links: [
       { rel: "stylesheet", href: appCss },

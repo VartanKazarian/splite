@@ -16,7 +16,9 @@ import { Route as MenuRouteImport } from './routes/menu'
 import { Route as PagosRouteImport } from './routes/pagos'
 import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TasasRouteImport } from './routes/tasas'
+import { Route as TpvHosteleriaRouteImport } from './routes/tpv-hosteleria'
 import { Route as TIndexRouteImport } from './routes/t.index'
 import { Route as TSplatRouteImport } from './routes/t.$'
 
@@ -55,9 +57,19 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TasasRoute = TasasRouteImport.update({
   id: '/tasas',
   path: '/tasas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TpvHosteleriaRoute = TpvHosteleriaRouteImport.update({
+  id: '/tpv-hosteleria',
+  path: '/tpv-hosteleria',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TIndexRoute = TIndexRouteImport.update({
@@ -79,7 +91,9 @@ export interface FileRoutesByFullPath {
   '/pagos': typeof PagosRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
+  '/tpv-hosteleria': typeof TpvHosteleriaRoute
   '/t/$': typeof TSplatRoute
   '/t/': typeof TIndexRoute
 }
@@ -91,7 +105,9 @@ export interface FileRoutesByTo {
   '/pagos': typeof PagosRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
+  '/tpv-hosteleria': typeof TpvHosteleriaRoute
   '/t/$': typeof TSplatRoute
   '/t': typeof TIndexRoute
 }
@@ -104,7 +120,9 @@ export interface FileRoutesById {
   '/pagos': typeof PagosRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
+  '/tpv-hosteleria': typeof TpvHosteleriaRoute
   '/t/$': typeof TSplatRoute
   '/t/': typeof TIndexRoute
 }
@@ -118,7 +136,9 @@ export interface FileRouteTypes {
     | '/pagos'
     | '/registro'
     | '/settings'
+    | '/sitemap.xml'
     | '/tasas'
+    | '/tpv-hosteleria'
     | '/t/$'
     | '/t/'
   fileRoutesByTo: FileRoutesByTo
@@ -130,7 +150,9 @@ export interface FileRouteTypes {
     | '/pagos'
     | '/registro'
     | '/settings'
+    | '/sitemap.xml'
     | '/tasas'
+    | '/tpv-hosteleria'
     | '/t/$'
     | '/t'
   id:
@@ -142,7 +164,9 @@ export interface FileRouteTypes {
     | '/pagos'
     | '/registro'
     | '/settings'
+    | '/sitemap.xml'
     | '/tasas'
+    | '/tpv-hosteleria'
     | '/t/$'
     | '/t/'
   fileRoutesById: FileRoutesById
@@ -155,7 +179,9 @@ export interface RootRouteChildren {
   PagosRoute: typeof PagosRoute
   RegistroRoute: typeof RegistroRoute
   SettingsRoute: typeof SettingsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TasasRoute: typeof TasasRoute
+  TpvHosteleriaRoute: typeof TpvHosteleriaRoute
   TSplatRoute: typeof TSplatRoute
   TIndexRoute: typeof TIndexRoute
 }
@@ -211,11 +237,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tasas': {
       id: '/tasas'
       path: '/tasas'
       fullPath: '/tasas'
       preLoaderRoute: typeof TasasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tpv-hosteleria': {
+      id: '/tpv-hosteleria'
+      path: '/tpv-hosteleria'
+      fullPath: '/tpv-hosteleria'
+      preLoaderRoute: typeof TpvHosteleriaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/t/': {
@@ -243,7 +283,9 @@ const rootRouteChildren: RootRouteChildren = {
   PagosRoute: PagosRoute,
   RegistroRoute: RegistroRoute,
   SettingsRoute: SettingsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TasasRoute: TasasRoute,
+  TpvHosteleriaRoute: TpvHosteleriaRoute,
   TSplatRoute: TSplatRoute,
   TIndexRoute: TIndexRoute,
 }

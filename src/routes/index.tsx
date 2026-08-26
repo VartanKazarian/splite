@@ -607,6 +607,11 @@ function Footer() {
                 Seguridad
               </a>
             </li>
+            <li>
+              <Link className="hover:text-foreground" to="/tpv-hosteleria">
+                TPV para hostelería
+              </Link>
+            </li>
           </ul>
         </div>
         <div>

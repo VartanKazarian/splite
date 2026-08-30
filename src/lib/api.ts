@@ -425,6 +425,8 @@ export type Bill = {
   fxValueDate?: string | null;
   usdReference?: string | null;
   itemCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
   items?: BillItem[];
   /** Datos de Pago Móvil del restaurante; null si no los ha configurado. */
   payee?: Payee | null;

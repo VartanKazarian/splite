@@ -425,6 +425,8 @@ export type Bill = {
   fxValueDate?: string | null;
   usdReference?: string | null;
   itemCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
   items?: BillItem[];
   /** Datos de Pago Móvil del restaurante; null si no los ha configurado. */
   payee?: Payee | null;
@@ -818,6 +820,8 @@ export type MenuOcrImportResult = {
 
 export const bills = {
   get: (id: string) => apiRequest<Bill>(`/api/v1/bills/${id}`, { auth: "staff" }),
+  /** Listado sin líneas: es lo único que trae `createdAt` (antigüedad de la cuenta). */
+  list: (status: Bill["status"] = "OPEN") => listAll<Bill>(`/api/v1/bills?status=${status}`),
   /** Abrir con total 0 es lo que permite luego añadir líneas del menú. */
   open: (tableId: string, totalDueMinorUnits: Money = "0") =>
     apiRequest<Bill>("/api/v1/bills", {

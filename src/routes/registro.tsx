@@ -206,9 +206,15 @@ function Registro() {
           text: "No podemos procesar solicitudes en este momento. Intenta de nuevo en unos minutos.",
           requestId,
         });
-      } else if (code === "NOT_FOUND") {
+      } else if (code === "ONBOARDING_NOT_CONFIGURED" || code === "NOT_FOUND") {
+        // El servidor ya distingue entre "el registro está apagado" y "esa ruta
+        // no existe": responde ONBOARDING_NOT_CONFIGURED en lugar de un 404 a
+        // secas. Antes sólo llegaba NOT_FOUND, que no se puede distinguir de
+        // una URL mal escrita, y esta pantalla rellenaba el hueco con una
+        // dirección de correo inventada que no recibía nada. NOT_FOUND se sigue
+        // aceptando para servidores que todavía no tengan ese cambio.
         setFormError({
-          text: "El registro todavía no está habilitado. Escríbenos a onboarding@splite.app.",
+          text: "El registro todavía no está habilitado. Vuelve a intentarlo más tarde.",
           requestId,
         });
       } else {

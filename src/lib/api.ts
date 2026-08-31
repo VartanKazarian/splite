@@ -315,6 +315,47 @@ export const auth = {
   },
 };
 
+/* ----------------------------------------------------------- onboarding */
+
+/**
+ * Lo que devuelve /onboarding/verify: una sesión de personal, más el
+ * restaurante que se acaba de crear.
+ */
+export type OnboardingVerifyResult = StaffSession & {
+  restaurant: {
+    id: string;
+    name: string;
+    rif: string;
+    menuCurrency: MenuCurrency;
+    vatBps: number;
+    serviceChargeBps: number;
+  };
+};
+
+export const onboarding = {
+  /**
+   * Canjea el enlace de invitación y elige la contraseña.
+   *
+   * Deja la sesión guardada antes de devolver: el servidor firma una en la
+   * misma respuesta -- la dirección ya está probada y la contraseña se acaba de
+   * escribir, así que mandar a la pantalla de entrar sería pedir dos veces lo
+   * mismo. Sin auth: el token del enlace es la credencial.
+   */
+  verify: (token: string, password: string) =>
+    apiRequest<OnboardingVerifyResult>("/api/v1/onboarding/verify", {
+      method: "POST",
+      body: { token, password },
+    }).then((result) => {
+      staffSession.set({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresIn: result.expiresIn,
+        user: result.user,
+      });
+      return result;
+    }),
+};
+
 /* ---------------------------------------------------------------- guest */
 
 export const guest = {

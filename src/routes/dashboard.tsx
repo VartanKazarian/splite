@@ -224,6 +224,7 @@ function Dashboard() {
     onSuccess: () => {
       toast.success(t("billOpened"));
       queryClient.invalidateQueries({ queryKey: ["floor"] });
+      queryClient.invalidateQueries({ queryKey: ["bills", "OPEN"] });
     },
     onError: fail,
   });
@@ -261,6 +262,7 @@ function Dashboard() {
       setCloseOpen(false);
       toast.success(t("billClosed"));
       queryClient.invalidateQueries({ queryKey: ["floor"] });
+      queryClient.invalidateQueries({ queryKey: ["bills", "OPEN"] });
       queryClient.invalidateQueries({ queryKey: ["bill", bill?.id] });
     },
     onError: fail,
@@ -294,6 +296,7 @@ function Dashboard() {
 
   const refreshBill = () => {
     queryClient.invalidateQueries({ queryKey: ["floor"] });
+    queryClient.invalidateQueries({ queryKey: ["bills", "OPEN"] });
     queryClient.invalidateQueries({ queryKey: ["bill", bill?.id] });
     queryClient.invalidateQueries({ queryKey: ["bill-items", bill?.id] });
   };

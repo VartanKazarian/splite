@@ -11,12 +11,26 @@ import {
   type MenuOcrDraft,
 } from "@/lib/api";
 
-type Row = { name: string; price: string; description: string; duplicate: boolean };
+type Row = {
+  name: string;
+  price: string;
+  /**
+   * El precio tal como está impreso, sin interpretar. No se edita: es la
+   * referencia contra la que se revisa el campo de arriba. Sin él, comprobar
+   * un precio significa volver a la foto.
+   */
+  priceText: string | null;
+  section: string;
+  description: string;
+  duplicate: boolean;
+};
 
 function rowsFromDraft(draft: MenuOcrDraft): Row[] {
   return (draft.items ?? []).map((i) => ({
     name: i.name ?? "",
     price: i.priceMinorUnits ? formatMinor(i.priceMinorUnits) : "",
+    priceText: i.priceText ?? null,
+    section: i.section ?? "",
     description: i.description ?? "",
     duplicate: Boolean(i.duplicateName),
   }));
@@ -55,6 +69,7 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
           name: r.name.trim(),
           priceMinorUnits: parseMinorInput(r.price),
           ...(r.description.trim() ? { description: r.description.trim() } : {}),
+          ...(r.section.trim() ? { section: r.section.trim() } : {}),
         })),
       ),
     onSuccess: (result) => {
@@ -79,6 +94,8 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
     setRows((prev) => prev?.map((r, i) => (i === index ? { ...r, ...patch } : r)) ?? prev);
 
   const incomplete = (rows ?? []).some((r) => !r.name.trim() || !r.price.trim());
+  const missingPrice = (rows ?? []).filter((r) => !r.price.trim()).length;
+  const duplicates = (rows ?? []).filter((r) => r.duplicate).length;
 
   return (
     <section className="surface mt-6 p-6">
@@ -119,7 +136,22 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
 
       {rows && (
         <div className="mt-5">
-          <ul className="space-y-3 text-sm">
+          <p className="text-sm">
+            {rows.length} productos leídos
+            {missingPrice > 0 && ` · ${missingPrice} sin precio`}
+            {duplicates > 0 && ` · ${duplicates} con nombre repetido`}
+          </p>
+          {/*
+            El paso de revisión es la función, no un trámite previo. Un precio
+            mal leído se le cobra a cada comensal que pida ese plato hasta que
+            alguien lo note, así que la pantalla dice por qué merece la pena
+            mirar en lugar de dar por hecho que se mirará.
+          */}
+          <p className="mt-1 text-xs text-muted-foreground">
+            Compara cada precio con el de la carta antes de importar.
+          </p>
+
+          <ul className="mt-4 space-y-3 text-sm">
             {rows.map((r, i) => (
               <li key={i} className="grid gap-2 border-b border-border pb-3 sm:grid-cols-[1.2fr_0.6fr_auto]">
                 <input
@@ -129,13 +161,29 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
                   placeholder="Nombre"
                   className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
                 />
-                <input
-                  value={r.price}
-                  inputMode="decimal"
-                  onChange={(e) => setRow(i, { price: e.target.value })}
-                  placeholder="0,00"
-                  className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
-                />
+                <div className="flex flex-col gap-1">
+                  <input
+                    value={r.price}
+                    inputMode="decimal"
+                    onChange={(e) => setRow(i, { price: e.target.value })}
+                    placeholder="0,00"
+                    className={`rounded-lg border bg-secondary px-3 py-2 text-sm outline-none focus:border-ring ${
+                      r.price.trim() ? "border-input" : "border-destructive"
+                    }`}
+                  />
+                  {/*
+                    Lo impreso, junto a lo interpretado. Es la única forma de
+                    revisar un precio sin volver a la foto -- y la diferencia
+                    entre las dos cifras es exactamente lo que hay que mirar.
+                  */}
+                  {r.priceText ? (
+                    <span className="text-[11px] text-muted-foreground">En la carta: {r.priceText}</span>
+                  ) : (
+                    !r.price.trim() && (
+                      <span className="text-[11px] text-destructive">Sin precio legible en la foto</span>
+                    )
+                  )}
+                </div>
                 <button
                   type="button"
                   aria-label="Quitar"
@@ -144,6 +192,20 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
+                <input
+                  value={r.section}
+                  maxLength={80}
+                  onChange={(e) => setRow(i, { section: e.target.value })}
+                  placeholder="Sección"
+                  className="rounded-lg border border-input bg-secondary px-3 py-2 text-xs outline-none focus:border-ring"
+                />
+                <input
+                  value={r.description}
+                  maxLength={500}
+                  onChange={(e) => setRow(i, { description: e.target.value })}
+                  placeholder="Descripción (opcional)"
+                  className="rounded-lg border border-input bg-secondary px-3 py-2 text-xs outline-none focus:border-ring sm:col-span-2"
+                />
                 {r.duplicate && (
                   <p className="text-[11px] text-destructive sm:col-span-3">
                     Nombre repetido: renómbralo o quítalo antes de importar.

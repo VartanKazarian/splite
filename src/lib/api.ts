@@ -782,7 +782,15 @@ export const menu = {
     });
   },
   /** Confirma las filas revisadas: se validan como productos escritos a mano. */
-  ocrImport: (items: { name: string; priceMinorUnits: Money; description?: string | null }[]) =>
+  ocrImport: (
+    items: {
+      name: string;
+      priceMinorUnits: Money;
+      description?: string | null;
+      /** El encabezado bajo el que aparecía. El servidor crea la sección si no existe. */
+      section?: string | null;
+    }[],
+  ) =>
     apiRequest<MenuOcrImportResult>("/api/v1/menu/ocr-import", {
       method: "POST",
       auth: "staff",

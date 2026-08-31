@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { GuestBillScreen } from "@/components/GuestBillScreen";
+import { TableLanding } from "@/components/TableLanding";
 
 type Search = { qr?: string };
 
@@ -9,12 +9,12 @@ export const Route = createFileRoute("/t/$")({
     typeof search["qr"] === "string" ? { qr: search["qr"] } : {},
   head: () => ({
     meta: [
-      { title: "Tu cuenta — Splite" },
+      { title: "Tu mesa — Splite" },
       {
         name: "description",
         content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
-      { property: "og:title", content: "Tu cuenta — Splite" },
+      { property: "og:title", content: "Tu mesa — Splite" },
       { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -25,5 +25,5 @@ export const Route = createFileRoute("/t/$")({
 
 function GuestSplatPage() {
   const { qr } = Route.useSearch();
-  return <GuestBillScreen {...(qr ? { qr } : {})} />;
+  return <TableLanding {...(qr ? { qr } : {})} />;
 }

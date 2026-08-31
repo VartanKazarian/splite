@@ -100,9 +100,47 @@ function Dashboard() {
   });
   const pendingCount = claimsQuery.data?.length ?? 0;
 
+  // Cargos C2P que el banco dejó en duda: son los que exigen intervención humana.
+  const c2pQuery = useQuery({
+    queryKey: ["c2p-unresolved"],
+    queryFn: () => payments.c2pUnresolved(),
+    enabled: ready && me.isSuccess,
+    retry: false,
+    refetchInterval: 30000,
+  });
+  const unresolvedCount = c2pQuery.data?.length ?? 0;
+
+  // El plano no trae la fecha de apertura: la antigüedad sólo la da el listado de cuentas.
+  const openBillsQuery = useQuery({
+    queryKey: ["bills", "OPEN"],
+    queryFn: () => bills.list("OPEN"),
+    enabled: ready && me.isSuccess,
+    retry: false,
+    refetchInterval: 30000,
+  });
+  const openedAtByBill = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const b of openBillsQuery.data ?? []) if (b.createdAt) map.set(b.id, b.createdAt);
+    return map;
+  }, [openBillsQuery.data]);
+
+  const [floorFilter, setFloorFilter] = useState<"ALL" | "BUSY" | "FREE">("ALL");
 
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
+  const visibleTables = useMemo(
+    () =>
+      tableList.filter((tb) =>
+        floorFilter === "ALL" ? true : floorFilter === "BUSY" ? !!tb.openBill : !tb.openBill,
+      ),
+    [tableList, floorFilter],
+  );
+  const busyCount = tableList.filter((tb) => tb.openBill).length;
+  const partiallyPaid = tableList.filter(
+    (tb) => tb.openBill && (tb.openBill.amountPaidVes ?? "0") !== "0",
+  ).length;
   const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
+
+
 
   // El token QR es permanente por mesa: se pide una sola vez y sólo se
   // vuelve a pedir tras rotar el nonce.

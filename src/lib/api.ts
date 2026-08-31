@@ -143,6 +143,18 @@ export type GuestSession = {
   expiresIn: number;
 };
 
+/**
+ * Lo que devuelve un QR escaneado antes de decidir nada.
+ *
+ * `hasOpenBill` es lo único que dice del dinero: si ofrecer la cuenta o no.
+ * Cuánto se debe queda detrás de la sesión.
+ */
+export type QrContext = {
+  restaurant: { id: string; name: string; menuCurrency: MenuCurrency };
+  table: { id: string; name: string };
+  hasOpenBill: boolean;
+};
+
 const STAFF_KEY = "splite.staff.session";
 const GUEST_KEY = "splite.guest.session";
 
@@ -166,6 +178,32 @@ function writeStore(key: string, value: unknown | null) {
 export const staffSession = {
   get: () => readStore<StaffSession>(STAFF_KEY),
   set: (s: StaffSession | null) => writeStore(STAFF_KEY, s),
+};
+
+const QR_KEY = "splite.guest.qr";
+
+/**
+ * El token del QR mientras dure la pestaña.
+ *
+ * La pantalla de mesa lo borra de la barra de direcciones en cuanto lo lee -- no
+ * debe quedar en la URL ni en una captura -- pero sigue haciendo falta después:
+ * quien lee la carta y luego pide la cuenta lo necesita para abrir sesión, y
+ * quien recarga la página esperaría seguir donde estaba.
+ *
+ * `sessionStorage`, igual que la sesión de invitado y por lo mismo: muere con la
+ * pestaña, no se comparte entre ellas, y no sobrevive a devolver el móvil. No es
+ * un secreto -- está impreso en la mesa -- pero tampoco tiene por qué quedarse.
+ */
+export const scannedQr = {
+  get: (): string | null => {
+    if (typeof window === "undefined") return null;
+    return window.sessionStorage.getItem(QR_KEY);
+  },
+  set: (token: string | null) => {
+    if (typeof window === "undefined") return;
+    if (token === null) window.sessionStorage.removeItem(QR_KEY);
+    else window.sessionStorage.setItem(QR_KEY, token);
+  },
 };
 
 export const guestSession = {
@@ -359,6 +397,23 @@ export const onboarding = {
 /* ---------------------------------------------------------------- guest */
 
 export const guest = {
+  /**
+   * Qué apunta el QR, sin abrir nada.
+   *
+   * Un código pegado a la mesa ya no significa sólo "abre la cuenta": esto
+   * resuelve restaurante y mesa sin gastar una sesión, para que leer la carta
+   * no cueste una. La sesión la abre `openSession`, y sólo quien pide la
+   * cuenta.
+   *
+   * POST y no GET aunque sólo lea: el token viajaría en la URL y el backend
+   * registra `req.url` en cada petición.
+   */
+  qrContext: (qrToken: string) =>
+    apiRequest<QrContext>("/api/v1/guest/qr/context", {
+      method: "POST",
+      body: { qrToken },
+    }),
+
   openSession: (qrToken: string) =>
     apiRequest<GuestSession>("/api/v1/guest/sessions", {
       method: "POST",
@@ -714,6 +769,33 @@ export type Product = {
   updatedAt?: string;
 };
 
+/** Un producto tal y como lo ve un comensal: sin `active`, con su sección. */
+export type PublicProduct = {
+  id: string;
+  name: string;
+  description: string | null;
+  priceMinorUnits: Money;
+  currency: MenuCurrency;
+  categoryId: string | null;
+  categoryName: string | null;
+};
+
+/** Una seccion de la carta. `position` es el orden impreso, no alfabético. */
+export type MenuCategory = {
+  id: string;
+  name: string;
+  position: number;
+  active: boolean;
+  /** Sólo en los listados que lo cuentan; ausente no es cero. */
+  productCount?: number;
+};
+
+export type PublicMenu = {
+  restaurant: { id: string; name: string; menuCurrency: MenuCurrency };
+  categories: MenuCategory[];
+  products: PublicProduct[];
+};
+
 export type MenuSettings = {
   id: string;
   name: string;
@@ -799,6 +881,17 @@ export const menu = {
       body,
     }),
   products: () => listAll<Product>("/api/v1/menu/products"),
+
+  /**
+   * La carta que ve un comensal. Sin token: quien escanea la mesa no tiene
+   * credenciales de personal.
+   *
+   * Las secciones llegan aparte de los productos, en su orden, para poder
+   * pintar las cabeceras en el orden de la carta en vez de deducirlo de los
+   * productos que hayan vuelto.
+   */
+  publicMenu: (restaurantId: string) =>
+    apiRequest<PublicMenu>(`/api/v1/menu/public/${restaurantId}/products`),
 
   createProduct: (body: { name: string; priceMinorUnits: Money; description?: string | null }) =>
     apiRequest<Product>("/api/v1/menu/products", { method: "POST", auth: "staff", body }),

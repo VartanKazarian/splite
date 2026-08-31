@@ -402,6 +402,13 @@ function Dashboard() {
           <ErrorBox error={(me.error ?? tablesQuery.error) as unknown} fallback={t("apiDown")} />
         )}
 
+        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard label="Mesas ocupadas" value={`${busyCount}/${tableList.length}`} />
+          <StatCard label="Cuentas con pago parcial" value={String(partiallyPaid)} />
+          <StatCard label="Avisos por verificar" value={String(pendingCount)} alert={pendingCount > 0} />
+          <StatCard label="C2P sin resolver" value={String(unresolvedCount)} alert={unresolvedCount > 0} />
+        </div>
+
         <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
           <div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -422,34 +429,76 @@ function Dashboard() {
                 </button>
               </div>
             </div>
-            {tablesQuery.isLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
-            <div className="grid gap-3 sm:grid-cols-2">
 
-
-              {tableList.map((tb) => (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {([
+                ["ALL", `Todas (${tableList.length})`],
+                ["BUSY", `Ocupadas (${busyCount})`],
+                ["FREE", `Libres (${tableList.length - busyCount})`],
+              ] as const).map(([value, label]) => (
                 <button
-                  key={tb.id}
-                  onClick={() => setSelectedId(tb.id)}
-                  className={`surface p-5 text-left transition-colors hover:border-primary ${
-                    selected?.id === tb.id ? "border-primary" : ""
+                  key={value}
+                  onClick={() => setFloorFilter(value)}
+                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                    floorFilter === value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border hover:bg-secondary"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-display text-2xl">{tb.name}</span>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs ${
-                        tb.openBill
-                          ? "bg-primary/20 text-primary"
-                          : "bg-secondary text-muted-foreground"
-                      }`}
-                    >
-                      {tb.openBill ? t("statusOPEN") : t("tableFree")}
-                    </span>
-
-                  </div>
+                  {label}
                 </button>
               ))}
             </div>
+
+            {tablesQuery.isLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {visibleTables.map((tb) => {
+                const ob = tb.openBill;
+                const openedAt = ob ? openedAtByBill.get(ob.id) : undefined;
+                return (
+                  <button
+                    key={tb.id}
+                    onClick={() => setSelectedId(tb.id)}
+                    className={`surface p-5 text-left transition-colors hover:border-primary ${
+                      selected?.id === tb.id ? "border-primary" : ""
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-display text-2xl">{tb.name}</span>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs ${
+                          ob ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        {ob ? t("statusOPEN") : t("tableFree")}
+                      </span>
+                    </div>
+                    {ob && (
+                      <div className="mt-3 space-y-1 text-xs text-muted-foreground tabular-nums">
+                        <div className="flex justify-between">
+                          <span>{t("total")}</span>
+                          <span className="text-foreground">
+                            {formatMoney(ob.totalDue, ob.currency)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Pendiente</span>
+                          <span className="text-foreground">{formatMinor(ob.remainingVes)} Bs.</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>{ob.itemCount ?? 0} líneas</span>
+                          <span>{openedAt ? relativeAge(openedAt) : "—"}</span>
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+              {!tablesQuery.isLoading && visibleTables.length === 0 && (
+                <p className="text-sm text-muted-foreground">Sin mesas en este filtro.</p>
+              )}
+            </div>
+
 
             {selected && (
               <div className="surface mt-6 p-6">

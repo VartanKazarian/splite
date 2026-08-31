@@ -900,3 +900,22 @@ export function ErrorBox({ error, fallback }: { error: unknown; fallback: string
     </div>
   );
 }
+
+function StatCard({ label, value, alert }: { label: string; value: string; alert?: boolean }) {
+  return (
+    <div className={`surface p-4 ${alert ? "border-primary" : ""}`}>
+      <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className={`mt-1 font-display text-2xl tabular-nums ${alert ? "text-primary" : ""}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/** Antigüedad legible de una cuenta abierta: la fecha la da el servidor, aquí sólo se formatea. */
+function relativeAge(iso: string): string {
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} h ${minutes % 60} min`;
+}

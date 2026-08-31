@@ -26,16 +26,35 @@ type View = "landing" | "menu" | "bill";
 export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean }) {
   const { t } = useI18n();
   const [view, setView] = useState<View>(demo ? "bill" : "landing");
+  const [opening, setOpening] = useState(false);
+  const [openError, setOpenError] = useState<unknown>(null);
   // El token del QR: llega en la URL una vez y luego vive en la pestaña.
-  const [token, setToken] = useState<string | null>(() => qr ?? scannedQr.get());
+  //
+  // Inicializado sólo con lo que trae la URL, nunca leyendo `sessionStorage`
+  // aquí. Esto se renderiza también en el servidor, donde ese almacén no
+  // existe: leerlo en el primer render hace que servidor y cliente pinten
+  // cosas distintas y React tire la hidratación entera. Se lee en el efecto,
+  // que sólo corre en el navegador.
+  const [token, setToken] = useState<string | null>(qr ?? null);
+  // Si ya se ha consultado el almacén. Mientras es false, servidor y cliente
+  // pintan lo mismo.
+  const [restored, setRestored] = useState(false);
 
   useEffect(() => {
-    if (demo || !qr) return;
+    if (demo) return;
+    if (!qr) {
+      // Una recarga después de limpiar la URL: el token sigue en la pestaña.
+      const stored = scannedQr.get();
+      if (stored) setToken(stored);
+      setRestored(true);
+      return;
+    }
     // Un código nuevo es una mesa distinta: la sesión vieja podría ser de otra
     // mesa, y arrastrarla enseñaría la cuenta equivocada.
     if (qr !== scannedQr.get()) guestSession.set(null);
     scannedQr.set(qr);
     setToken(qr);
+    setRestored(true);
     if (typeof window === "undefined") return;
     // Fuera de la barra de direcciones: no debe salir en una captura ni quedar
     // en el historial de un móvil prestado.
@@ -43,6 +62,37 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
     url.searchParams.delete("qr");
     window.history.replaceState({}, "", url.pathname + url.search + url.hash);
   }, [qr, demo]);
+
+  /**
+   * Pasar a la cuenta, acuñando la sesión aquí si hace falta.
+   *
+   * La sesión se acuña en el manejador del clic, no pasándole el token del QR a
+   * GuestBillScreen: esa pantalla acuña dentro de un `useEffect` en cuanto ve
+   * la prop, y desde aquí se monta dos veces -- medido en un navegador de
+   * verdad, dos POST /guest/sessions por una sola pulsación, mientras que la
+   * ruta antigua montaba una sola vez y acuñaba una. Un clic ocurre una vez;
+   * un efecto ocurre las que React decida.
+   *
+   * Así que la cuenta se abre siempre sin token y lee la sesión ya guardada.
+   * Si esa sesión estuviera caducada, GuestBillScreen la borra y lo dice; al
+   * volver aquí y pulsar otra vez ya no hay ninguna y se acuña de nuevo.
+   */
+  const openBill = async () => {
+    if (guestSession.get() || !token) {
+      setView("bill");
+      return;
+    }
+    setOpening(true);
+    setOpenError(null);
+    try {
+      await guest.openSession(token);
+      setView("bill");
+    } catch (error) {
+      setOpenError(error);
+    } finally {
+      setOpening(false);
+    }
+  };
 
   const contextQuery = useQuery({
     queryKey: ["qr-context", token],
@@ -56,18 +106,18 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
 
   if (demo) return <GuestBillScreen demo />;
 
-  // La rama de la cuenta es el flujo de siempre, sin tocar: es quien abre la
-  // sesión, y por eso recibe el token.
-  //
-  // Sólo si no hay ya una sesión guardada. Con el token puesto, GuestBillScreen
-  // descarta la sesión anterior y acuña otra, y aquí se entra y se sale de esta
-  // pantalla -- ir a la carta y volver acuñaría una sesión por vuelta. Si la
-  // guardada resultara estar caducada, esa pantalla la borra y avisa; al volver
-  // aquí y pulsar de nuevo ya no hay ninguna, así que se acuña con el token.
-  if (view === "bill") {
-    const reuse = Boolean(guestSession.get());
-    return <GuestBillScreen {...(token && !reuse ? { qr: token } : {})} />;
+  // Hasta que el efecto haya mirado el almacén de la pestaña no se sabe si hay
+  // token ni sesión, y adivinarlo es exactamente lo que rompe la hidratación.
+  if (!restored) {
+    return (
+      <Shell>
+        <p className="text-sm text-muted-foreground">{t("loading")}</p>
+      </Shell>
+    );
   }
+
+  // Sin token: la sesión ya está guardada, la acuñó `openBill`.
+  if (view === "bill") return <GuestBillScreen />;
 
   // Sin token y sin sesión no hay nada que resolver: hay que volver a escanear.
   if (!token) {
@@ -159,9 +209,12 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
             // Lo único que dice del dinero: si hay cuenta abierta. Cuánto se debe
             // está detrás de la sesión, que aún no se ha abierto.
             hint={context.hasOpenBill ? t("yourBillHint") : t("noOpenBillYet")}
-            onClick={() => setView("bill")}
+            onClick={openBill}
+            disabled={opening}
           />
         </div>
+
+        {openError ? <ErrorBox error={openError} fallback={t("apiDown")} /> : null}
       </div>
     </div>
   );
@@ -172,16 +225,19 @@ function Choice({
   title,
   hint,
   onClick,
+  disabled = false,
 }: {
   icon: React.ReactNode;
   title: string;
   hint: string;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-4 rounded-lg border border-border bg-secondary px-4 py-4 text-left transition-colors hover:border-primary"
+      disabled={disabled}
+      className="flex w-full items-center gap-4 rounded-lg border border-border bg-secondary px-4 py-4 text-left transition-colors hover:border-primary disabled:opacity-60"
     >
       <span className="text-muted-foreground">{icon}</span>
       <span className="min-w-0">

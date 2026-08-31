@@ -100,9 +100,47 @@ function Dashboard() {
   });
   const pendingCount = claimsQuery.data?.length ?? 0;
 
+  // Cargos C2P que el banco dejó en duda: son los que exigen intervención humana.
+  const c2pQuery = useQuery({
+    queryKey: ["c2p-unresolved"],
+    queryFn: () => payments.c2pUnresolved(),
+    enabled: ready && me.isSuccess,
+    retry: false,
+    refetchInterval: 30000,
+  });
+  const unresolvedCount = c2pQuery.data?.length ?? 0;
+
+  // El plano no trae la fecha de apertura: la antigüedad sólo la da el listado de cuentas.
+  const openBillsQuery = useQuery({
+    queryKey: ["bills", "OPEN"],
+    queryFn: () => bills.list("OPEN"),
+    enabled: ready && me.isSuccess,
+    retry: false,
+    refetchInterval: 30000,
+  });
+  const openedAtByBill = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const b of openBillsQuery.data ?? []) if (b.createdAt) map.set(b.id, b.createdAt);
+    return map;
+  }, [openBillsQuery.data]);
+
+  const [floorFilter, setFloorFilter] = useState<"ALL" | "BUSY" | "FREE">("ALL");
 
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
+  const visibleTables = useMemo(
+    () =>
+      tableList.filter((tb) =>
+        floorFilter === "ALL" ? true : floorFilter === "BUSY" ? !!tb.openBill : !tb.openBill,
+      ),
+    [tableList, floorFilter],
+  );
+  const busyCount = tableList.filter((tb) => tb.openBill).length;
+  const partiallyPaid = tableList.filter(
+    (tb) => tb.openBill && (tb.openBill.amountPaidVes ?? "0") !== "0",
+  ).length;
   const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
+
+
 
   // El token QR es permanente por mesa: se pide una sola vez y sólo se
   // vuelve a pedir tras rotar el nonce.
@@ -186,6 +224,7 @@ function Dashboard() {
     onSuccess: () => {
       toast.success(t("billOpened"));
       queryClient.invalidateQueries({ queryKey: ["floor"] });
+      queryClient.invalidateQueries({ queryKey: ["bills", "OPEN"] });
     },
     onError: fail,
   });
@@ -223,6 +262,7 @@ function Dashboard() {
       setCloseOpen(false);
       toast.success(t("billClosed"));
       queryClient.invalidateQueries({ queryKey: ["floor"] });
+      queryClient.invalidateQueries({ queryKey: ["bills", "OPEN"] });
       queryClient.invalidateQueries({ queryKey: ["bill", bill?.id] });
     },
     onError: fail,
@@ -244,34 +284,19 @@ function Dashboard() {
   });
   const billItems = itemsQuery.data ?? [];
 
-  // Si el resumen aún no trae IVA/servicio, se derivan de las líneas ya cargadas.
-  const totals = useMemo(() => {
-    const big = (v?: string | null) => {
-      try {
-        return BigInt(v ?? "0");
-      } catch {
-        return 0n;
-      }
-    };
-    const serverSubtotal = big(bill?.subtotalMinor);
-    const lineSubtotal = billItems.reduce((acc, it) => acc + big(it.subtotalMinor), 0n);
-    const subtotal = serverSubtotal > 0n ? serverSubtotal : lineSubtotal;
-    const vatBps = BigInt(bill?.vatBps ?? 0);
-    const svcBps = BigInt(bill?.serviceChargeBps ?? 0);
-    const service = big(bill?.serviceChargeMinor) || (subtotal * svcBps) / 10000n;
-    const vat = big(bill?.vatMinor) || ((subtotal + service) * vatBps) / 10000n;
-    const total = big(bill?.totalDue) || subtotal + service + vat;
-    return {
-      subtotal: subtotal.toString(),
-      vat: vat.toString(),
-      service: service.toString(),
-      total: total.toString(),
-    };
-  }, [bill, billItems]);
+  // El backend es la autoridad del dinero: nunca se recalcula IVA, servicio ni total.
+  const totals = {
+    subtotal: bill?.subtotalMinor ?? "0",
+    vat: bill?.vatMinor ?? "0",
+    service: bill?.serviceChargeMinor ?? "0",
+    total: bill?.totalDue ?? "0",
+  };
+
 
 
   const refreshBill = () => {
     queryClient.invalidateQueries({ queryKey: ["floor"] });
+    queryClient.invalidateQueries({ queryKey: ["bills", "OPEN"] });
     queryClient.invalidateQueries({ queryKey: ["bill", bill?.id] });
     queryClient.invalidateQueries({ queryKey: ["bill-items", bill?.id] });
   };
@@ -380,6 +405,13 @@ function Dashboard() {
           <ErrorBox error={(me.error ?? tablesQuery.error) as unknown} fallback={t("apiDown")} />
         )}
 
+        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard label="Mesas ocupadas" value={`${busyCount}/${tableList.length}`} />
+          <StatCard label="Cuentas con pago parcial" value={String(partiallyPaid)} />
+          <StatCard label="Avisos por verificar" value={String(pendingCount)} alert={pendingCount > 0} />
+          <StatCard label="C2P sin resolver" value={String(unresolvedCount)} alert={unresolvedCount > 0} />
+        </div>
+
         <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
           <div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -400,34 +432,76 @@ function Dashboard() {
                 </button>
               </div>
             </div>
-            {tablesQuery.isLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
-            <div className="grid gap-3 sm:grid-cols-2">
 
-
-              {tableList.map((tb) => (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {([
+                ["ALL", `Todas (${tableList.length})`],
+                ["BUSY", `Ocupadas (${busyCount})`],
+                ["FREE", `Libres (${tableList.length - busyCount})`],
+              ] as const).map(([value, label]) => (
                 <button
-                  key={tb.id}
-                  onClick={() => setSelectedId(tb.id)}
-                  className={`surface p-5 text-left transition-colors hover:border-primary ${
-                    selected?.id === tb.id ? "border-primary" : ""
+                  key={value}
+                  onClick={() => setFloorFilter(value)}
+                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                    floorFilter === value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border hover:bg-secondary"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-display text-2xl">{tb.name}</span>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs ${
-                        tb.openBill
-                          ? "bg-primary/20 text-primary"
-                          : "bg-secondary text-muted-foreground"
-                      }`}
-                    >
-                      {tb.openBill ? t("statusOPEN") : t("tableFree")}
-                    </span>
-
-                  </div>
+                  {label}
                 </button>
               ))}
             </div>
+
+            {tablesQuery.isLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {visibleTables.map((tb) => {
+                const ob = tb.openBill;
+                const openedAt = ob ? openedAtByBill.get(ob.id) : undefined;
+                return (
+                  <button
+                    key={tb.id}
+                    onClick={() => setSelectedId(tb.id)}
+                    className={`surface p-5 text-left transition-colors hover:border-primary ${
+                      selected?.id === tb.id ? "border-primary" : ""
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-display text-2xl">{tb.name}</span>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs ${
+                          ob ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        {ob ? t("statusOPEN") : t("tableFree")}
+                      </span>
+                    </div>
+                    {ob && (
+                      <div className="mt-3 space-y-1 text-xs text-muted-foreground tabular-nums">
+                        <div className="flex justify-between">
+                          <span>{t("total")}</span>
+                          <span className="text-foreground">
+                            {formatMoney(ob.totalDue, ob.currency)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Pendiente</span>
+                          <span className="text-foreground">{formatMinor(ob.remainingVes)} Bs.</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>{ob.itemCount ?? 0} líneas</span>
+                          <span>{openedAt ? relativeAge(openedAt) : "—"}</span>
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+              {!tablesQuery.isLoading && visibleTables.length === 0 && (
+                <p className="text-sm text-muted-foreground">Sin mesas en este filtro.</p>
+              )}
+            </div>
+
 
             {selected && (
               <div className="surface mt-6 p-6">
@@ -828,4 +902,23 @@ export function ErrorBox({ error, fallback }: { error: unknown; fallback: string
       )}
     </div>
   );
+}
+
+function StatCard({ label, value, alert }: { label: string; value: string; alert?: boolean }) {
+  return (
+    <div className={`surface p-4 ${alert ? "border-primary" : ""}`}>
+      <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className={`mt-1 font-display text-2xl tabular-nums ${alert ? "text-primary" : ""}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/** Antigüedad legible de una cuenta abierta: la fecha la da el servidor, aquí sólo se formatea. */
+function relativeAge(iso: string): string {
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} h ${minutes % 60} min`;
 }

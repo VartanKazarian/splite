@@ -135,6 +135,24 @@ export type StaffSession = {
 
 export type StaffRole = "OWNER" | "MANAGER" | "CASHIER" | "WAITER";
 
+/** Quién puede hacer qué a quién: mayor manda sobre menor, y nunca sobre su igual. */
+export const STAFF_RANK: Record<StaffRole, number> = {
+  OWNER: 4,
+  MANAGER: 3,
+  CASHIER: 2,
+  WAITER: 1,
+};
+
+export type StaffMember = {
+  id: string;
+  email: string;
+  role: StaffRole;
+  active: boolean;
+  restaurantId: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type GuestSession = {
   sessionId: string;
   guestToken: string;
@@ -505,6 +523,8 @@ export type Bill = {
   id: string;
   tableId: string;
   status: "OPEN" | "CLOSED" | "VOID";
+  /** Quién atendió la mesa. Es por donde se atribuyen las propinas. */
+  servedBy?: string | null;
   currency: MenuCurrency;
   subtotalMinor: Money;
   vatBps: number;
@@ -563,6 +583,16 @@ export type ClaimsSummary = {
 };
 
 /** Propinas de un periodo, separadas por cómo llegaron: efectivo ya está en caja. */
+/** Lo que le tocó a cada quien. `userId` null es la cuenta sin mesero asignado. */
+export type TipsByServer = {
+  userId: string | null;
+  email: string | null;
+  payments: number;
+  tipsVes: Money;
+  billedVes: Money;
+  tipRateBps?: number;
+};
+
 export type TipsReport = {
   from: string;
   to: string;
@@ -571,6 +601,14 @@ export type TipsReport = {
   inTillVes: Money;
   owedToStaffVes: Money;
   unclassifiedVes: Money;
+  billedVes?: Money;
+  tipRateBps?: number;
+  /**
+   * La atribución se lee por `bills.servedBy` en el momento de la consulta, así
+   * que corregir quién atendió una mesa mueve las propinas con ella.
+   */
+  byServer?: TipsByServer[];
+  byMethod?: { method: string; payments: number; tipsVes: Money }[];
 };
 
 export type PaymentClaimInput = {
@@ -879,6 +917,51 @@ export const tables = {
 };
 
 /** Menú del restaurante: la moneda la fija el restaurante, nunca la petición. */
+/* ---------------------------------------------------------------- personal */
+
+/**
+ * La gente que trabaja aquí.
+ *
+ * OWNER y MANAGER. El servidor decide además qué puede hacer cada uno a quién
+ * -- rango, nunca a uno mismo, y siempre queda un dueño activo -- y esas reglas
+ * llegan como códigos de error, no se reimplementan aquí: una comprobación
+ * duplicada en el cliente es una que se puede quedar atrás.
+ */
+export const staff = {
+  list: () =>
+    apiRequest<{ data: StaffMember[] }>("/api/v1/account/users", { auth: "staff" }).then(
+      (r) => r.data,
+    ),
+
+  create: (body: { email: string; password: string; role: StaffRole }) =>
+    apiRequest<{ user: StaffMember }>("/api/v1/account/users", {
+      method: "POST",
+      auth: "staff",
+      body,
+    }).then((r) => r.user),
+
+  /**
+   * Cambia el rol, la situación, o las dos.
+   *
+   * `sessionsRevoked` viene en la respuesta a propósito: quien acaba de dar de
+   * baja a alguien quiere saber que sus sesiones han caído -- y también que el
+   * token que esa persona lleva encima sigue valiendo hasta que caduque.
+   */
+  update: (id: string, body: { role?: StaffRole; active?: boolean }) =>
+    apiRequest<{ user: StaffMember; sessionsRevoked: number }>(
+      `/api/v1/account/users/${id}`,
+      { method: "PATCH", auth: "staff", body },
+    ),
+
+  /** Le pone contraseña a otra persona, que es también cómo se recupera una olvidada. */
+  resetPassword: (id: string, password: string) =>
+    apiRequest<{ sessionsRevoked: number }>(`/api/v1/account/users/${id}/password`, {
+      method: "POST",
+      auth: "staff",
+      body: { password },
+    }),
+};
+
 export const menu = {
   settings: () => apiRequest<MenuSettings>("/api/v1/menu/settings", { auth: "staff" }),
   /** El backend espera { currency }, no { menuCurrency }: enviarlo mal da VALIDATION_FAILED. */
@@ -1045,6 +1128,20 @@ export type MenuOcrImportResult = {
 
 export const bills = {
   get: (id: string) => apiRequest<Bill>(`/api/v1/bills/${id}`, { auth: "staff" }),
+
+  /**
+   * Corrige quién atendió la mesa. OWNER y MANAGER.
+   *
+   * Mueve dinero entre personas: las propinas se atribuyen por el servidor
+   * *actual* de la cuenta, así que corregir esto mueve también las de ayer.
+   * `null` la deja sin atribuir, que es mejor que atribuirla mal.
+   */
+  setServer: (id: string, servedBy: string | null) =>
+    apiRequest<Bill>(`/api/v1/bills/${id}/server`, {
+      method: "PATCH",
+      auth: "staff",
+      body: { servedBy },
+    }),
   /** Listado sin líneas: es lo único que trae `createdAt` (antigüedad de la cuenta). */
   list: (status: Bill["status"] = "OPEN") => listAll<Bill>(`/api/v1/bills?status=${status}`),
   /** Abrir con total 0 es lo que permite luego añadir líneas del menú. */

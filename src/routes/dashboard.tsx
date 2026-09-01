@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
@@ -618,6 +619,18 @@ function Dashboard() {
                     <p className="mt-4 border-t border-border pt-4 text-xs uppercase tracking-widest text-muted-foreground">
                       {t("itemsOnBill")}
                     </p>
+                    <div className="mt-2 border-b border-border pb-2">
+                      <BillServerPicker
+                        billId={bill.id}
+                        servedBy={bill.servedBy ?? null}
+                        canAssign={canAssignServer(me.data?.user.role)}
+                        onChanged={() => {
+                          void billQuery.refetch();
+                          void openBillsQuery.refetch();
+                        }}
+                      />
+                    </div>
+
                     <ul className="mt-2 space-y-2 text-sm">
                       {billItems.map((item) => (
                         <li key={item.id} className="flex items-center justify-between gap-3">

@@ -20,6 +20,7 @@ import {
 } from "@/lib/api";
 
 import { ErrorBox } from "@/routes/dashboard";
+import { StaffManager } from "@/components/StaffManager";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -53,12 +54,16 @@ function SettingsPage() {
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
   const [role, setRole] = useState<StaffRole | null>(null);
+  // El id propio, para no ofrecer botones que el servidor va a rechazar:
+  // nadie se cambia el rol ni se da de baja a sí mismo.
+  const [meId, setMeId] = useState<string | null>(null);
 
   useEffect(() => {
     const s = staffSession.get();
     if (!s) navigate({ to: "/login" });
     else {
       setRole(s.user.role);
+      setMeId(s.user.id);
       setReady(true);
     }
   }, [navigate]);
@@ -281,6 +286,9 @@ function SettingsPage() {
               </div>
             </section>
 
+            {(role === "OWNER" || role === "MANAGER") && meId && (
+              <StaffManager me={{ id: meId, role }} />
+            )}
             {(role === "OWNER" || role === "MANAGER") && <PayoutSection />}
             {role === "OWNER" && <ProvidersSection />}
           </>

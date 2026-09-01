@@ -26,7 +26,11 @@ export const Route = createFileRoute("/pagos")({
           "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
       { property: "og:title", content: "Verificación de pagos — Splite" },
-      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
+      {
+        property: "og:description",
+        content:
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -44,7 +48,6 @@ function formatWait(seconds: number) {
 }
 
 function PaymentsPage() {
-
   const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -71,7 +74,6 @@ function PaymentsPage() {
     retry: false,
     refetchInterval: 20000,
   });
-
 
   const unresolvedQuery = useQuery({
     queryKey: ["c2p-unresolved"],
@@ -106,7 +108,6 @@ function PaymentsPage() {
     queryClient.invalidateQueries({ queryKey: ["c2p-unresolved"] });
     queryClient.invalidateQueries({ queryKey: ["floor"] });
   };
-
 
   // Confirmar acredita el dinero: sólo después de verlo en el banco.
   const confirmClaim = useMutation({
@@ -296,10 +297,41 @@ function PaymentsPage() {
                 <dd className="mt-1">{formatMoney(tipsQuery.data.unclassifiedVes, "VES")}</dd>
               </div>
             </dl>
+
+            {/* Lo que el backend calculaba y nadie enseñaba. La atribución se lee
+                por la cuenta en el momento de consultar, así que corregir quién
+                atendió una mesa mueve también estas cifras. */}
+            {(tipsQuery.data.byServer?.length ?? 0) > 0 && (
+              <div className="mt-6 border-t border-border pt-4">
+                <h3 className="text-sm">Por mesero</h3>
+                <ul className="mt-3 space-y-2 text-sm">
+                  {tipsQuery.data.byServer?.map((row) => (
+                    <li
+                      key={row.userId ?? "__unassigned__"}
+                      className="flex items-baseline justify-between gap-3"
+                    >
+                      <span className={row.userId ? "" : "text-muted-foreground"}>
+                        {row.email ?? "Sin mesero asignado"}
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {row.payments} cobro(s)
+                        </span>
+                      </span>
+                      <span className="shrink-0 tabular-nums">
+                        {formatMoney(row.tipsVes, "VES")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {tipsQuery.data.byServer?.some((r) => !r.userId) && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Las cuentas sin mesero asignado se agrupan aparte. Puedes asignarlo desde el
+                    panel de la mesa, también después de cerrarla.
+                  </p>
+                )}
+              </div>
+            )}
           </section>
         )}
-
-
 
         <section className="surface mt-6 p-6">
           <h2 className="text-xl">Cargos C2P sin resolver</h2>
@@ -318,9 +350,7 @@ function PaymentsPage() {
               return (
                 <li key={c.paymentId} className="rounded-lg border border-border p-4">
                   <div className="flex flex-wrap items-baseline justify-between gap-3">
-                    <span className="font-display text-2xl">
-                      {formatMoney(c.amountVes, "VES")}
-                    </span>
+                    <span className="font-display text-2xl">{formatMoney(c.amountVes, "VES")}</span>
                     <span className="rounded-full border border-amber-500/50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground">
                       {c.status === "IN_DOUBT" ? "Sin confirmar" : "Ambiguo"}
                     </span>

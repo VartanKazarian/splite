@@ -523,6 +523,8 @@ export type Bill = {
   id: string;
   tableId: string;
   status: "OPEN" | "CLOSED" | "VOID";
+  /** Quién atendió la mesa. Es por donde se atribuyen las propinas. */
+  servedBy?: string | null;
   currency: MenuCurrency;
   subtotalMinor: Money;
   vatBps: number;
@@ -581,6 +583,16 @@ export type ClaimsSummary = {
 };
 
 /** Propinas de un periodo, separadas por cómo llegaron: efectivo ya está en caja. */
+/** Lo que le tocó a cada quien. `userId` null es la cuenta sin mesero asignado. */
+export type TipsByServer = {
+  userId: string | null;
+  email: string | null;
+  payments: number;
+  tipsVes: Money;
+  billedVes: Money;
+  tipRateBps?: number;
+};
+
 export type TipsReport = {
   from: string;
   to: string;
@@ -589,6 +601,14 @@ export type TipsReport = {
   inTillVes: Money;
   owedToStaffVes: Money;
   unclassifiedVes: Money;
+  billedVes?: Money;
+  tipRateBps?: number;
+  /**
+   * La atribución se lee por `bills.servedBy` en el momento de la consulta, así
+   * que corregir quién atendió una mesa mueve las propinas con ella.
+   */
+  byServer?: TipsByServer[];
+  byMethod?: { method: string; payments: number; tipsVes: Money }[];
 };
 
 export type PaymentClaimInput = {
@@ -1108,6 +1128,20 @@ export type MenuOcrImportResult = {
 
 export const bills = {
   get: (id: string) => apiRequest<Bill>(`/api/v1/bills/${id}`, { auth: "staff" }),
+
+  /**
+   * Corrige quién atendió la mesa. OWNER y MANAGER.
+   *
+   * Mueve dinero entre personas: las propinas se atribuyen por el servidor
+   * *actual* de la cuenta, así que corregir esto mueve también las de ayer.
+   * `null` la deja sin atribuir, que es mejor que atribuirla mal.
+   */
+  setServer: (id: string, servedBy: string | null) =>
+    apiRequest<Bill>(`/api/v1/bills/${id}/server`, {
+      method: "PATCH",
+      auth: "staff",
+      body: { servedBy },
+    }),
   /** Listado sin líneas: es lo único que trae `createdAt` (antigüedad de la cuenta). */
   list: (status: Bill["status"] = "OPEN") => listAll<Bill>(`/api/v1/bills?status=${status}`),
   /** Abrir con total 0 es lo que permite luego añadir líneas del menú. */

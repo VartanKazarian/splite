@@ -5,6 +5,8 @@ import { ArrowLeft, Check, ChevronDown, Pencil, Plus, Search, Tag, Trash2, X } f
 import { toast } from "sonner";
 
 import { MenuOcrImport } from "@/components/MenuOcrImport";
+import { MenuSections } from "@/components/MenuSections";
+import { MenuPdfCard } from "@/components/MenuPdfCard";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
@@ -14,6 +16,7 @@ import {
   menu,
   parseMinorInput,
   staffSession,
+  type MenuCategory,
   type Product,
 } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
@@ -40,38 +43,34 @@ type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 const CATEGORY_KEY = "splite.menu.categories";
 
-function readCategories(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  try { return JSON.parse(localStorage.getItem(CATEGORY_KEY) ?? "{}"); } catch { return {}; }
+/**
+ * Las categorías que esta pantalla guardaba en el navegador.
+ *
+ * Eran un `productId -> nombre` en `localStorage`, así que vivían en un solo
+ * equipo: ni el resto del personal las veía, ni llegaban a la carta pública, y
+ * se perdían al limpiar los datos del navegador. Ahora las secciones son filas
+ * del servidor.
+ *
+ * Esto se queda para no tirar el trabajo de nadie: se leen los nombres una vez
+ * para ofrecer importarlos, y después se borra la clave.
+ */
+function legacyCategoryNames(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = JSON.parse(localStorage.getItem(CATEGORY_KEY) ?? "{}") as Record<string, string>;
+    const names = new Set<string>();
+    for (const value of Object.values(raw)) {
+      const name = String(value ?? "").trim();
+      if (name) names.add(name.slice(0, 80));
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, "es"));
+  } catch {
+    return [];
+  }
 }
 
-function saveCategories(map: Record<string, string>) {
-  try { localStorage.setItem(CATEGORY_KEY, JSON.stringify(map)); } catch {}
-}
-
-function useCategories() {
-  const [map, setMap] = useState<Record<string, string>>(readCategories);
-
-  const setProductCategory = (productId: string, category: string) => {
-    setMap((prev) => {
-      const next = { ...prev };
-      if (category.trim()) next[productId] = category.trim();
-      else delete next[productId];
-      saveCategories(next);
-      return next;
-    });
-  };
-
-  const removeProduct = (productId: string) => {
-    setMap((prev) => {
-      const next = { ...prev };
-      delete next[productId];
-      saveCategories(next);
-      return next;
-    });
-  };
-
-  return { map, setProductCategory, removeProduct };
+function forgetLegacyCategories() {
+  try { localStorage.removeItem(CATEGORY_KEY); } catch { /* nada que hacer */ }
 }
 
 /* ---------------------------------------------------------------- helpers */
@@ -100,7 +99,10 @@ function MenuPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
-  const { map: categoryMap, setProductCategory, removeProduct: removeCategoryEntry } = useCategories();
+  // Sólo se lee en el navegador: leerlo en el render del servidor pintaría algo
+  // distinto al primer render del cliente.
+  const [legacyNames, setLegacyNames] = useState<string[]>([]);
+  useEffect(() => setLegacyNames(legacyCategoryNames()), []);
 
   useEffect(() => {
     if (!staffSession.get()) navigate({ to: "/login" });
@@ -121,10 +123,17 @@ function MenuPage() {
     retry: false,
   });
 
+  const categories = useQuery({
+    queryKey: ["menu-categories"],
+    queryFn: () => menu.categories(),
+    enabled: ready,
+    retry: false,
+  });
+
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState<string>("");
   const [createErrors, setCreateErrors] = useState<FieldErrors>({});
   const [editing, setEditing] = useState<Product | null>(null);
   const [adding, setAdding] = useState(false);
@@ -132,7 +141,14 @@ function MenuPage() {
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
 
+  const categoryRows = useMemo<MenuCategory[]>(() => categories.data?.data ?? [], [categories.data]);
+
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["menu-products"] });
+  // Al mover un producto cambia el recuento de las secciones.
+  const refreshAll = () => {
+    refresh();
+    queryClient.invalidateQueries({ queryKey: ["menu-categories"] });
+  };
 
   const fail = (error: unknown) => {
     if (!(error instanceof ApiError)) return toast.error(t("apiDown"));
@@ -154,17 +170,19 @@ function MenuPage() {
         name: name.trim(),
         priceMinorUnits: parseMinorInput(price),
         ...(description.trim() ? { description: description.trim() } : {}),
+        // La sección va en la misma petición: antes se guardaba aparte en el
+        // navegador y el producto llegaba al servidor sin ella.
+        ...(categoryId ? { categoryId } : {}),
       }),
-    onSuccess: (product) => {
-      if (category.trim()) setProductCategory(product.id, category.trim());
+    onSuccess: () => {
       setName("");
       setPrice("");
       setDescription("");
-      setCategory("");
+      setCategoryId("");
       setCreateErrors({});
       setAdding(false);
       toast.success(t("addProduct"));
-      refresh();
+      refreshAll();
     },
     onError: (error) => {
       setCreateErrors(fieldsOf(error));
@@ -178,17 +196,16 @@ function MenuPage() {
     onSuccess: () => {
       setEditing(null);
       toast.success(t("saved"));
-      refresh();
+      refreshAll();
     },
     onError: fail,
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => menu.deleteProduct(id),
-    onSuccess: (_, id) => {
-      removeCategoryEntry(id);
+    onSuccess: () => {
       toast.success(t("productDeleted"));
-      refresh();
+      refreshAll();
     },
     onError: fail,
   });
@@ -198,18 +215,24 @@ function MenuPage() {
   const inactiveCount = all.length - activeCount;
   const updatedAt = useMemo(() => lastUpdated(all), [all]);
 
-  // All unique categories from the current map
-  const allCategories = useMemo(() => {
-    const cats = new Set<string>();
-    all.forEach((p) => {
-      const c = categoryMap[p.id];
-      if (c) cats.add(c);
-    });
-    return Array.from(cats).sort((a, b) => a.localeCompare(b, "es"));
-  }, [all, categoryMap]);
+  /**
+   * El orden del menú, del servidor.
+   *
+   * Alfabético sería Bebidas, Entradas, Postres, Principales -- que no es una
+   * carta. `position` es justamente lo que arregla eso, así que el orden sale
+   * de la lista de secciones y no de los nombres.
+   */
+  const orderOf = useMemo(() => {
+    const index = new Map<string, number>();
+    categoryRows.forEach((c, i) => index.set(c.id, i));
+    return index;
+  }, [categoryRows]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
+    // Sin sección va al final, nunca intercalado.
+    const rank = (p: Product) =>
+      p.categoryId ? (orderOf.get(p.categoryId) ?? Number.MAX_SAFE_INTEGER - 1) : Number.MAX_SAFE_INTEGER;
     return all
       .filter((p) =>
         status === "ALL" ? true : status === "ACTIVE" ? p.active : !p.active,
@@ -222,37 +245,32 @@ function MenuPage() {
       )
       .filter((p) => {
         if (categoryFilter === "ALL") return true;
-        const cat = categoryMap[p.id] ?? UNCATEGORIZED;
-        return cat === categoryFilter;
+        if (categoryFilter === "NONE") return !p.categoryId;
+        return p.categoryId === categoryFilter;
       })
       .sort((a, b) => {
-        const catA = categoryMap[a.id] ?? UNCATEGORIZED;
-        const catB = categoryMap[b.id] ?? UNCATEGORIZED;
-        if (catA !== catB) return catA.localeCompare(catB, "es");
+        const byCategory = rank(a) - rank(b);
+        if (byCategory !== 0) return byCategory;
         return Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, "es");
       });
-  }, [all, query, status, categoryFilter, categoryMap]);
+  }, [all, query, status, categoryFilter, orderOf]);
 
-  // Group visible products by category
   const grouped = useMemo(() => {
-    const groups: { category: string; items: Product[] }[] = [];
+    const groups: { key: string; category: string; items: Product[] }[] = [];
     const seen = new Map<string, Product[]>();
     for (const p of visible) {
-      const cat = categoryMap[p.id] ?? UNCATEGORIZED;
-      if (!seen.has(cat)) {
-        seen.set(cat, []);
-        groups.push({ category: cat, items: seen.get(cat)! });
+      const key = p.categoryId ?? "__none__";
+      const label = p.categoryName ?? UNCATEGORIZED;
+      let bucket = seen.get(key);
+      if (!bucket) {
+        bucket = [];
+        seen.set(key, bucket);
+        groups.push({ key, category: label, items: bucket });
       }
-      seen.get(cat)!.push(p);
-    }
-    // Always put UNCATEGORIZED last
-    const uncatIdx = groups.findIndex((g) => g.category === UNCATEGORIZED);
-    if (uncatIdx > 0) {
-      const [uncat] = groups.splice(uncatIdx, 1);
-      if (uncat) groups.push(uncat);
+      bucket.push(p);
     }
     return groups;
-  }, [visible, categoryMap]);
+  }, [visible]);
 
   if (!ready) return null;
 
@@ -377,10 +395,10 @@ function MenuPage() {
                     placeholder={t("productDescription")}
                     className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
                   />
-                  <CategoryInput
-                    value={category}
-                    onChange={setCategory}
-                    suggestions={allCategories}
+                  <CategorySelect
+                    value={categoryId}
+                    onChange={setCategoryId}
+                    categories={categoryRows}
                   />
                 </div>
                 {createErrors["description"] && (
@@ -407,7 +425,20 @@ function MenuPage() {
               </section>
             )}
 
-            <MenuOcrImport onImported={refresh} />
+            <MenuOcrImport onImported={refreshAll} />
+
+            <MenuSections
+              onChanged={refresh}
+              legacy={{
+                names: legacyNames,
+                onImported: () => {
+                  forgetLegacyCategories();
+                  setLegacyNames([]);
+                },
+              }}
+            />
+
+            <MenuPdfCard />
 
             <section className="surface mt-6 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3 px-2">
@@ -452,8 +483,8 @@ function MenuPage() {
                 </div>
               </div>
 
-              {/* Category filter pills */}
-              {allCategories.length > 0 && (
+              {/* Filtro por sección, en el orden de la carta */}
+              {(categoryRows.length > 0 || (categories.data?.uncategorisedCount ?? 0) > 0) && (
                 <div className="mt-2 flex flex-wrap gap-1.5 px-0.5">
                   <button
                     onClick={() => setCategoryFilter("ALL")}
@@ -463,22 +494,34 @@ function MenuPage() {
                         : "border-border text-muted-foreground hover:bg-secondary"
                     }`}
                   >
-                    Todas las categorías
+                    Todas las secciones
                   </button>
-                  {allCategories.map((cat) => (
+                  {categoryRows.map((cat) => (
                     <button
-                      key={cat}
-                      onClick={() => setCategoryFilter(cat === categoryFilter ? "ALL" : cat)}
+                      key={cat.id}
+                      onClick={() => setCategoryFilter(cat.id === categoryFilter ? "ALL" : cat.id)}
                       className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
-                        categoryFilter === cat
+                        categoryFilter === cat.id
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border text-muted-foreground hover:bg-secondary"
                       }`}
                     >
                       <Tag className="h-2.5 w-2.5" />
-                      {cat}
+                      {cat.name}
                     </button>
                   ))}
+                  {(categories.data?.uncategorisedCount ?? 0) > 0 && (
+                    <button
+                      onClick={() => setCategoryFilter(categoryFilter === "NONE" ? "ALL" : "NONE")}
+                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
+                        categoryFilter === "NONE"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      {UNCATEGORIZED}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -514,15 +557,11 @@ function MenuPage() {
                           <li key={p.id} className="rounded-lg border border-border bg-secondary/40 mb-0.5 px-3 py-2">
                             <EditRow
                               product={p}
-                              currentCategory={categoryMap[p.id] ?? ""}
+                              categories={categoryRows}
                               pending={update.isPending}
                               errors={fieldsOf(update.error)}
-                              suggestions={allCategories}
                               onCancel={() => setEditing(null)}
-                              onSave={(body, newCat) => {
-                                setProductCategory(p.id, newCat);
-                                update.mutate({ id: p.id, body });
-                              }}
+                              onSave={(body) => update.mutate({ id: p.id, body })}
                             />
                           </li>
                         ) : (
@@ -592,55 +631,46 @@ function MenuPage() {
   );
 }
 
-/* ---------------------------------------------------------------- CategoryInput */
+/* ---------------------------------------------------------------- EditRow */
 
-function CategoryInput({
+/**
+ * La sección de un producto, elegida de las que existen.
+ *
+ * Antes era texto libre con sugerencias, que sobre un almacén local daba igual;
+ * contra el servidor no: los nombres son únicos por restaurante, así que
+ * escribir "bebidas" donde ya hay "Bebidas" no crea una segunda sección, la
+ * rechaza. Y una sección tiene un orden, que un nombre suelto no puede llevar.
+ *
+ * Así que se elige, y para crear una nueva está el gestor de secciones. El
+ * valor vacío es "sin sección", que es una respuesta legítima y no un hueco:
+ * hay cartas que son una sola lista.
+ */
+function CategorySelect({
   value,
   onChange,
-  suggestions,
+  categories,
 }: {
   value: string;
   onChange: (v: string) => void;
-  suggestions: string[];
+  categories: MenuCategory[];
 }) {
-  const [open, setOpen] = useState(false);
-  const filtered = suggestions.filter((s) =>
-    s.toLowerCase().includes(value.toLowerCase()),
-  );
-
   return (
-    <div className="relative">
-      <div className="flex items-center gap-2 rounded-lg border border-input bg-secondary px-4 py-3 focus-within:border-ring">
-        <Tag className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <input
-          value={value}
-          maxLength={60}
-          onChange={(e) => { onChange(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
-          placeholder="Categoría (ej. Bebidas)"
-          className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-        />
-        {suggestions.length > 0 && (
-          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        )}
-      </div>
-      {open && filtered.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-md">
-          {filtered.map((s) => (
-            <li key={s}>
-              <button
-                type="button"
-                onMouseDown={() => { onChange(s); setOpen(false); }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-secondary"
-              >
-                <Tag className="h-3 w-3 text-muted-foreground" />
-                {s}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+    <div className="flex items-center gap-2 rounded-lg border border-input bg-secondary px-4 py-3 focus-within:border-ring">
+      <Tag className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label="Sección"
+        className="w-full bg-transparent text-sm outline-none"
+      >
+        <option value="">{UNCATEGORIZED}</option>
+        {categories.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+            {c.active ? "" : " (oculta)"}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -649,34 +679,30 @@ function CategoryInput({
 
 function EditRow({
   product,
-  currentCategory,
+  categories,
   pending,
   errors,
-  suggestions,
   onCancel,
   onSave,
 }: {
   product: Product;
-  currentCategory: string;
+  categories: MenuCategory[];
   pending: boolean;
   errors: FieldErrors;
-  suggestions: string[];
   onCancel: () => void;
-  onSave: (
-    body: {
-      name?: string;
-      priceMinorUnits?: string;
-      description?: string | null;
-      active?: boolean;
-    },
-    category: string,
-  ) => void;
+  onSave: (body: {
+    name?: string;
+    priceMinorUnits?: string;
+    description?: string | null;
+    active?: boolean;
+    categoryId?: string | null;
+  }) => void;
 }) {
   const { t } = useI18n();
   const [name, setName] = useState(product.name);
   const [price, setPrice] = useState(formatMinor(product.priceMinorUnits));
   const [description, setDescription] = useState(product.description ?? "");
-  const [category, setCategory] = useState(currentCategory);
+  const [categoryId, setCategoryId] = useState(product.categoryId ?? "");
 
   return (
     <div className="grid gap-2">
@@ -705,7 +731,7 @@ function EditRow({
           onChange={(e) => setDescription(e.target.value)}
           className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-ring"
         />
-        <CategoryInput value={category} onChange={setCategory} suggestions={suggestions} />
+        <CategorySelect value={categoryId} onChange={setCategoryId} categories={categories} />
       </div>
       <p className="text-[11px] text-muted-foreground">
         Los cambios aplican a nuevos pedidos. Los precios de cuentas ya abiertas no se modifican.
@@ -719,14 +745,14 @@ function EditRow({
         <button
           disabled={pending}
           onClick={() =>
-            onSave(
-              {
-                name: name.trim(),
-                priceMinorUnits: parseMinorInput(price),
-                description: description.trim() ? description.trim() : null,
-              },
-              category,
-            )
+            onSave({
+              name: name.trim(),
+              priceMinorUnits: parseMinorInput(price),
+              description: description.trim() ? description.trim() : null,
+              // Explícitamente null al vaciarlo: sacar un producto de su sección
+              // es algo que se hace a propósito, y no es lo mismo que omitirlo.
+              categoryId: categoryId || null,
+            })
           }
           className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-40"
         >

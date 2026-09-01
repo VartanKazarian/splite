@@ -765,6 +765,9 @@ export type Product = {
   priceMinorUnits: Money;
   currency: MenuCurrency;
   active: boolean;
+  /** La sección, o null si no tiene. El nombre viene resuelto por el backend. */
+  categoryId?: string | null;
+  categoryName?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -790,8 +793,20 @@ export type MenuCategory = {
   productCount?: number;
 };
 
+/** La carta subida tal cual, descrita. Los bytes tienen su propia ruta. */
+export type MenuDocument = {
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  updatedAt: string;
+  /** Ruta pública. Viene dada para que el cliente no la arme mal. */
+  url: string;
+};
+
 export type PublicMenu = {
   restaurant: { id: string; name: string; menuCurrency: MenuCurrency };
+  /** La carta subida, o null si no hay ninguna. */
+  menuPdf: MenuDocument | null;
   categories: MenuCategory[];
   products: PublicProduct[];
 };
@@ -882,6 +897,62 @@ export const menu = {
     }),
   products: () => listAll<Product>("/api/v1/menu/products"),
 
+  /* ------------------------------------------------------ secciones */
+
+  /** Las secciones del menú, con cuántos productos hay en cada una. */
+  categories: () =>
+    apiRequest<{ data: MenuCategory[]; uncategorisedCount: number }>(
+      "/api/v1/menu/categories",
+      { auth: "staff" },
+    ),
+
+  /** Sin `position` la sección se coloca al final, que es lo que casi siempre se quiere. */
+  createCategory: (body: { name: string; position?: number; active?: boolean }) =>
+    apiRequest<MenuCategory>("/api/v1/menu/categories", { method: "POST", auth: "staff", body }),
+
+  updateCategory: (id: string, body: { name?: string; position?: number; active?: boolean }) =>
+    apiRequest<MenuCategory>(`/api/v1/menu/categories/${id}`, {
+      method: "PATCH",
+      auth: "staff",
+      body,
+    }),
+
+  /**
+   * El orden entero de una vez: el array *es* el orden.
+   *
+   * Mandar una posición por sección haría que cada estado intermedio fuese un
+   * estado que alguien puede leer -- dos secciones reclamando la 3 mientras va
+   * la siguiente petición -- y una petición perdida dejaría el menú así.
+   */
+  reorderCategories: (ids: string[]) =>
+    apiRequest<void>("/api/v1/menu/categories/order", {
+      method: "PUT",
+      auth: "staff",
+      body: { ids },
+    }),
+
+  /** Borra la cabecera, no la comida: sus productos quedan sin sección. */
+  deleteCategory: (id: string) =>
+    apiRequest<void>(`/api/v1/menu/categories/${id}`, { method: "DELETE", auth: "staff" }),
+
+  /* ----------------------------------------------------- carta en PDF */
+
+  /** 404 cuando no hay ninguna subida: estado normal, no un error. */
+  pdf: () => apiRequest<MenuDocument>("/api/v1/menu/pdf", { auth: "staff" }),
+
+  /** Sustituye la que hubiera: hay una por restaurante. */
+  uploadPdf: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return apiRequest<MenuDocument>("/api/v1/menu/pdf", {
+      method: "PUT",
+      auth: "staff",
+      body: form,
+    });
+  },
+
+  deletePdf: () => apiRequest<void>("/api/v1/menu/pdf", { method: "DELETE", auth: "staff" }),
+
   /**
    * La carta que ve un comensal. Sin token: quien escanea la mesa no tiene
    * credenciales de personal.
@@ -893,11 +964,23 @@ export const menu = {
   publicMenu: (restaurantId: string) =>
     apiRequest<PublicMenu>(`/api/v1/menu/public/${restaurantId}/products`),
 
-  createProduct: (body: { name: string; priceMinorUnits: Money; description?: string | null }) =>
+  createProduct: (body: {
+    name: string;
+    priceMinorUnits: Money;
+    description?: string | null;
+    /** La sección. Null es "sin sección", que es una respuesta real. */
+    categoryId?: string | null;
+  }) =>
     apiRequest<Product>("/api/v1/menu/products", { method: "POST", auth: "staff", body }),
   updateProduct: (
     id: string,
-    body: { name?: string; priceMinorUnits?: Money; description?: string | null; active?: boolean },
+    body: {
+      name?: string;
+      priceMinorUnits?: Money;
+      description?: string | null;
+      active?: boolean;
+      categoryId?: string | null;
+    },
   ) => apiRequest<Product>(`/api/v1/menu/products/${id}`, { method: "PATCH", auth: "staff", body }),
   /** Sin `permanent` sólo desactiva; con `permanent` borra (las cuentas guardan su snapshot). */
   deleteProduct: (id: string, permanent = false) =>

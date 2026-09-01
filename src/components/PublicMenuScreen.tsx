@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { FileText } from "lucide-react";
+
 import { useI18n } from "@/lib/i18n";
-import { formatMoney, menu, type PublicMenu, type PublicProduct } from "@/lib/api";
+import { API_BASE_URL, formatMoney, menu, type PublicMenu, type PublicProduct } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
 
 /**
@@ -34,13 +36,35 @@ export function PublicMenuScreen({ restaurantId }: { restaurantId: string }) {
 
   const data = menuQuery.data as PublicMenu;
   const groups = groupBySection(data);
+  const pdf = data.menuPdf;
 
+  // La carta subida, si la hay. Se enlaza en vez de incrustarla: un visor de
+  // PDF dentro de un iframe en un móvil es peor que el del propio teléfono, y
+  // en varios navegadores no se ve en absoluto.
+  const pdfLink = pdf ? (
+    <a
+      href={`${API_BASE_URL}${pdf.url}`}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center gap-3 rounded-lg border border-border bg-secondary px-4 py-3 transition-colors hover:border-primary"
+    >
+      <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+      <span className="min-w-0">
+        <span className="block text-sm">{t("menuPdf")}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">{t("menuPdfHint")}</span>
+      </span>
+    </a>
+  ) : null;
+
+  // Una carta que sólo es un PDF sigue teniendo algo que enseñar: el aviso de
+  // "todavía no hay carta" sólo vale cuando tampoco hay archivo.
   if (groups.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t("menuEmpty")}</p>;
+    return pdfLink ?? <p className="text-sm text-muted-foreground">{t("menuEmpty")}</p>;
   }
 
   return (
     <div className="space-y-6">
+      {pdfLink}
       {groups.map((group) => (
         <section key={group.id ?? "__none__"}>
           <h2 className="text-xs uppercase tracking-widest text-muted-foreground">

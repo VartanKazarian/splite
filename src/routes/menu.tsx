@@ -249,7 +249,7 @@ function MenuPage() {
     const uncatIdx = groups.findIndex((g) => g.category === UNCATEGORIZED);
     if (uncatIdx > 0) {
       const [uncat] = groups.splice(uncatIdx, 1);
-      groups.push(uncat);
+      if (uncat) groups.push(uncat);
     }
     return groups;
   }, [visible, categoryMap]);

@@ -135,6 +135,24 @@ export type StaffSession = {
 
 export type StaffRole = "OWNER" | "MANAGER" | "CASHIER" | "WAITER";
 
+/** Quién puede hacer qué a quién: mayor manda sobre menor, y nunca sobre su igual. */
+export const STAFF_RANK: Record<StaffRole, number> = {
+  OWNER: 4,
+  MANAGER: 3,
+  CASHIER: 2,
+  WAITER: 1,
+};
+
+export type StaffMember = {
+  id: string;
+  email: string;
+  role: StaffRole;
+  active: boolean;
+  restaurantId: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type GuestSession = {
   sessionId: string;
   guestToken: string;
@@ -879,6 +897,51 @@ export const tables = {
 };
 
 /** Menú del restaurante: la moneda la fija el restaurante, nunca la petición. */
+/* ---------------------------------------------------------------- personal */
+
+/**
+ * La gente que trabaja aquí.
+ *
+ * OWNER y MANAGER. El servidor decide además qué puede hacer cada uno a quién
+ * -- rango, nunca a uno mismo, y siempre queda un dueño activo -- y esas reglas
+ * llegan como códigos de error, no se reimplementan aquí: una comprobación
+ * duplicada en el cliente es una que se puede quedar atrás.
+ */
+export const staff = {
+  list: () =>
+    apiRequest<{ data: StaffMember[] }>("/api/v1/account/users", { auth: "staff" }).then(
+      (r) => r.data,
+    ),
+
+  create: (body: { email: string; password: string; role: StaffRole }) =>
+    apiRequest<{ user: StaffMember }>("/api/v1/account/users", {
+      method: "POST",
+      auth: "staff",
+      body,
+    }).then((r) => r.user),
+
+  /**
+   * Cambia el rol, la situación, o las dos.
+   *
+   * `sessionsRevoked` viene en la respuesta a propósito: quien acaba de dar de
+   * baja a alguien quiere saber que sus sesiones han caído -- y también que el
+   * token que esa persona lleva encima sigue valiendo hasta que caduque.
+   */
+  update: (id: string, body: { role?: StaffRole; active?: boolean }) =>
+    apiRequest<{ user: StaffMember; sessionsRevoked: number }>(
+      `/api/v1/account/users/${id}`,
+      { method: "PATCH", auth: "staff", body },
+    ),
+
+  /** Le pone contraseña a otra persona, que es también cómo se recupera una olvidada. */
+  resetPassword: (id: string, password: string) =>
+    apiRequest<{ sessionsRevoked: number }>(`/api/v1/account/users/${id}/password`, {
+      method: "POST",
+      auth: "staff",
+      body: { password },
+    }),
+};
+
 export const menu = {
   settings: () => apiRequest<MenuSettings>("/api/v1/menu/settings", { auth: "staff" }),
   /** El backend espera { currency }, no { menuCurrency }: enviarlo mal da VALIDATION_FAILED. */

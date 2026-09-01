@@ -19,6 +19,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TasasRouteImport } from './routes/tasas'
 import { Route as TpvHosteleriaRouteImport } from './routes/tpv-hosteleria'
+import { Route as RegistroVerificarRouteImport } from './routes/registro_.verificar'
 import { Route as TIndexRouteImport } from './routes/t.index'
 import { Route as TSplatRouteImport } from './routes/t.$'
 
@@ -72,6 +73,11 @@ const TpvHosteleriaRoute = TpvHosteleriaRouteImport.update({
   path: '/tpv-hosteleria',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegistroVerificarRoute = RegistroVerificarRouteImport.update({
+  id: '/registro_/verificar',
+  path: '/registro/verificar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TIndexRoute = TIndexRouteImport.update({
   id: '/t/',
   path: '/t/',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
   '/tpv-hosteleria': typeof TpvHosteleriaRoute
+  '/registro/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
   '/t/': typeof TIndexRoute
 }
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
   '/tpv-hosteleria': typeof TpvHosteleriaRoute
+  '/registro/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
   '/t': typeof TIndexRoute
 }
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
   '/tpv-hosteleria': typeof TpvHosteleriaRoute
+  '/registro_/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
   '/t/': typeof TIndexRoute
 }
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/tasas'
     | '/tpv-hosteleria'
+    | '/registro/verificar'
     | '/t/$'
     | '/t/'
   fileRoutesByTo: FileRoutesByTo
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/tasas'
     | '/tpv-hosteleria'
+    | '/registro/verificar'
     | '/t/$'
     | '/t'
   id:
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/tasas'
     | '/tpv-hosteleria'
+    | '/registro_/verificar'
     | '/t/$'
     | '/t/'
   fileRoutesById: FileRoutesById
@@ -182,6 +194,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TasasRoute: typeof TasasRoute
   TpvHosteleriaRoute: typeof TpvHosteleriaRoute
+  RegistroVerificarRoute: typeof RegistroVerificarRoute
   TSplatRoute: typeof TSplatRoute
   TIndexRoute: typeof TIndexRoute
 }
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TpvHosteleriaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/registro_/verificar': {
+      id: '/registro_/verificar'
+      path: '/registro/verificar'
+      fullPath: '/registro/verificar'
+      preLoaderRoute: typeof RegistroVerificarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/t/': {
       id: '/t/'
       path: '/t'
@@ -286,6 +306,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TasasRoute: TasasRoute,
   TpvHosteleriaRoute: TpvHosteleriaRoute,
+  RegistroVerificarRoute: RegistroVerificarRoute,
   TSplatRoute: TSplatRoute,
   TIndexRoute: TIndexRoute,
 }

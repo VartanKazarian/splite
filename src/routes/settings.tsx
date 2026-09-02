@@ -22,6 +22,7 @@ import {
 import { ErrorBox } from "@/routes/dashboard";
 import { StaffManager } from "@/components/StaffManager";
 import { ChangePassword } from "@/components/ChangePassword";
+import { MfaPanel } from "@/components/MfaPanel";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -186,6 +187,10 @@ function SettingsPage() {
             que tenga cuenta -- y es justamente el mesero al que le dieron una
             provisional quien más lo necesita. */}
         <ChangePassword />
+
+        {/* También fuera del gate de rol: el segundo factor es de la cuenta de
+            quien mira, no del restaurante. */}
+        <MfaPanel />
 
         {forbidden ? (
           <section className="surface mt-6 p-6">

@@ -347,15 +347,89 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
 
 /* ---------------------------------------------------------------- staff */
 
+/**
+ * Lo que puede devolver un login.
+ *
+ * Con segundo factor activado no llegan tokens: llega un reto que hay que
+ * canjear por un código. Es una unión y no un campo opcional a propósito -- así
+ * el compilador obliga a mirar cuál de los dos vino, en vez de dejar que una
+ * pantalla trate un reto como si fuera una sesión y guarde `undefined`.
+ */
+export type LoginResult =
+  | ({ mfaRequired?: false } & StaffSession)
+  | { mfaRequired: true; challenge: string; expiresIn: number };
+
+export const isMfaChallenge = (
+  r: LoginResult,
+): r is { mfaRequired: true; challenge: string; expiresIn: number } => r.mfaRequired === true;
+
+export type MfaStatus = {
+  enabled: boolean;
+  enabledAt: string | null;
+  recoveryCodesRemaining: number;
+};
+
 export const auth = {
+  /**
+   * Puede no devolver una sesión.
+   *
+   * Sólo se guarda cuando lo es: guardar un reto dejaría en el almacén algo sin
+   * `accessToken`, y todas las peticiones siguientes irían sin cabecera.
+   */
   login: (email: string, password: string) =>
-    apiRequest<StaffSession>("/api/v1/auth/login", {
+    apiRequest<LoginResult>("/api/v1/auth/login", {
       method: "POST",
       body: { email, password },
+    }).then((result) => {
+      if (!isMfaChallenge(result)) staffSession.set(result);
+      return result;
+    }),
+
+  /** La otra mitad del login: un código contra el reto. */
+  completeMfaLogin: (challenge: string, code: string) =>
+    apiRequest<StaffSession>("/api/v1/auth/login/mfa", {
+      method: "POST",
+      body: { challenge, code },
     }).then((session) => {
       staffSession.set(session);
       return session;
     }),
+
+  /** El segundo factor de quien pregunta, y de nadie más. */
+  mfa: {
+    status: () => apiRequest<MfaStatus>("/api/v1/auth/mfa", { auth: "staff" }),
+
+    /** Devuelve el secreto una sola vez, para el QR. No queda activado todavía. */
+    enrol: () =>
+      apiRequest<{ secret: string; otpauthUri: string }>("/api/v1/auth/mfa/enrol", {
+        method: "POST",
+        auth: "staff",
+      }),
+
+    /** Lo activa demostrando que la app ya genera códigos buenos. */
+    confirm: (code: string) =>
+      apiRequest<{ recoveryCodes: string[] }>("/api/v1/auth/mfa/confirm", {
+        method: "POST",
+        auth: "staff",
+        body: { code },
+      }),
+
+    /** Pide un código: si no, un móvil desbloqueado bastaría para quitarlo. */
+    disable: (code: string) =>
+      apiRequest<void>("/api/v1/auth/mfa/disable", {
+        method: "POST",
+        auth: "staff",
+        body: { code },
+      }),
+
+    /** Invalida la hoja anterior: la que alguien más pueda tener deja de valer. */
+    regenerateRecoveryCodes: (code: string) =>
+      apiRequest<{ recoveryCodes: string[] }>("/api/v1/auth/mfa/recovery-codes", {
+        method: "POST",
+        auth: "staff",
+        body: { code },
+      }),
+  },
 
   /** En cada arranque: /auth/me, nunca /auth/refresh para saber quién es. */
   me: () => apiRequest<{ user: StaffSession["user"] }>("/api/v1/auth/me", { auth: "staff" }),

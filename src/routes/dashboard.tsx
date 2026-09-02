@@ -1,7 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, Check, LogOut, Pencil, Plus, Trash2, Settings, TrendingUp, UtensilsCrossed, X } from "lucide-react";
+import {
+  BadgeCheck,
+  Check,
+  LogOut,
+  Pencil,
+  Plus,
+  Trash2,
+  Settings,
+  TrendingUp,
+  UtensilsCrossed,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { QrCode } from "@/components/QrCode";
@@ -17,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
@@ -37,19 +49,21 @@ import {
   type MenuCurrency,
 } from "@/lib/api";
 
-
-
-
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
       { title: "Panel del restaurante — Splite" },
       {
         name: "description",
-        content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+        content:
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
       { property: "og:title", content: "Panel del restaurante — Splite" },
-      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
+      {
+        property: "og:description",
+        content:
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+      },
     ],
   }),
   component: Dashboard,
@@ -125,6 +139,49 @@ function Dashboard() {
     return map;
   }, [openBillsQuery.data]);
 
+  /**
+   * La sala en una sola llamada.
+   *
+   * Los cuatro recuentos de arriba se sacaban a mano de tres listados, y el
+   * dinero no se sacaba en absoluto: el cliente no hace aritmética con
+   * importes, así que el panel podía decir cuántas mesas estaban ocupadas pero
+   * no cuánto debían. Esto lo suma el servidor.
+   *
+   * Los listados siguen haciendo falta -- el plano dibuja las mesas y los
+   * avisos llenan su panel -- pero las cifras ya no se derivan de ellos.
+   */
+  const snapshot = useQuery({
+    queryKey: ["service-snapshot"],
+    queryFn: () => payments.dashboard(),
+    enabled: ready && me.isSuccess,
+    retry: false,
+    refetchInterval: 30000,
+  });
+
+  /**
+   * Dar de alta la sala entera de una vez.
+   *
+   * Montarla mesa a mesa es el primer trabajo de cualquier restaurante nuevo y
+   * el endpoint para hacerlo de golpe llevaba tiempo sin que nadie lo llamara.
+   * Es idempotente y no borra: repetirlo con un número mayor añade sólo las que
+   * faltan, así que no hay forma de perder una mesa con cuentas desde aquí.
+   */
+  const createTablesBulk = useMutation({
+    mutationFn: () => tablesApi.createMany(Number(bulkCount)),
+    onSuccess: (r) => {
+      setBulkOpen(false);
+      toast.success(
+        r.alreadyExisted > 0
+          ? `${r.created} mesa(s) creada(s). ${r.alreadyExisted} ya existían.`
+          : `${r.created} mesa(s) creada(s).`,
+      );
+      void tablesQuery.refetch();
+      void snapshot.refetch();
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown")),
+  });
+
   const [floorFilter, setFloorFilter] = useState<"ALL" | "BUSY" | "FREE">("ALL");
 
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
@@ -140,8 +197,6 @@ function Dashboard() {
     (tb) => tb.openBill && (tb.openBill.amountPaidVes ?? "0") !== "0",
   ).length;
   const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
-
-
 
   // El token QR es permanente por mesa: se pide una sola vez y sólo se
   // vuelve a pedir tras rotar el nonce.
@@ -159,7 +214,6 @@ function Dashboard() {
   });
   const [rotateOpen, setRotateOpen] = useState(false);
 
-
   const [amount, setAmount] = useState("");
   const [idemKey, setIdemKey] = useState(newIdempotencyKey());
 
@@ -174,8 +228,6 @@ function Dashboard() {
   });
 
   const bill = billQuery.data ?? floorBill;
-
-
 
   const payMutation = useMutation({
     mutationFn: async () => {
@@ -207,6 +259,8 @@ function Dashboard() {
   };
 
   const [newTableName, setNewTableName] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkCount, setBulkCount] = useState("10");
 
   const createTable = useMutation({
     mutationFn: () => tablesApi.create(newTableName.trim()),
@@ -293,15 +347,12 @@ function Dashboard() {
     total: bill?.totalDue ?? "0",
   };
 
-
-
   const refreshBill = () => {
     queryClient.invalidateQueries({ queryKey: ["floor"] });
     queryClient.invalidateQueries({ queryKey: ["bills", "OPEN"] });
     queryClient.invalidateQueries({ queryKey: ["bill", bill?.id] });
     queryClient.invalidateQueries({ queryKey: ["bill-items", bill?.id] });
   };
-
 
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -319,7 +370,6 @@ function Dashboard() {
     onError: fail,
   });
 
-
   const removeLine = useMutation({
     mutationFn: (itemId: string) => bills.removeItem(bill!.id, itemId),
     onSuccess: () => {
@@ -329,16 +379,17 @@ function Dashboard() {
     onError: fail,
   });
 
+  // Mientras no haya llegado, los recuentos viejos siguen sirviendo: el panel no
+  // debe quedarse en blanco esperando una llamada más.
+  const snap = snapshot.data ?? null;
 
   if (!ready) return null;
-
 
   // El token ya contiene mesa y restaurante: la ruta no lleva el id (QR más corto).
   // El token puede contener caracteres no seguros en URL (+, /, =): hay que escaparlo.
   const guestUrl = qrQuery.data
     ? `https://splite.lovable.app/t?qr=${encodeURIComponent(qrQuery.data.token)}`
     : "";
-
 
   return (
     <div className="min-h-screen">
@@ -407,11 +458,48 @@ function Dashboard() {
         )}
 
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Mesas ocupadas" value={`${busyCount}/${tableList.length}`} />
-          <StatCard label="Cuentas con pago parcial" value={String(partiallyPaid)} />
-          <StatCard label="Avisos por verificar" value={String(pendingCount)} alert={pendingCount > 0} />
-          <StatCard label="C2P sin resolver" value={String(unresolvedCount)} alert={unresolvedCount > 0} />
+          <StatCard
+            label="Mesas ocupadas"
+            value={
+              snap
+                ? `${snap.tables.occupied}/${snap.tables.total}`
+                : `${busyCount}/${tableList.length}`
+            }
+          />
+          {/* Lo que la sala debe ahora mismo. Antes no se podía enseñar: son
+              sumas de importes, y eso lo hace el servidor. */}
+          <StatCard
+            label="Pendiente de cobro"
+            value={snap ? formatMoney(snap.openBills.outstandingVes, "VES") : "—"}
+          />
+          <StatCard
+            label="Avisos por verificar"
+            value={String(snap?.claims.pending ?? pendingCount)}
+            alert={(snap?.claims.pending ?? pendingCount) > 0}
+          />
+          <StatCard
+            label="C2P sin resolver"
+            value={String(
+              snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount,
+            )}
+            alert={
+              (snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount) >
+              0
+            }
+          />
         </div>
+
+        {snap && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {snap.taken.payments} cobro(s) hoy · {formatMoney(snap.taken.paymentsVes, "VES")}
+            {BigInt(snap.taken.tipsVes) > 0n && (
+              <> · {formatMoney(snap.taken.tipsVes, "VES")} en propinas</>
+            )}
+            {snap.openBills.oldestOpenedAt && (
+              <> · la cuenta más antigua lleva {relativeAge(snap.openBills.oldestOpenedAt)}</>
+            )}
+          </p>
+        )}
 
         <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
           <div>
@@ -431,15 +519,53 @@ function Dashboard() {
                 >
                   <Plus className="h-4 w-4" /> {t("createTable")}
                 </button>
+                <button
+                  onClick={() => setBulkOpen((v) => !v)}
+                  className="whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+                >
+                  {bulkOpen ? t("cancel") : "Crear varias"}
+                </button>
               </div>
             </div>
 
+            {bulkOpen && (
+              <div className="mb-3 flex flex-wrap items-end gap-2 rounded-lg border border-border bg-secondary p-3">
+                <label className="grid gap-1">
+                  <span className="text-xs text-muted-foreground">¿Cuántas mesas tienes?</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={bulkCount}
+                    onChange={(e) => setBulkCount(e.target.value)}
+                    className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                  />
+                </label>
+                <button
+                  disabled={
+                    createTablesBulk.isPending ||
+                    !(Number(bulkCount) >= 1 && Number(bulkCount) <= 200)
+                  }
+                  onClick={() => createTablesBulk.mutate()}
+                  className="rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-40"
+                >
+                  {createTablesBulk.isPending ? "Creando…" : "Crear"}
+                </button>
+                <p className="w-full text-[11px] text-muted-foreground">
+                  Crea «Mesa 1» hasta «Mesa {Number(bulkCount) || 0}». Las que ya existan se dejan
+                  como están y no se borra ninguna.
+                </p>
+              </div>
+            )}
+
             <div className="mb-3 flex flex-wrap gap-2">
-              {([
-                ["ALL", `Todas (${tableList.length})`],
-                ["BUSY", `Ocupadas (${busyCount})`],
-                ["FREE", `Libres (${tableList.length - busyCount})`],
-              ] as const).map(([value, label]) => (
+              {(
+                [
+                  ["ALL", `Todas (${tableList.length})`],
+                  ["BUSY", `Ocupadas (${busyCount})`],
+                  ["FREE", `Libres (${tableList.length - busyCount})`],
+                ] as const
+              ).map(([value, label]) => (
                 <button
                   key={value}
                   onClick={() => setFloorFilter(value)}
@@ -454,7 +580,9 @@ function Dashboard() {
               ))}
             </div>
 
-            {tablesQuery.isLoading && <p className="text-sm text-muted-foreground">{t("loading")}</p>}
+            {tablesQuery.isLoading && (
+              <p className="text-sm text-muted-foreground">{t("loading")}</p>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               {visibleTables.map((tb) => {
                 const ob = tb.openBill;
@@ -487,7 +615,9 @@ function Dashboard() {
                         </div>
                         <div className="flex justify-between">
                           <span>Pendiente</span>
-                          <span className="text-foreground">{formatMinor(ob.remainingVes)} Bs.</span>
+                          <span className="text-foreground">
+                            {formatMinor(ob.remainingVes)} Bs.
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span>{ob.itemCount ?? 0} líneas</span>
@@ -502,7 +632,6 @@ function Dashboard() {
                 <p className="text-sm text-muted-foreground">Sin mesas en este filtro.</p>
               )}
             </div>
-
 
             {selected && (
               <div className="surface mt-6 p-6">
@@ -613,7 +742,6 @@ function Dashboard() {
                   </div>
                 )}
 
-
                 {bill && (
                   <>
                     <p className="mt-4 border-t border-border pt-4 text-xs uppercase tracking-widest text-muted-foreground">
@@ -700,10 +828,12 @@ function Dashboard() {
                       />
                     </div>
 
-
-
                     <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
-                      <MoneyRow label={t("subtotal")} amount={totals.subtotal} currency={bill.currency} />
+                      <MoneyRow
+                        label={t("subtotal")}
+                        amount={totals.subtotal}
+                        currency={bill.currency}
+                      />
                       <MoneyRow
                         label={`${t("iva")} ${formatBps(bill.vatBps)}`}
                         amount={totals.vat}
@@ -714,8 +844,17 @@ function Dashboard() {
                         amount={totals.service}
                         currency={bill.currency}
                       />
-                      <MoneyRow label={t("total")} amount={totals.total} currency={bill.currency} highlight />
-                      <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
+                      <MoneyRow
+                        label={t("total")}
+                        amount={totals.total}
+                        currency={bill.currency}
+                        highlight
+                      />
+                      <MoneyRow
+                        label={t("alreadyPaid")}
+                        amount={bill.amountPaidVes}
+                        currency="VES"
+                      />
 
                       <div className="flex items-baseline justify-between pt-2 text-foreground">
                         <span>{t("outstanding")}</span>
@@ -730,7 +869,6 @@ function Dashboard() {
                         </p>
                       )}
                     </div>
-
 
                     <div className="mt-5 border-t border-border pt-4">
                       <label className="text-xs uppercase tracking-widest text-muted-foreground">
@@ -830,8 +968,6 @@ function Dashboard() {
                   {t("printQr")}
                 </button>
 
-
-
                 <button
                   onClick={() => setRotateOpen(true)}
                   className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
@@ -867,6 +1003,12 @@ function Dashboard() {
             )}
           </aside>
         </section>
+
+        {/* Historia, no estado: los otros listados dicen cómo está la sala
+            ahora, y ninguno dice qué acaba de pasar. */}
+        <div className="mt-8">
+          <ActivityFeed />
+        </div>
       </main>
     </div>
   );
@@ -890,7 +1032,6 @@ function MoneyRow({
     </div>
   );
 }
-
 
 export function ErrorBox({ error, fallback }: { error: unknown; fallback: string }) {
   const api = error instanceof ApiError ? error : null;

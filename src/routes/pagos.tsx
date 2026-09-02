@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import {
   type StaffPaymentClaim,
 } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
+import { MyTipsCard } from "@/components/MyTipsCard";
 
 export const Route = createFileRoute("/pagos")({
   head: () => ({
@@ -83,16 +84,20 @@ function PaymentsPage() {
     refetchInterval: 30000,
   });
 
-  // Propinas del día en curso: `to` exclusivo, para que un turno no cuente dos veces.
+  // El día en curso, calculado una vez: el informe del restaurante y el personal
+  // tienen que mirar exactamente la misma ventana o no cuadran entre sí.
+  // `to` exclusivo, para que un turno no cuente dos veces.
+  const [todayFrom, todayTo] = useMemo(() => {
+    const f = new Date();
+    f.setHours(0, 0, 0, 0);
+    const t = new Date(f);
+    t.setDate(t.getDate() + 1);
+    return [f.toISOString(), t.toISOString()];
+  }, []);
+
   const tipsQuery = useQuery({
-    queryKey: ["payment-tips-today"],
-    queryFn: () => {
-      const from = new Date();
-      from.setHours(0, 0, 0, 0);
-      const to = new Date(from);
-      to.setDate(to.getDate() + 1);
-      return payments.tips(from.toISOString(), to.toISOString());
-    },
+    queryKey: ["payment-tips-today", todayFrom],
+    queryFn: () => payments.tips(todayFrom, todayTo),
     enabled: ready,
     retry: false,
     staleTime: 60000,
@@ -271,6 +276,10 @@ function PaymentsPage() {
             ))}
           </ul>
         </section>
+
+        {/* Antes del informe del restaurante, y sin gate de rol: lo tuyo lo ves
+            seas quien seas, y es lo primero que busca un mesero al abrir esto. */}
+        <MyTipsCard from={todayFrom} to={todayTo} />
 
         {tipsQuery.data && (
           <section className="surface mt-6 p-6">

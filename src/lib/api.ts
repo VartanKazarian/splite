@@ -690,6 +690,54 @@ export type TipsByServer = {
   tipRateBps?: number;
 };
 
+/**
+ * La sala ahora mismo, más lo cobrado en una ventana.
+ *
+ * Todas las sumas las hace el servidor. Es la diferencia que importa: el
+ * cliente no hace aritmética con dinero, así que hasta ahora el panel podía
+ * contar mesas pero no decir cuánto se debe en total.
+ */
+export type ServiceSnapshot = {
+  asOf: string;
+  since: string | null;
+  tables: { total: number; occupied: number; free: number };
+  openBills: {
+    count: number;
+    totalDueVes: Money;
+    amountPaidVes: Money;
+    outstandingVes: Money;
+    oldestOpenedAt: string | null;
+  };
+  taken: { paymentsVes: Money; tipsVes: Money; payments: number };
+  claims: { pending: number; oldestPendingAt: string | null; oldestPendingAgeSeconds: number | null };
+  unresolvedC2P: { inDoubt: number; ambiguous: number };
+};
+
+export type ActivityEntry = {
+  kind: string;
+  at: string;
+  paymentId: string | null;
+  billId: string | null;
+  tableId: string | null;
+  tableName: string | null;
+  amountVes: Money | null;
+  tipVes: Money | null;
+  paymentMethod: string | null;
+};
+
+/** Las propinas de quien pregunta. Cualquier rol: un mesero mira las suyas. */
+export type MyTips = {
+  from: string;
+  to: string;
+  currency: "VES";
+  userId: string;
+  tipsVes: Money;
+  billedVes: Money;
+  tipRateBps: number;
+  payments: number;
+  bills: number;
+};
+
 export type TipsReport = {
   from: string;
   to: string;
@@ -987,6 +1035,20 @@ export const tables = {
     apiRequest<{ data: FloorTable[] } | FloorTable[]>("/api/v1/tables/floor", {
       auth: "staff",
     }).then((r) => (Array.isArray(r) ? r : r.data)),
+  /**
+   * Crea de golpe las mesas que dice tener el restaurante.
+   *
+   * Idempotente: rellena lo que falte de `<prefijo> 1` a `<prefijo> N` y deja
+   * el resto en paz, así que repetirlo no es un error y subir el número más
+   * tarde añade sólo las nuevas. Nunca borra -- una mesa con cuentas no es algo
+   * que deba poder quitar un número en un formulario.
+   */
+  createMany: (count: number, prefix = "Mesa") =>
+    apiRequest<{ created: number; alreadyExisted: number; data: Table[] }>(
+      "/api/v1/tables/bulk",
+      { method: "POST", auth: "staff", body: { count, prefix } },
+    ),
+
   create: (name: string) =>
     apiRequest<Table>("/api/v1/tables", { method: "POST", auth: "staff", body: { name } }),
   rename: (tableId: string, name: string) =>
@@ -1324,6 +1386,38 @@ export const payments = {
   tips: (from: string, to: string) =>
     apiRequest<TipsReport>(
       `/api/v1/payments/tips?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      { auth: "staff" },
+    ),
+
+  /**
+   * Todo el panel en una sola llamada, y con las sumas ya hechas.
+   *
+   * Cualquier rol autenticado: un mesero necesita saber qué mesas suyas siguen
+   * debiendo tanto como el dueño.
+   */
+  dashboard: (from?: string) =>
+    apiRequest<ServiceSnapshot>(
+      `/api/v1/payments/dashboard${from ? `?from=${encodeURIComponent(from)}` : ""}`,
+      { auth: "staff" },
+    ),
+
+  /**
+   * Lo que ha pasado desde la última vez que se miró.
+   *
+   * `since` es el `asOf` de la respuesta anterior, no una hora que invente el
+   * cliente: con un reloj adelantado se saltarían eventos. Sin `since` devuelve
+   * la última página.
+   */
+  activity: (since?: string, limit = 50) =>
+    apiRequest<{ asOf: string; since: string | null; data: ActivityEntry[] }>(
+      `/api/v1/payments/activity?limit=${limit}${since ? `&since=${encodeURIComponent(since)}` : ""}`,
+      { auth: "staff" },
+    ),
+
+  /** Lo que ha ganado en propinas quien pregunta, y de nadie más. */
+  myTips: (from: string, to: string) =>
+    apiRequest<MyTips>(
+      `/api/v1/payments/tips/mine?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
       { auth: "staff" },
     ),
 

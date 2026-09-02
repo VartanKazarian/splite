@@ -232,8 +232,8 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
             )}
           </label>
           <p className="text-[11px] text-muted-foreground">
-            Se la das tú en persona. Todavía no hay forma de que la cambien ellos mismos, así que
-            hasta entonces la sabéis los dos.
+            Se la das tú en persona. Dile que la cambie desde Ajustes en cuanto entre: hasta
+            entonces la sabéis los dos.
           </p>
           <div>
             <button

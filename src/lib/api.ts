@@ -360,6 +360,29 @@ export const auth = {
   /** En cada arranque: /auth/me, nunca /auth/refresh para saber quién es. */
   me: () => apiRequest<{ user: StaffSession["user"] }>("/api/v1/auth/me", { auth: "staff" }),
 
+  /**
+   * Cambiar la propia contraseña.
+   *
+   * Responde igual que un login, y hay que guardar esa sesión: cambiarla
+   * revoca todos los refresh tokens de la persona, incluido el que este
+   * navegador tiene guardado. Si se ignorase la respuesta, quien acaba de
+   * cambiarla se quedaría con un token muerto y se vería expulsado en la
+   * siguiente renovación -- justo después de hacer algo bien.
+   *
+   * `sessionsRevoked` cuenta los *otros* dispositivos que se cerraron, que es
+   * el dato que quiere quien cambia una contraseña porque cree que alguien más
+   * la sabe.
+   */
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiRequest<StaffSession & { sessionsRevoked: number }>("/api/v1/auth/password", {
+      method: "POST",
+      auth: "staff",
+      body: { currentPassword, newPassword },
+    }).then((result) => {
+      staffSession.set(result);
+      return result;
+    }),
+
   logout: async () => {
     const s = staffSession.get();
     staffSession.set(null);

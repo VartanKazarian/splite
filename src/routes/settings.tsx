@@ -21,6 +21,7 @@ import {
 
 import { ErrorBox } from "@/routes/dashboard";
 import { StaffManager } from "@/components/StaffManager";
+import { ChangePassword } from "@/components/ChangePassword";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -179,6 +180,12 @@ function SettingsPage() {
       <main className="mx-auto max-w-3xl px-5 py-8">
         <h1 className="text-3xl">{t("settingsTitle")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("settingsSub")}</p>
+
+        {/* Fuera del gate de rol, a propósito: todo lo demás de esta pantalla es
+            de dueño o encargado, pero su propia contraseña la cambia cualquiera
+            que tenga cuenta -- y es justamente el mesero al que le dieron una
+            provisional quien más lo necesita. */}
+        <ChangePassword />
 
         {forbidden ? (
           <section className="surface mt-6 p-6">

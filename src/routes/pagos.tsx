@@ -15,6 +15,7 @@ import {
   type StaffPaymentClaim,
 } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import { MyTipsCard } from "@/components/MyTipsCard";
 
 export const Route = createFileRoute("/pagos")({
@@ -172,6 +173,14 @@ function PaymentsPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Splite no mueve el dinero: aquí se confirma lo que ya llegó al banco del restaurante.
         </p>
+
+        {/* Los movimientos, arriba del todo. Es la pregunta con la que se
+            entra aquí -- "¿ha entrado ya ese cobro?" -- y estaba en el panel de
+            la sala, que responde a otra cosa: cómo está el comedor ahora, no
+            qué acaba de pasar. */}
+        <div className="mt-6">
+          <ActivityFeed />
+        </div>
 
         <section className="surface mt-6 p-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">

@@ -11,7 +11,7 @@
  */
 
 export const API_BASE_URL: string =
-  import.meta.env['VITE_API_BASE_URL'] ?? "https://splite-backend-production.up.railway.app";
+  import.meta.env["VITE_API_BASE_URL"] ?? "https://splite-backend-production.up.railway.app";
 
 /** "1893852" -> "18.938,52" (agrupación venezolana). Pura manipulación de strings. */
 export function formatMinor(minor: string): string {
@@ -56,7 +56,9 @@ export function parseBpsInput(input: string): number {
 /** 1600 → "16%", 1250 → "12,5%" */
 export function formatBps(bps: number): string {
   const whole = Math.trunc(bps / 100);
-  const frac = String(Math.abs(bps) % 100).padStart(2, "0").replace(/0+$/, "");
+  const frac = String(Math.abs(bps) % 100)
+    .padStart(2, "0")
+    .replace(/0+$/, "");
   return `${whole}${frac ? `,${frac}` : ""}%`;
 }
 
@@ -80,8 +82,6 @@ export function formatFxRate(rate: string): string {
   const frac = fracRaw.replace(/0+$/, "");
   return frac ? `${whole},${frac}` : whole;
 }
-
-
 
 export type ApiErrorBody = {
   code: string;
@@ -242,7 +242,6 @@ export const guestSession = {
   },
 };
 
-
 type RequestOptions = {
   method?: string;
   body?: unknown;
@@ -257,7 +256,6 @@ async function rawRequest<T>(path: string, opts: RequestOptions = {}): Promise<T
   const headers: Record<string, string> = { Accept: "application/json", ...opts.headers };
   // Con FormData el navegador pone el boundary: fijar Content-Type lo rompe.
   if (opts.body !== undefined && !isForm) headers["Content-Type"] = "application/json";
-
 
   if (opts.auth === "staff") {
     const s = staffSession.get();
@@ -279,13 +277,9 @@ async function rawRequest<T>(path: string, opts: RequestOptions = {}): Promise<T
       : { body: isForm ? (opts.body as FormData) : JSON.stringify(opts.body) }),
   });
 
-
   if (response.status === 204) return undefined as T;
 
-  const payload = (await response.json().catch(() => null)) as
-    | { error?: ApiErrorBody }
-    | T
-    | null;
+  const payload = (await response.json().catch(() => null)) as { error?: ApiErrorBody } | T | null;
 
   if (!response.ok) {
     const body = (payload as { error?: ApiErrorBody } | null)?.error ?? {
@@ -306,12 +300,13 @@ let refreshInFlight: Promise<StaffSession> | null = null;
 async function refreshOnce(): Promise<StaffSession> {
   refreshInFlight ??= (async () => {
     const current = staffSession.get();
-    if (!current) throw new ApiError(401, {
-      code: "AUTH_TOKEN_INVALID",
-      message: "No session",
-      details: {},
-      requestId: "",
-    });
+    if (!current)
+      throw new ApiError(401, {
+        code: "AUTH_TOKEN_INVALID",
+        message: "No session",
+        details: {},
+        requestId: "",
+      });
     const next = await rawRequest<StaffSession>("/api/v1/auth/refresh", {
       method: "POST",
       body: { refreshToken: current.refreshToken },
@@ -582,8 +577,6 @@ export const guest = {
       auth: "guest",
     }),
 
-
-
   endSession: async () => {
     await apiRequest<void>("/api/v1/guest/sessions", { method: "DELETE", auth: "guest" }).catch(
       () => undefined,
@@ -709,7 +702,11 @@ export type ServiceSnapshot = {
     oldestOpenedAt: string | null;
   };
   taken: { paymentsVes: Money; tipsVes: Money; payments: number };
-  claims: { pending: number; oldestPendingAt: string | null; oldestPendingAgeSeconds: number | null };
+  claims: {
+    pending: number;
+    oldestPendingAt: string | null;
+    oldestPendingAgeSeconds: number | null;
+  };
   unresolvedC2P: { inDoubt: number; ambiguous: number };
 };
 
@@ -757,7 +754,6 @@ export type TipsReport = {
 };
 
 export type PaymentClaimInput = {
-
   amountVes: Money;
   reference: string;
   phoneOrigin?: string;
@@ -767,8 +763,6 @@ export type PaymentClaimInput = {
 };
 
 export type SplitMode = "FULL" | "EQUAL" | "ITEMS" | "CUSTOM";
-
-
 
 export type SplitPreviewRequest = {
   mode: SplitMode;
@@ -845,7 +839,6 @@ export type C2PChargeRequest = {
   clave: string;
   idempotencyKey: string;
 };
-
 
 export type C2PStatus = "SUCCEEDED" | "FAILED" | "IN_DOUBT" | "AMBIGUOUS";
 
@@ -926,7 +919,6 @@ export type Account = {
   createdAt?: string;
 };
 
-
 export type ExchangeRate = {
   rates: Record<string, { rate: string; valueDate: string | null; source: string }>;
 };
@@ -965,6 +957,15 @@ export type Product = {
 };
 
 /** Un producto tal y como lo ve un comensal: sin `active`, con su sección. */
+/**
+ * Cómo llegó el dinero, cuando lo registra alguien en la caja.
+ *
+ * Un subconjunto de lo que acepta el servidor: `SPLITE` es para pagos hechos
+ * dentro de la app y no es algo que un cajero deba poder elegir, y `OTHER` no
+ * dice nada que sirva para cuadrar el cajón.
+ */
+export type TillPaymentMethod = "CASH" | "CARD" | "TRANSFER";
+
 export type PublicProduct = {
   id: string;
   name: string;
@@ -1055,15 +1056,20 @@ export const tables = {
    * que deba poder quitar un número en un formulario.
    */
   createMany: (count: number, prefix = "Mesa") =>
-    apiRequest<{ created: number; alreadyExisted: number; data: Table[] }>(
-      "/api/v1/tables/bulk",
-      { method: "POST", auth: "staff", body: { count, prefix } },
-    ),
+    apiRequest<{ created: number; alreadyExisted: number; data: Table[] }>("/api/v1/tables/bulk", {
+      method: "POST",
+      auth: "staff",
+      body: { count, prefix },
+    }),
 
   create: (name: string) =>
     apiRequest<Table>("/api/v1/tables", { method: "POST", auth: "staff", body: { name } }),
   rename: (tableId: string, name: string) =>
-    apiRequest<Table>(`/api/v1/tables/${tableId}`, { method: "PATCH", auth: "staff", body: { name } }),
+    apiRequest<Table>(`/api/v1/tables/${tableId}`, {
+      method: "PATCH",
+      auth: "staff",
+      body: { name },
+    }),
   /** No hay DELETE: eliminar una mesa es desactivarla (PATCH active:false). */
   deactivate: (tableId: string) =>
     apiRequest<Table>(`/api/v1/tables/${tableId}`, {
@@ -1080,10 +1086,10 @@ export const tables = {
       auth: "staff",
     }),
   rotateQr: (tableId: string) =>
-    apiRequest<{ token: string; expiresIn: number }>(
-      `/api/v1/guest/tables/${tableId}/qr/rotate`,
-      { method: "POST", auth: "staff" },
-    ),
+    apiRequest<{ token: string; expiresIn: number }>(`/api/v1/guest/tables/${tableId}/qr/rotate`, {
+      method: "POST",
+      auth: "staff",
+    }),
 };
 
 /** Menú del restaurante: la moneda la fija el restaurante, nunca la petición. */
@@ -1118,10 +1124,11 @@ export const staff = {
    * token que esa persona lleva encima sigue valiendo hasta que caduque.
    */
   update: (id: string, body: { role?: StaffRole; active?: boolean }) =>
-    apiRequest<{ user: StaffMember; sessionsRevoked: number }>(
-      `/api/v1/account/users/${id}`,
-      { method: "PATCH", auth: "staff", body },
-    ),
+    apiRequest<{ user: StaffMember; sessionsRevoked: number }>(`/api/v1/account/users/${id}`, {
+      method: "PATCH",
+      auth: "staff",
+      body,
+    }),
 
   /** Le pone contraseña a otra persona, que es también cómo se recupera una olvidada. */
   resetPassword: (id: string, password: string) =>
@@ -1154,10 +1161,9 @@ export const menu = {
 
   /** Las secciones del menú, con cuántos productos hay en cada una. */
   categories: () =>
-    apiRequest<{ data: MenuCategory[]; uncategorisedCount: number }>(
-      "/api/v1/menu/categories",
-      { auth: "staff" },
-    ),
+    apiRequest<{ data: MenuCategory[]; uncategorisedCount: number }>("/api/v1/menu/categories", {
+      auth: "staff",
+    }),
 
   /** Sin `position` la sección se coloca al final, que es lo que casi siempre se quiere. */
   createCategory: (body: { name: string; position?: number; active?: boolean }) =>
@@ -1247,8 +1253,7 @@ export const menu = {
     description?: string | null;
     /** La sección. Null es "sin sección", que es una respuesta real. */
     categoryId?: string | null;
-  }) =>
-    apiRequest<Product>("/api/v1/menu/products", { method: "POST", auth: "staff", body }),
+  }) => apiRequest<Product>("/api/v1/menu/products", { method: "POST", auth: "staff", body }),
   updateProduct: (
     id: string,
     body: {
@@ -1261,10 +1266,10 @@ export const menu = {
   ) => apiRequest<Product>(`/api/v1/menu/products/${id}`, { method: "PATCH", auth: "staff", body }),
   /** Sin `permanent` sólo desactiva; con `permanent` borra (las cuentas guardan su snapshot). */
   deleteProduct: (id: string, permanent = false) =>
-    apiRequest<void>(
-      `/api/v1/menu/products/${id}${permanent ? "?permanent=true" : ""}`,
-      { method: "DELETE", auth: "staff" },
-    ),
+    apiRequest<void>(`/api/v1/menu/products/${id}${permanent ? "?permanent=true" : ""}`, {
+      method: "DELETE",
+      auth: "staff",
+    }),
   /** Sube una foto/PDF del menú y devuelve un borrador. No escribe nada. */
   ocrExtract: (file: File) => {
     const form = new FormData();
@@ -1317,8 +1322,6 @@ export type MenuOcrImportResult = {
   items?: Product[];
   errors?: { index?: number; name?: string; code?: string; message?: string }[];
 };
-
-
 
 export const bills = {
   get: (id: string) => apiRequest<Bill>(`/api/v1/bills/${id}`, { auth: "staff" }),
@@ -1389,7 +1392,24 @@ export const bills = {
       auth: "staff",
     }),
   /** La clave de idempotencia se genera una vez por intento y se reutiliza en cada reintento. */
-  pay: (id: string, amountMinorUnits: Money, idempotencyKey: string, splitParticipantId?: string) =>
+  /**
+   * Cobra contra una cuenta.
+   *
+   * `paymentMethod` va siempre. Antes se omitía y el servidor aplicaba su valor
+   * por defecto, `SPLITE`, que es el de un pago hecho dentro de la app -- así
+   * que un cobro en efectivo en la caja quedaba registrado como si el dinero
+   * hubiera entrado por Splite. No es sólo la etiqueta: el informe de propinas
+   * reparte según el método (`CASH` está en caja, `CARD`/`TRANSFER` se le deben
+   * al personal) y `SPLITE` no está en ninguno de los dos, así que todas esas
+   * propinas caían en "sin clasificar" y el restaurante no podía saber qué
+   * tenía en el cajón.
+   */
+  pay: (
+    id: string,
+    amountMinorUnits: Money,
+    idempotencyKey: string,
+    options: { paymentMethod: TillPaymentMethod; splitParticipantId?: string },
+  ) =>
     apiRequest<PaymentResult>(`/api/v1/bills/${id}/payments`, {
       method: "POST",
       auth: "staff",
@@ -1399,7 +1419,8 @@ export const bills = {
         amountMinorUnits,
         currency: "VES",
         idempotencyKey,
-        ...(splitParticipantId ? { splitParticipantId } : {}),
+        paymentMethod: options.paymentMethod,
+        ...(options.splitParticipantId ? { splitParticipantId: options.splitParticipantId } : {}),
       },
     }),
 };
@@ -1516,8 +1537,6 @@ export const account = {
 /** Requiere sesión de personal: sin Bearer devuelve AUTH_TOKEN_MISSING. */
 export const exchangeRate = () =>
   apiRequest<ExchangeRate>("/api/v1/exchange-rate", { auth: "staff" });
-
-
 
 export function newIdempotencyKey(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto

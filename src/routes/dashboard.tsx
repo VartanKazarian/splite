@@ -39,6 +39,7 @@ import {
   formatBps,
   formatFxRate,
   formatMinor,
+  parseMinorInput,
   formatMoney,
   menu as menuApi,
   newIdempotencyKey,
@@ -231,8 +232,13 @@ function Dashboard() {
 
   const payMutation = useMutation({
     mutationFn: async () => {
-      const digits = amount.replace(/\D/g, "");
-      if (!digits) throw new Error("empty");
+      // `parseMinorInput`, como en todas las demás casillas de dinero de la app.
+      //
+      // Antes esto era `amount.replace(/\D/g, "")`, que trata lo tecleado como
+      // céntimos ya: escribir 2000 registraba 20,00 Bs en vez de 2.000,00 Bs, y
+      // la cuenta apenas bajaba. Sólo salía bien si se escribían los decimales.
+      const digits = parseMinorInput(amount);
+      if (!digits || BigInt(digits) <= 0n) throw new Error("empty");
       // La misma clave se reutiliza en cada reintento del mismo intento de cobro.
       return bills.pay(bill!.id, digits, idemKey);
     },
@@ -876,20 +882,31 @@ function Dashboard() {
                       </label>
                       <div className="mt-2 flex gap-2">
                         <input
-                          inputMode="numeric"
-                          placeholder="250000"
+                          inputMode="decimal"
+                          placeholder="2.500,00"
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
                           className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
                         />
                         <button
-                          disabled={payMutation.isPending || !amount}
+                          disabled={
+                            payMutation.isPending ||
+                            !amount ||
+                            BigInt(parseMinorInput(amount) || "0") <= 0n
+                          }
                           onClick={() => payMutation.mutate()}
                           className="whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
                         >
                           {t("takePayment")}
                         </button>
                       </div>
+                      {/* Lo que se va a registrar, antes de pulsar. Esta casilla
+                          leía lo tecleado como céntimos y nadie podía verlo. */}
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {amount && BigInt(parseMinorInput(amount) || "0") > 0n
+                          ? `Se registrarán ${formatMinor(parseMinorInput(amount))} Bs.`
+                          : "Escribe el importe en bolívares, por ejemplo 2.500,00"}
+                      </p>
                       <p className="mt-2 break-all text-[10px] text-muted-foreground">
                         {t("idemKey")}: {idemKey} — {t("idemNote")}
                       </p>

@@ -1,6 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   BadgeCheck,
   Check,
@@ -28,7 +36,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
-import { ActivityFeed } from "@/components/ActivityFeed";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
@@ -48,7 +55,68 @@ import {
   tables as tablesApi,
   type Bill,
   type MenuCurrency,
+  type TillPaymentMethod,
 } from "@/lib/api";
+
+/**
+ * La última tarjeta de la fila en la que está la tarjeta elegida.
+ *
+ * Hace falta porque el detalle de la mesa se mete *dentro* de la rejilla: para
+ * que empuje a las demás hacia abajo tiene que ir detrás de la última tarjeta
+ * de su fila, no detrás de la suya -- en dos columnas, un panel a lo ancho
+ * colocado detrás de la tarjeta izquierda se baja a la fila siguiente y deja la
+ * derecha vacía.
+ *
+ * Se mide de la geometría de las propias tarjetas: las que comparten fila
+ * comparten `offsetTop`. La primera versión contaba las columnas con
+ * `getComputedStyle(...).gridTemplateColumns`, y en el navegador salía mal: si
+ * la hoja de estilos todavía no había llegado, la rejilla aún no era una
+ * rejilla, la cuenta se quedaba en 1 y nada la volvía a mirar. La posición real
+ * no tiene ese problema -- es lo que el navegador ya ha calculado, y no depende
+ * de saber qué dicen las clases.
+ */
+function useRowEndIndex(
+  gridRef: React.RefObject<HTMLElement | null>,
+  selectedIndex: number,
+  revision: unknown,
+): number {
+  const [rowEnd, setRowEnd] = useState(-1);
+
+  const measure = useCallback(() => {
+    const grid = gridRef.current;
+    const cards = grid ? Array.from(grid.querySelectorAll<HTMLElement>("[data-table-card]")) : [];
+    const chosen = selectedIndex >= 0 ? cards[selectedIndex] : undefined;
+    if (!chosen) {
+      setRowEnd((current) => (current === -1 ? current : -1));
+      return;
+    }
+    let last = selectedIndex;
+    // Un pixel de tolerancia: los redondeos del layout no son motivo para
+    // partir una fila en dos.
+    while (
+      last + 1 < cards.length &&
+      Math.abs((cards[last + 1] as HTMLElement).offsetTop - chosen.offsetTop) <= 1
+    ) {
+      last += 1;
+    }
+    setRowEnd((current) => (current === last ? current : last));
+  }, [gridRef, selectedIndex]);
+
+  // `useLayoutEffect` y no `useEffect`: se mide y se coloca antes de pintar, de
+  // modo que el panel no aparece un fotograma en el sitio equivocado.
+  useLayoutEffect(() => {
+    measure();
+    const grid = gridRef.current;
+    if (!grid || typeof ResizeObserver === "undefined") return;
+    // Cambiar de ancho recoloca las tarjetas, y volver a medir es barato: es lo
+    // unico que mantiene el panel en su fila al girar el telefono.
+    const observer = new ResizeObserver(measure);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, [measure, gridRef, revision]);
+
+  return rowEnd;
+}
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -199,6 +267,14 @@ function Dashboard() {
   ).length;
   const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
 
+  // Detrás de qué tarjeta va el detalle: la última de la fila de la mesa
+  // elegida, no la suya. Ver `useRowEndIndex`.
+  const floorGrid = useRef<HTMLDivElement>(null);
+  const selectedIndex = visibleTables.findIndex((tb) => tb.id === selected?.id);
+  // La lista de mesas es lo que hay que volver a medir cuando cambia: filtrar
+  // "ocupadas" mueve todas las tarjetas de sitio.
+  const detailAfterIndex = useRowEndIndex(floorGrid, selectedIndex, visibleTables);
+
   // El token QR es permanente por mesa: se pide una sola vez y sólo se
   // vuelve a pedir tras rotar el nonce.
   const qrQuery = useQuery({
@@ -216,6 +292,12 @@ function Dashboard() {
   const [rotateOpen, setRotateOpen] = useState(false);
 
   const [amount, setAmount] = useState("");
+  // Cómo entró el dinero. Se manda siempre: omitirlo dejaba que el servidor
+  // pusiera `SPLITE` -- el método de un pago hecho dentro de la app -- en cobros
+  // de caja, y con eso las propinas de esos cobros se iban a "sin clasificar"
+  // en vez de a caja o a lo que se le debe al personal. Efectivo por defecto
+  // porque es lo que más se teclea en una caja.
+  const [payMethod, setPayMethod] = useState<TillPaymentMethod>("CASH");
   const [idemKey, setIdemKey] = useState(newIdempotencyKey());
 
   const floorBill = selected?.openBill ?? null;
@@ -240,7 +322,7 @@ function Dashboard() {
       const digits = parseMinorInput(amount);
       if (!digits || BigInt(digits) <= 0n) throw new Error("empty");
       // La misma clave se reutiliza en cada reintento del mismo intento de cobro.
-      return bills.pay(bill!.id, digits, idemKey);
+      return bills.pay(bill!.id, digits, idemKey, { paymentMethod: payMethod });
     },
     onSuccess: (result) => {
       toast.success(`${t("takePayment")} · ${formatMinor(result.remaining)} Bs.`);
@@ -396,6 +478,298 @@ function Dashboard() {
   const guestUrl = qrQuery.data
     ? `https://splite.lovable.app/t?qr=${encodeURIComponent(qrQuery.data.token)}`
     : "";
+
+  /**
+   * La mesa abierta, tal y como se pinta debajo de su propia tarjeta.
+   *
+   * Extraída a una variable en vez de quedarse dentro del `return` porque
+   * ahora se inserta *dentro* de la rejilla de mesas, detrás de la fila de
+   * la mesa elegida, y no al final de la lista.
+   */
+  const tableDetail = selected ? (
+    <div className="surface p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {renaming ? (
+          <div className="flex items-center gap-2">
+            <input
+              autoFocus
+              value={renameValue}
+              maxLength={50}
+              onChange={(e) => setRenameValue(e.target.value)}
+              className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
+            />
+            <button
+              disabled={!renameValue.trim() || renameTable.isPending}
+              onClick={() => renameTable.mutate()}
+              aria-label={t("save")}
+              className="rounded-full border border-border p-2 text-primary disabled:opacity-40"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setRenaming(false)}
+              aria-label={t("cancel")}
+              className="rounded-full border border-border p-2"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <h2 className="text-xl">
+            {t("openBill")} · {selected.name}
+          </h2>
+        )}
+        <div className="flex items-center gap-2">
+          {!renaming && (
+            <button
+              onClick={() => {
+                setRenameValue(selected.name);
+                setRenaming(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:bg-secondary"
+            >
+              <Pencil className="h-3.5 w-3.5" /> {t("renameTable")}
+            </button>
+          )}
+          {bill && (
+            <button
+              onClick={() => setCloseOpen(true)}
+              className="rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:bg-secondary"
+            >
+              {t("closeBill")}
+            </button>
+          )}
+          {!bill && (
+            <button
+              onClick={() => setDeleteOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-secondary"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> {t("deleteTable")}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <AlertDialog open={closeOpen} onOpenChange={setCloseOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("closeBill")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("closeBillConfirm")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => closeBill.mutate()}>
+              {t("closeBill")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteTable")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("deleteTableConfirm")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteTable.mutate()}>
+              {t("deleteTable")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {!bill && (
+        <div className="mt-3">
+          <p className="text-sm text-muted-foreground">
+            {t("tableFree")} · {t("oneOpenBill")}
+          </p>
+          <button
+            disabled={openBill.isPending}
+            onClick={() => openBill.mutate()}
+            className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-40"
+          >
+            <Plus className="h-4 w-4" /> {t("openNewBill")}
+          </button>
+        </div>
+      )}
+
+      {bill && (
+        <>
+          <p className="mt-4 border-t border-border pt-4 text-xs uppercase tracking-widest text-muted-foreground">
+            {t("itemsOnBill")}
+          </p>
+          <div className="mt-2 border-b border-border pb-2">
+            <BillServerPicker
+              billId={bill.id}
+              servedBy={bill.servedBy ?? null}
+              canAssign={canAssignServer(me.data?.user.role)}
+              onChanged={() => {
+                void billQuery.refetch();
+                void openBillsQuery.refetch();
+              }}
+            />
+          </div>
+
+          <ul className="mt-2 space-y-2 text-sm">
+            {billItems.map((item) => (
+              <li key={item.id} className="flex items-center justify-between gap-3">
+                <span>
+                  {item.quantity} × {item.name}
+                </span>
+                <span className="flex items-center gap-3">
+                  <span>{formatMoney(item.subtotalMinor, bill.currency)}</span>
+
+                  <button
+                    onClick={() => removeLine.mutate(item.id)}
+                    aria-label={t("remove")}
+                    className="rounded-full border border-border p-1.5 text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              </li>
+            ))}
+            {itemsQuery.isError && (
+              <li>
+                <ErrorBox error={itemsQuery.error} fallback={t("apiDown")} />
+              </li>
+            )}
+            {itemsQuery.isSuccess && billItems.length === 0 && (
+              <li className="text-muted-foreground">{t("addLines")}</li>
+            )}
+          </ul>
+
+          <div className="mt-4 border-t border-border pt-4">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              {t("addLines")}
+            </p>
+            {productsQuery.isSuccess && productsQuery.data.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {t("menuEmptyHint")}{" "}
+                <Link to="/menu" className="underline">
+                  {t("manageMenu")}
+                </Link>
+              </p>
+            ) : (
+              <button
+                onClick={() => setPickerOpen(true)}
+                className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:border-primary"
+              >
+                <Plus className="h-4 w-4" /> {t("chooseProducts")}
+              </button>
+            )}
+            {(productsQuery.data ?? []).some((p) => p.active && p.currency !== bill.currency) && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                {t("currencyMismatchHint")}{" "}
+                <Link to="/menu" className="underline">
+                  {t("manageMenu")}
+                </Link>
+              </p>
+            )}
+
+            <AddProductsDialog
+              open={pickerOpen}
+              onOpenChange={setPickerOpen}
+              products={productsQuery.data ?? []}
+              billCurrency={bill.currency}
+              pending={addLines.isPending}
+              onConfirm={(lines) => addLines.mutate(lines)}
+            />
+          </div>
+
+          <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
+            <MoneyRow label={t("subtotal")} amount={totals.subtotal} currency={bill.currency} />
+            <MoneyRow
+              label={`${t("iva")} ${formatBps(bill.vatBps)}`}
+              amount={totals.vat}
+              currency={bill.currency}
+            />
+            <MoneyRow
+              label={`${t("service")} ${formatBps(bill.serviceChargeBps)}`}
+              amount={totals.service}
+              currency={bill.currency}
+            />
+            <MoneyRow label={t("total")} amount={totals.total} currency={bill.currency} highlight />
+            <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
+
+            <div className="flex items-baseline justify-between pt-2 text-foreground">
+              <span>{t("outstanding")}</span>
+              <span className="font-display text-3xl">{formatMoney(bill.remainingVes, "VES")}</span>
+            </div>
+            {(bill.fxRateVesPerUnit ?? bill.fxRate) && (
+              <p className="pt-2 text-[11px] text-muted-foreground">
+                {t("frozenRate")}: {formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)} ·{" "}
+                {t("valueDate")} {bill.fxValueDate}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-5 border-t border-border pt-4">
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">
+              {t("chargeAmount")}
+            </label>
+            <div className="mt-2 flex gap-2">
+              <input
+                inputMode="decimal"
+                placeholder="2.500,00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
+              />
+              <button
+                disabled={
+                  payMutation.isPending || !amount || BigInt(parseMinorInput(amount) || "0") <= 0n
+                }
+                onClick={() => payMutation.mutate()}
+                className="whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
+              >
+                {t("takePayment")}
+              </button>
+            </div>
+            {/* Cómo entró el dinero. No es una etiqueta: el informe de propinas
+                reparte por aquí -- efectivo está en caja, tarjeta y
+                transferencia se le deben al personal -- y sin esto todo se
+                registraba como pago de la app y caía en "sin clasificar". */}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {(
+                [
+                  ["CASH", "Efectivo"],
+                  ["CARD", "Tarjeta"],
+                  ["TRANSFER", "Transferencia"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPayMethod(value)}
+                  aria-pressed={payMethod === value}
+                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                    payMethod === value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {/* Lo que se va a registrar, antes de pulsar. Esta casilla
+                        leía lo tecleado como céntimos y nadie podía verlo. */}
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {amount && BigInt(parseMinorInput(amount) || "0") > 0n
+                ? `Se registrarán ${formatMinor(parseMinorInput(amount))} Bs.`
+                : "Escribe el importe en bolívares, por ejemplo 2.500,00"}
+            </p>
+            <p className="mt-2 break-all text-[10px] text-muted-foreground">
+              {t("idemKey")}: {idemKey} — {t("idemNote")}
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  ) : null;
 
   return (
     <div className="min-h-screen">
@@ -589,332 +963,64 @@ function Dashboard() {
             {tablesQuery.isLoading && (
               <p className="text-sm text-muted-foreground">{t("loading")}</p>
             )}
-            <div className="grid gap-3 sm:grid-cols-2">
-              {visibleTables.map((tb) => {
+            <div ref={floorGrid} className="grid gap-3 sm:grid-cols-2">
+              {visibleTables.map((tb, index) => {
                 const ob = tb.openBill;
                 const openedAt = ob ? openedAtByBill.get(ob.id) : undefined;
                 return (
-                  <button
-                    key={tb.id}
-                    onClick={() => setSelectedId(tb.id)}
-                    className={`surface p-5 text-left transition-colors hover:border-primary ${
-                      selected?.id === tb.id ? "border-primary" : ""
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-display text-2xl">{tb.name}</span>
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs ${
-                          ob ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
-                        }`}
-                      >
-                        {ob ? t("statusOPEN") : t("tableFree")}
-                      </span>
-                    </div>
-                    {ob && (
-                      <div className="mt-3 space-y-1 text-xs text-muted-foreground tabular-nums">
-                        <div className="flex justify-between">
-                          <span>{t("total")}</span>
-                          <span className="text-foreground">
-                            {formatMoney(ob.totalDue, ob.currency)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Pendiente</span>
-                          <span className="text-foreground">
-                            {formatMinor(ob.remainingVes)} Bs.
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>{ob.itemCount ?? 0} líneas</span>
-                          <span>{openedAt ? relativeAge(openedAt) : "—"}</span>
-                        </div>
+                  <Fragment key={tb.id}>
+                    <button
+                      data-table-card=""
+                      onClick={() => setSelectedId(tb.id)}
+                      className={`surface p-5 text-left transition-colors hover:border-primary ${
+                        selected?.id === tb.id ? "border-primary" : ""
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-display text-2xl">{tb.name}</span>
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs ${
+                            ob ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
+                          }`}
+                        >
+                          {ob ? t("statusOPEN") : t("tableFree")}
+                        </span>
                       </div>
+                      {ob && (
+                        <div className="mt-3 space-y-1 text-xs text-muted-foreground tabular-nums">
+                          <div className="flex justify-between">
+                            <span>{t("total")}</span>
+                            <span className="text-foreground">
+                              {formatMoney(ob.totalDue, ob.currency)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Pendiente</span>
+                            <span className="text-foreground">
+                              {formatMinor(ob.remainingVes)} Bs.
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{ob.itemCount ?? 0} líneas</span>
+                            <span>{openedAt ? relativeAge(openedAt) : "—"}</span>
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                    {/* El detalle, dentro de la rejilla y a lo ancho, detrás de la
+                      última tarjeta de la fila de la mesa elegida: así aparece
+                      debajo de su mesa y empuja las demás hacia abajo, en vez
+                      de aparecer al final de toda la lista. */}
+                    {index === detailAfterIndex && (
+                      <div className="sm:col-span-2">{tableDetail}</div>
                     )}
-                  </button>
+                  </Fragment>
                 );
               })}
               {!tablesQuery.isLoading && visibleTables.length === 0 && (
                 <p className="text-sm text-muted-foreground">Sin mesas en este filtro.</p>
               )}
             </div>
-
-            {selected && (
-              <div className="surface mt-6 p-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  {renaming ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        autoFocus
-                        value={renameValue}
-                        maxLength={50}
-                        onChange={(e) => setRenameValue(e.target.value)}
-                        className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
-                      />
-                      <button
-                        disabled={!renameValue.trim() || renameTable.isPending}
-                        onClick={() => renameTable.mutate()}
-                        aria-label={t("save")}
-                        className="rounded-full border border-border p-2 text-primary disabled:opacity-40"
-                      >
-                        <Check className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setRenaming(false)}
-                        aria-label={t("cancel")}
-                        className="rounded-full border border-border p-2"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <h2 className="text-xl">
-                      {t("openBill")} · {selected.name}
-                    </h2>
-                  )}
-                  <div className="flex items-center gap-2">
-                    {!renaming && (
-                      <button
-                        onClick={() => {
-                          setRenameValue(selected.name);
-                          setRenaming(true);
-                        }}
-                        className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:bg-secondary"
-                      >
-                        <Pencil className="h-3.5 w-3.5" /> {t("renameTable")}
-                      </button>
-                    )}
-                    {bill && (
-                      <button
-                        onClick={() => setCloseOpen(true)}
-                        className="rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:bg-secondary"
-                      >
-                        {t("closeBill")}
-                      </button>
-                    )}
-                    {!bill && (
-                      <button
-                        onClick={() => setDeleteOpen(true)}
-                        className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-secondary"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" /> {t("deleteTable")}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <AlertDialog open={closeOpen} onOpenChange={setCloseOpen}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{t("closeBill")}</AlertDialogTitle>
-                      <AlertDialogDescription>{t("closeBillConfirm")}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => closeBill.mutate()}>
-                        {t("closeBill")}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-
-                <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{t("deleteTable")}</AlertDialogTitle>
-                      <AlertDialogDescription>{t("deleteTableConfirm")}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deleteTable.mutate()}>
-                        {t("deleteTable")}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-
-                {!bill && (
-                  <div className="mt-3">
-                    <p className="text-sm text-muted-foreground">
-                      {t("tableFree")} · {t("oneOpenBill")}
-                    </p>
-                    <button
-                      disabled={openBill.isPending}
-                      onClick={() => openBill.mutate()}
-                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-40"
-                    >
-                      <Plus className="h-4 w-4" /> {t("openNewBill")}
-                    </button>
-                  </div>
-                )}
-
-                {bill && (
-                  <>
-                    <p className="mt-4 border-t border-border pt-4 text-xs uppercase tracking-widest text-muted-foreground">
-                      {t("itemsOnBill")}
-                    </p>
-                    <div className="mt-2 border-b border-border pb-2">
-                      <BillServerPicker
-                        billId={bill.id}
-                        servedBy={bill.servedBy ?? null}
-                        canAssign={canAssignServer(me.data?.user.role)}
-                        onChanged={() => {
-                          void billQuery.refetch();
-                          void openBillsQuery.refetch();
-                        }}
-                      />
-                    </div>
-
-                    <ul className="mt-2 space-y-2 text-sm">
-                      {billItems.map((item) => (
-                        <li key={item.id} className="flex items-center justify-between gap-3">
-                          <span>
-                            {item.quantity} × {item.name}
-                          </span>
-                          <span className="flex items-center gap-3">
-                            <span>{formatMoney(item.subtotalMinor, bill.currency)}</span>
-
-                            <button
-                              onClick={() => removeLine.mutate(item.id)}
-                              aria-label={t("remove")}
-                              className="rounded-full border border-border p-1.5 text-destructive"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </span>
-                        </li>
-                      ))}
-                      {itemsQuery.isError && (
-                        <li>
-                          <ErrorBox error={itemsQuery.error} fallback={t("apiDown")} />
-                        </li>
-                      )}
-                      {itemsQuery.isSuccess && billItems.length === 0 && (
-                        <li className="text-muted-foreground">{t("addLines")}</li>
-                      )}
-                    </ul>
-
-                    <div className="mt-4 border-t border-border pt-4">
-                      <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                        {t("addLines")}
-                      </p>
-                      {productsQuery.isSuccess && productsQuery.data.length === 0 ? (
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {t("menuEmptyHint")}{" "}
-                          <Link to="/menu" className="underline">
-                            {t("manageMenu")}
-                          </Link>
-                        </p>
-                      ) : (
-                        <button
-                          onClick={() => setPickerOpen(true)}
-                          className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:border-primary"
-                        >
-                          <Plus className="h-4 w-4" /> {t("chooseProducts")}
-                        </button>
-                      )}
-                      {(productsQuery.data ?? []).some(
-                        (p) => p.active && p.currency !== bill.currency,
-                      ) && (
-                        <p className="mt-2 text-[11px] text-muted-foreground">
-                          {t("currencyMismatchHint")}{" "}
-                          <Link to="/menu" className="underline">
-                            {t("manageMenu")}
-                          </Link>
-                        </p>
-                      )}
-
-                      <AddProductsDialog
-                        open={pickerOpen}
-                        onOpenChange={setPickerOpen}
-                        products={productsQuery.data ?? []}
-                        billCurrency={bill.currency}
-                        pending={addLines.isPending}
-                        onConfirm={(lines) => addLines.mutate(lines)}
-                      />
-                    </div>
-
-                    <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
-                      <MoneyRow
-                        label={t("subtotal")}
-                        amount={totals.subtotal}
-                        currency={bill.currency}
-                      />
-                      <MoneyRow
-                        label={`${t("iva")} ${formatBps(bill.vatBps)}`}
-                        amount={totals.vat}
-                        currency={bill.currency}
-                      />
-                      <MoneyRow
-                        label={`${t("service")} ${formatBps(bill.serviceChargeBps)}`}
-                        amount={totals.service}
-                        currency={bill.currency}
-                      />
-                      <MoneyRow
-                        label={t("total")}
-                        amount={totals.total}
-                        currency={bill.currency}
-                        highlight
-                      />
-                      <MoneyRow
-                        label={t("alreadyPaid")}
-                        amount={bill.amountPaidVes}
-                        currency="VES"
-                      />
-
-                      <div className="flex items-baseline justify-between pt-2 text-foreground">
-                        <span>{t("outstanding")}</span>
-                        <span className="font-display text-3xl">
-                          {formatMoney(bill.remainingVes, "VES")}
-                        </span>
-                      </div>
-                      {(bill.fxRateVesPerUnit ?? bill.fxRate) && (
-                        <p className="pt-2 text-[11px] text-muted-foreground">
-                          {t("frozenRate")}: {formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)} ·{" "}
-                          {t("valueDate")} {bill.fxValueDate}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="mt-5 border-t border-border pt-4">
-                      <label className="text-xs uppercase tracking-widest text-muted-foreground">
-                        {t("chargeAmount")}
-                      </label>
-                      <div className="mt-2 flex gap-2">
-                        <input
-                          inputMode="decimal"
-                          placeholder="2.500,00"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
-                        />
-                        <button
-                          disabled={
-                            payMutation.isPending ||
-                            !amount ||
-                            BigInt(parseMinorInput(amount) || "0") <= 0n
-                          }
-                          onClick={() => payMutation.mutate()}
-                          className="whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
-                        >
-                          {t("takePayment")}
-                        </button>
-                      </div>
-                      {/* Lo que se va a registrar, antes de pulsar. Esta casilla
-                          leía lo tecleado como céntimos y nadie podía verlo. */}
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        {amount && BigInt(parseMinorInput(amount) || "0") > 0n
-                          ? `Se registrarán ${formatMinor(parseMinorInput(amount))} Bs.`
-                          : "Escribe el importe en bolívares, por ejemplo 2.500,00"}
-                      </p>
-                      <p className="mt-2 break-all text-[10px] text-muted-foreground">
-                        {t("idemKey")}: {idemKey} — {t("idemNote")}
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
           </div>
 
           <aside className="surface h-fit p-6 text-center">
@@ -1020,12 +1126,6 @@ function Dashboard() {
             )}
           </aside>
         </section>
-
-        {/* Historia, no estado: los otros listados dicen cómo está la sala
-            ahora, y ninguno dice qué acaba de pasar. */}
-        <div className="mt-8">
-          <ActivityFeed />
-        </div>
       </main>
     </div>
   );

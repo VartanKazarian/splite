@@ -23,6 +23,7 @@ import { ErrorBox } from "@/routes/dashboard";
 import { StaffManager } from "@/components/StaffManager";
 import { ChangePassword } from "@/components/ChangePassword";
 import { MfaPanel } from "@/components/MfaPanel";
+import { RestaurantName } from "@/components/RestaurantName";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -208,6 +209,10 @@ function SettingsPage() {
           </div>
         ) : (
           <>
+            {/* Primero, y a propósito: es lo único de esta pantalla que ve un
+                cliente. Lo demás -- moneda, cargos, cobro -- lo ve el negocio. */}
+            <RestaurantName canEdit={role === "OWNER" || role === "MANAGER"} />
+
             <section className="surface mt-6 p-6">
               <h2 className="text-xl">{t("menuCurrency")}</h2>
               {settings.isError && <ErrorBox error={settings.error} fallback={t("apiDown")} />}

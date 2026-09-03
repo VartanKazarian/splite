@@ -951,6 +951,15 @@ export type Product = {
   /** La sección, o null si no tiene. El nombre viene resuelto por el backend. */
   categoryId?: string | null;
   categoryName?: string | null;
+  /**
+   * La foto del plato, o null si el restaurante no ha subido ninguna -- que es
+   * el caso normal y tiene que verse deliberado, no roto.
+   *
+   * Se usa tal cual viene, con su sufijo `?v=`: ese sufijo cambia cuando cambia
+   * la foto, y es lo único que impide que un móvil siga enseñando el plato de
+   * la temporada pasada. Montarla a mano desde el id la rompe.
+   */
+  imageUrl: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -964,6 +973,8 @@ export type PublicProduct = {
   currency: MenuCurrency;
   categoryId: string | null;
   categoryName: string | null;
+  /** Ver `Product.imageUrl`: se usa tal cual, con sufijo incluido. */
+  imageUrl: string | null;
 };
 
 /** Una seccion de la carta. `position` es el orden impreso, no alfabético. */
@@ -1194,6 +1205,30 @@ export const menu = {
   },
 
   deletePdf: () => apiRequest<void>("/api/v1/menu/pdf", { method: "DELETE", auth: "staff" }),
+
+  /* ------------------------------------------------------ foto del plato */
+
+  /**
+   * Sustituye la que hubiera: hay una por producto.
+   *
+   * Devuelve el producto, no el archivo: con `imageUrl` ya puesta, la pantalla
+   * enseña la foto nueva sin una segunda petición.
+   */
+  uploadProductImage: (productId: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return apiRequest<Product>(`/api/v1/menu/products/${productId}/image`, {
+      method: "PUT",
+      auth: "staff",
+      body: form,
+    });
+  },
+
+  deleteProductImage: (productId: string) =>
+    apiRequest<void>(`/api/v1/menu/products/${productId}/image`, {
+      method: "DELETE",
+      auth: "staff",
+    }),
 
   /**
    * La carta que ve un comensal. Sin token: quien escanea la mesa no tiene
@@ -1449,6 +1484,12 @@ export const payments = {
 /** Datos del restaurante: dónde cobra y con qué credenciales bancarias. */
 export const account = {
   get: () => apiRequest<Account>("/api/v1/account", { auth: "staff" }),
+  /**
+   * El nombre del restaurante: lo primero que lee un comensal al escanear el QR,
+   * encima del número de mesa. Sólo OWNER y MANAGER.
+   */
+  rename: (name: string) =>
+    apiRequest<Account>("/api/v1/account", { method: "PATCH", auth: "staff", body: { name } }),
   banks: () =>
     apiRequest<{ data: BankRef[] }>("/api/v1/account/banks", { auth: "staff" }).then((r) => r.data),
   /** Los cuatro campos juntos, o {} para borrarlos: un payee a medias no cobra. */

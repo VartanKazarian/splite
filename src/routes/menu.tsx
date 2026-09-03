@@ -7,8 +7,10 @@ import { toast } from "sonner";
 import { MenuOcrImport } from "@/components/MenuOcrImport";
 import { MenuSections } from "@/components/MenuSections";
 import { MenuPdfCard } from "@/components/MenuPdfCard";
+import { ProductPhoto } from "@/components/ProductPhoto";
 import { useI18n } from "@/lib/i18n";
 import {
+  API_BASE_URL,
   ApiError,
   errorFields,
   errorFieldsText,
@@ -569,27 +571,39 @@ function MenuPage() {
                             key={p.id}
                             className="grid items-center gap-x-3 rounded-md px-2 py-1.5 transition-colors hover:bg-secondary/50 sm:grid-cols-[1fr_auto]"
                           >
-                            <div className={`min-w-0 ${p.active ? "" : "text-muted-foreground"}`}>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="text-sm font-medium">{p.name}</span>
-                                <span
-                                  className={`rounded-full px-1.5 py-px text-[10px] leading-tight ${
-                                    p.active
-                                      ? "bg-primary/15 text-primary"
-                                      : "bg-secondary text-muted-foreground"
-                                  }`}
-                                >
-                                  {p.active ? "Disponible" : "No disponible"}
-                                </span>
-                              </div>
-                              {p.description && (
-                                <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                                  {p.description}
-                                </p>
+                            <div
+                              className={`flex min-w-0 items-center gap-2.5 ${p.active ? "" : "text-muted-foreground"}`}
+                            >
+                              {p.imageUrl && (
+                                <img
+                                  src={`${API_BASE_URL}${p.imageUrl}`}
+                                  alt=""
+                                  loading="lazy"
+                                  className="h-9 w-9 shrink-0 rounded-md object-cover"
+                                />
                               )}
-                              <p className="mt-0.5 tabular-nums text-xs sm:hidden">
-                                {p.currency} {formatMinor(p.priceMinorUnits)}
-                              </p>
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-sm font-medium">{p.name}</span>
+                                  <span
+                                    className={`rounded-full px-1.5 py-px text-[10px] leading-tight ${
+                                      p.active
+                                        ? "bg-primary/15 text-primary"
+                                        : "bg-secondary text-muted-foreground"
+                                    }`}
+                                  >
+                                    {p.active ? "Disponible" : "No disponible"}
+                                  </span>
+                                </div>
+                                {p.description && (
+                                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                                    {p.description}
+                                  </p>
+                                )}
+                                <p className="mt-0.5 tabular-nums text-xs sm:hidden">
+                                  {p.currency} {formatMinor(p.priceMinorUnits)}
+                                </p>
+                              </div>
                             </div>
                             <span className="flex items-center gap-2 sm:justify-end">
                               <span className="hidden tabular-nums text-sm sm:inline">
@@ -733,6 +747,10 @@ function EditRow({
         />
         <CategorySelect value={categoryId} onChange={setCategoryId} categories={categories} />
       </div>
+      {/* La foto se guarda al elegirla, no con el botón de abajo: es una subida
+          aparte y esperar a "Guardar" para mandarla haría que el botón
+          significase dos cosas distintas. */}
+      <ProductPhoto product={product} />
       <p className="text-[11px] text-muted-foreground">
         Los cambios aplican a nuevos pedidos. Los precios de cuentas ya abiertas no se modifican.
       </p>

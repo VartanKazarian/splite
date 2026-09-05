@@ -9,18 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  BadgeCheck,
-  Check,
-  LogOut,
-  Pencil,
-  Plus,
-  Trash2,
-  Settings,
-  TrendingUp,
-  UtensilsCrossed,
-  X,
-} from "lucide-react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { SetupChecklist } from "@/components/SetupChecklist";
@@ -59,6 +48,7 @@ import {
   type MenuCurrency,
   type TillPaymentMethod,
 } from "@/lib/api";
+import { PanelHeader } from "@/components/PanelHeader";
 
 /**
  * La última tarjeta de la fila en la que está la tarjeta elegida.
@@ -176,15 +166,17 @@ function Dashboard() {
     refetchInterval: 8000,
   });
 
-  // Avisos de pago que esperan verificación: el badge es lo que hace que alguien los mire.
+  // Avisos de pago que esperan verificación. Sólo respalda a la instantánea de
+  // sala mientras carga: misma clave que el contador de la cabecera, así que
+  // las dos son una consulta y no hay dos sondeos contando lo mismo.
   const claimsQuery = useQuery({
-    queryKey: ["payment-claims", "PENDING"],
-    queryFn: () => payments.claims("PENDING"),
+    queryKey: ["payment-claims", "summary"],
+    queryFn: () => payments.claimsSummary(),
     enabled: ready && me.isSuccess,
     retry: false,
     refetchInterval: 20000,
   });
-  const pendingCount = claimsQuery.data?.length ?? 0;
+  const pendingCount = claimsQuery.data?.pending ?? 0;
 
   // Cargos C2P que el banco dejó en duda: son los que exigen intervención humana.
   const c2pQuery = useQuery({
@@ -779,62 +771,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-4">
-          <div>
-            <Link to="/" className="font-display text-2xl">
-              {t("brand")}
-            </Link>
-            {me.data && (
-              <span className="ml-3 text-sm text-muted-foreground">
-                {t("signedInAs")} {me.data.user.email} · {t(`role${me.data.user.role}` as never)}
-              </span>
-            )}
-          </div>
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-            <Link
-              to="/menu"
-              className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary sm:flex-none"
-            >
-              <UtensilsCrossed className="h-4 w-4" /> {t("manageMenu")}
-            </Link>
-            <Link
-              to="/tasas"
-              className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary sm:flex-none"
-            >
-              <TrendingUp className="h-4 w-4" /> {t("fxRates")}
-            </Link>
-            <Link
-              to="/pagos"
-              className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary sm:flex-none"
-            >
-              <BadgeCheck className="h-4 w-4" /> Pagos
-              {pendingCount > 0 && (
-                <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] text-primary-foreground">
-                  {pendingCount}
-                </span>
-              )}
-            </Link>
-
-            <Link
-              to="/settings"
-              className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary sm:flex-none"
-            >
-              <Settings className="h-4 w-4" /> {t("settings")}
-            </Link>
-            <button
-              onClick={async () => {
-                await auth.logout();
-                queryClient.clear();
-                navigate({ to: "/" });
-              }}
-              className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary sm:flex-none"
-            >
-              <LogOut className="h-4 w-4" /> {t("logout")}
-            </button>
-          </div>
-        </div>
-      </header>
+      <PanelHeader current="dashboard" />
 
       <main className="mx-auto max-w-6xl px-5 py-8">
         <h1 className="text-3xl">{t("dashboard")}</h1>

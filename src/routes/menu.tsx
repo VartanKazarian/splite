@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Check, ChevronDown, Pencil, Plus, Search, Tag, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Pencil, Plus, Search, Tag, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { MenuOcrImport } from "@/components/MenuOcrImport";
@@ -22,6 +22,7 @@ import {
   type Product,
 } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
+import { PanelHeader } from "@/components/PanelHeader";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -282,13 +283,7 @@ function MenuPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-5 py-4">
-          <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm">
-            <ArrowLeft className="h-4 w-4" /> {t("backToDashboard")}
-          </Link>
-        </div>
-      </header>
+      <PanelHeader current="menu" />
 
       <main className="mx-auto max-w-4xl px-5 py-8">
         <h1 className="text-3xl">{t("menuTitle")}</h1>

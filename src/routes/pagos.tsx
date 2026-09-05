@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, RefreshCw, X } from "lucide-react";
+import { Check, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
@@ -17,6 +17,7 @@ import {
 import { ErrorBox } from "@/routes/dashboard";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { MyTipsCard } from "@/components/MyTipsCard";
+import { PanelHeader } from "@/components/PanelHeader";
 
 export const Route = createFileRoute("/pagos")({
   head: () => ({
@@ -154,11 +155,19 @@ function PaymentsPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-5 py-4">
-          <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm">
-            <ArrowLeft className="h-4 w-4" /> {t("backToDashboard")}
-          </Link>
+      <PanelHeader current="pagos" />
+
+      <main className="mx-auto max-w-4xl px-5 py-8">
+        {/* Actualizar vivía en la cabecera; la cabecera ahora es la misma en
+            todas las pantallas, así que baja junto al título -- que es donde
+            está en Tasas, la otra pantalla que se recarga a mano. */}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl">Verificación de pagos</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Splite no mueve el dinero: aquí se confirma lo que ya llegó al banco del restaurante.
+            </p>
+          </div>
           <button
             onClick={refresh}
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary"
@@ -166,13 +175,6 @@ function PaymentsPage() {
             <RefreshCw className="h-4 w-4" /> Actualizar
           </button>
         </div>
-      </header>
-
-      <main className="mx-auto max-w-4xl px-5 py-8">
-        <h1 className="text-3xl">Verificación de pagos</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Splite no mueve el dinero: aquí se confirma lo que ya llegó al banco del restaurante.
-        </p>
 
         {/* Los movimientos, arriba del todo. Es la pregunta con la que se
             entra aquí -- "¿ha entrado ya ese cobro?" -- y estaba en el panel de

@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { exchangeRate, formatFxRate, staffSession } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
+import { PanelHeader } from "@/components/PanelHeader";
 
 export const Route = createFileRoute("/tasas")({
   head: () => ({
@@ -47,13 +48,7 @@ function RatesPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-5 py-4">
-          <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm">
-            <ArrowLeft className="h-4 w-4" /> {t("backToDashboard")}
-          </Link>
-        </div>
-      </header>
+      <PanelHeader current="tasas" />
 
       <main className="mx-auto max-w-3xl px-5 py-8">
         <div className="flex flex-wrap items-center justify-between gap-3">

@@ -1,9 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { LangToggle } from "@/components/LangToggle";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
@@ -25,6 +23,7 @@ import { ChangePassword } from "@/components/ChangePassword";
 import { MfaPanel } from "@/components/MfaPanel";
 import { RestaurantName } from "@/components/RestaurantName";
 import { RestaurantBranding } from "@/components/RestaurantBranding";
+import { PanelHeader } from "@/components/PanelHeader";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -207,14 +206,7 @@ function SettingsPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-5 py-4">
-          <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm">
-            <ArrowLeft className="h-4 w-4" /> {t("backToDashboard")}
-          </Link>
-          <LangToggle />
-        </div>
-      </header>
+      <PanelHeader current="settings" />
 
       <main className="mx-auto max-w-3xl px-5 py-8">
         <h1 className="text-3xl">{t("settingsTitle")}</h1>

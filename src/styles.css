@@ -63,6 +63,12 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --font-display: "Instrument Serif", Georgia, serif;
   --font-sans: "DM Sans", system-ui, sans-serif;
+  /* Las cifras. Ni DM Sans ni Instrument Serif traen `tnum`, así que el
+     `tabular-nums` que el código pedía en 34 sitios no hacía nada: medido a
+     36px, "1.111,11" ocupa 70,8px y "8.888,88" 135,5px en DM Sans -- un 91%
+     más ancho. Instrument Sans sí lo trae, y es de la misma familia que el
+     Instrument Serif que ya usa la marca. */
+  --font-num: "Instrument Sans", "DM Sans", system-ui, sans-serif;
   --shadow-glow: 0 0 0 1px var(--border), 0 30px 70px -50px oklch(0.2 0.02 60 / 0.55);
 }
 
@@ -125,6 +131,20 @@
   }
 }
 
+
+/*
+ * Un número. Cualquier número que alguien pueda comparar con otro: dinero,
+ * recuentos, tasas.
+ *
+ * Va junto porque las dos mitades se necesitan: la familia, porque es la única
+ * de las tres que tiene cifras tabulares, y `tabular-nums`, porque en
+ * Instrument Sans las cifras son proporcionales por defecto y hay que pedir la
+ * variante. Separadas, cada una por su lado no alinea nada.
+ */
+@utility figure {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
 
 @utility surface {
   background-color: var(--color-card);

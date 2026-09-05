@@ -52,7 +52,7 @@ function CopyRow({
     <div className="flex items-center justify-between gap-3 border-b border-border py-2.5 last:border-b-0">
       <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
       <span className="flex items-center gap-2">
-        <span className="text-sm tabular-nums">{display}</span>
+        <span className="text-sm figure">{display}</span>
         <button
           type="button"
           onClick={copy}
@@ -340,7 +340,7 @@ export function GuestPaymentPanel({
               </div>
               <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                 <span>Falta por pagar</span>
-                <span>{formatMoney(bill.remainingVes ?? "0", "VES")}</span>
+                <span className="figure">{formatMoney(bill.remainingVes ?? "0", "VES")}</span>
               </div>
             </div>
           ) : sessionDead ? (

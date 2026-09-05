@@ -260,7 +260,7 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
                     <span className="min-w-0 truncate text-[15px]">
                       {group.name ?? t("menuOther")}
                     </span>
-                    <span className="ml-4 shrink-0 text-sm tabular-nums text-muted-foreground">
+                    <span className="ml-4 shrink-0 text-sm figure text-muted-foreground">
                       {group.products.length}
                     </span>
                   </button>
@@ -316,7 +316,7 @@ function ProductRow({ product }: { product: PublicProduct }) {
               {product.description}
             </p>
           )}
-          <p className="mt-2 text-[15px] tabular-nums">
+          <p className="mt-2 text-[15px] figure">
             {formatMoney(product.priceMinorUnits, product.currency)}
           </p>
         </div>

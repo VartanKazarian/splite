@@ -134,7 +134,7 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function Dashboard() {
-  const { t, lang } = useI18n();
+  const { t, lang, plural } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
@@ -622,7 +622,7 @@ function Dashboard() {
                   {item.quantity} × {item.name}
                 </span>
                 <span className="flex items-center gap-3">
-                  <span>{formatMoney(item.subtotalMinor, bill.currency)}</span>
+                  <span className="figure">{formatMoney(item.subtotalMinor, bill.currency)}</span>
 
                   <button
                     onClick={() => removeLine.mutate(item.id)}
@@ -699,7 +699,7 @@ function Dashboard() {
 
             <div className="flex items-baseline justify-between pt-2 text-foreground">
               <span>{t("outstanding")}</span>
-              <span className="font-display text-3xl">{formatMoney(bill.remainingVes, "VES")}</span>
+              <span className="figure text-3xl">{formatMoney(bill.remainingVes, "VES")}</span>
             </div>
             {/* Sólo cuando hay conversión de verdad. Una cuenta en bolívares
                 no tiene tasa: enseñaba "Tasa congelada al abrir la cuenta: 1 ·
@@ -840,7 +840,7 @@ function Dashboard() {
         {snap && (
           <p className="mt-2 text-xs text-muted-foreground">
             {t("kpiTakenToday")
-              .replace("{n}", String(snap.taken.payments))
+              .replace("{n}", `${snap.taken.payments} ${plural(snap.taken.payments, "payment")}`)
               .replace("{amount}", formatMoney(snap.taken.paymentsVes, "VES"))}
             {BigInt(snap.taken.tipsVes) > 0n && (
               <>{t("kpiTips").replace("{amount}", formatMoney(snap.taken.tipsVes, "VES"))}</>
@@ -972,7 +972,7 @@ function Dashboard() {
                         </span>
                       </div>
                       {ob && (
-                        <div className="mt-3 space-y-1 text-xs text-muted-foreground tabular-nums">
+                        <div className="mt-3 space-y-1 text-xs text-muted-foreground figure">
                           <div className="flex justify-between">
                             <span>{t("total")}</span>
                             <span className="text-foreground">
@@ -980,13 +980,15 @@ function Dashboard() {
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Pendiente</span>
+                            <span>{t("remaining")}</span>
                             <span className="text-foreground">
                               {formatMinor(ob.remainingVes)} Bs
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span>{ob.itemCount ?? 0} líneas</span>
+                            <span>
+                              {ob.itemCount ?? 0} {t("lineCount")}
+                            </span>
                             <span>{openedAt ? relativeAge(openedAt) : "—"}</span>
                           </div>
                         </div>
@@ -1171,7 +1173,7 @@ function MoneyRow({
   return (
     <div className={`flex justify-between ${highlight ? "text-foreground" : ""}`}>
       <span>{label}</span>
-      <span>{formatMoney(amount, currency)}</span>
+      <span className="figure">{formatMoney(amount, currency)}</span>
     </div>
   );
 }
@@ -1216,11 +1218,7 @@ function StatCard({
   return (
     <div className={`surface p-4 ${alert ? "border-primary" : ""} ${wide ? "col-span-2" : ""}`}>
       <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p
-        className={`mt-1 font-display tabular-nums ${wide ? "text-4xl" : "text-2xl"} ${
-          alert ? "text-primary" : ""
-        }`}
-      >
+      <p className={`mt-1 figure ${wide ? "text-4xl" : "text-2xl"} ${alert ? "text-primary" : ""}`}>
         {value}
       </p>
     </div>

@@ -25,7 +25,7 @@ function Row({ label, value, sub }: { label: string; value: string; sub?: string
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5 text-[13px]">
       <span className="truncate text-foreground">{label}</span>
-      <span className="tabular-nums text-muted-foreground">{sub ?? value}</span>
+      <span className="figure text-muted-foreground">{sub ?? value}</span>
     </div>
   );
 }
@@ -50,7 +50,7 @@ export function BillMockup() {
         </div>
         <div className="mt-2 flex items-baseline justify-between border-t border-border pt-3">
           <span className="text-sm font-semibold">Total</span>
-          <span className="text-lg font-semibold tabular-nums">$75,60</span>
+          <span className="text-lg font-semibold figure">$75,60</span>
         </div>
         <button className="mt-4 w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">
           ¿Qué quieres pagar?
@@ -106,7 +106,7 @@ export function SplitMockup() {
                   </span>
                   {i.name}
                 </span>
-                <span className="tabular-nums">${i.price},00</span>
+                <span className="figure">${i.price},00</span>
               </button>
             );
           })}
@@ -114,11 +114,11 @@ export function SplitMockup() {
         <div className="mt-4 rounded-xl border border-border bg-secondary px-3 py-3">
           <div className="flex items-baseline justify-between text-[12px] text-muted-foreground">
             <span>Tu parte</span>
-            <span className="tabular-nums">${total.toFixed(2).replace(".", ",")}</span>
+            <span className="figure">${total.toFixed(2).replace(".", ",")}</span>
           </div>
           <div className="mt-1 flex items-baseline justify-between">
             <span className="text-[12px] text-muted-foreground">Con servicio e IVA</span>
-            <span className="text-lg font-semibold tabular-nums">
+            <span className="text-lg font-semibold figure">
               ${withCharges.toFixed(2).replace(".", ",")}
             </span>
           </div>
@@ -159,7 +159,7 @@ export function DashboardMockup() {
                 {c.s}
               </span>
             </div>
-            <p className="mt-3 text-xl font-semibold tabular-nums">{c.a}</p>
+            <p className="mt-3 text-xl font-semibold figure">{c.a}</p>
             <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <Users className="h-3 w-3" /> {c.p}
             </p>
@@ -208,7 +208,7 @@ export function CountUp({ to, prefix = "", decimals = 2 }: { to: number; prefix?
   }, [to]);
 
   return (
-    <span ref={ref} className="tabular-nums">
+    <span ref={ref} className="figure">
       {prefix}
       {v.toFixed(decimals).replace(".", ",")}
     </span>

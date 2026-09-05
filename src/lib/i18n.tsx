@@ -92,6 +92,7 @@ const dict = {
     payTabC2P: "C2P",
     payTabPaid: "Ya pagué",
     available: "Disponible",
+    lineCount: "líneas",
     unavailable: "No disponible",
     updatedFem: "actualizada",
     reference: "Referencia",
@@ -343,11 +344,35 @@ const dict = {
     tipsOwedToStaff: "Debido al personal",
     tipsUnclassified: "Sin clasificar",
     tipsByWaiter: "Por mesero",
+    payWaiting: "{n} en espera",
+    payOldest: " · el más antiguo lleva {age}",
+    payClaimsHint:
+      "Un aviso no paga nada hasta que lo confirmas. Busca la referencia en tu app del banco.",
+    payToVerify: "Por verificar",
+    payConfirmArrived: "Confirmar: el dinero llegó",
+    payNotThere: "No aparece",
+    tipsTodayHint:
+      "El efectivo ya está en caja; lo electrónico lo tiene el restaurante y se le debe al personal.",
+    c2pUnresolvedHint:
+      "El banco no dio una respuesta clara. Volver a preguntar es seguro; cobrar de nuevo no.",
+    c2pInDoubt: "Sin confirmar",
+    c2pAmbiguous: "Ambiguo",
+    waitUnderMinute: "menos de un minuto",
+    feedTitle: "Movimiento",
+    feedEmpty: "Todavía no ha pasado nada hoy.",
+    feedOther: "Movimiento",
+    myTips: "Tus propinas",
+    myTipsSub: "Sólo las tuyas, por las cuentas que atendiste tú.",
+    myTipsAmount: "Propinas",
+    myTipsBilled: "Facturado",
+    myTipsRate: "Sobre lo facturado",
+    myTipsFailed: "No se pudieron cargar ahora mismo.",
+    myTipsEmpty:
+      "Sin propinas en este periodo. Se cuentan por la persona a la que está asignada la cuenta: si atendiste una mesa que abrió otro, pide que te la asignen desde el panel.",
     tipsNoWaiter: "Sin mesero asignado",
     c2pUnresolvedTitle: "Cargos C2P sin resolver",
     c2pNoPending: "No hay cargos pendientes.",
     c2pUnconfirmed: "Sin confirmar",
-    c2pAmbiguous: "Ambiguo",
     c2pSettled: "Liquidado: el movimiento se encontró y se acreditó.",
     c2pNoDebit: "No hubo débito. El comensal puede pagar otra vez.",
     c2pStillUnconfirmed: "Sigue sin confirmarse.",
@@ -359,7 +384,11 @@ const dict = {
     kpiClaims: "Avisos por verificar",
     kpiC2P: "C2P sin resolver",
     tillAmountHint: "Escribe el importe en bolívares, por ejemplo 2.500,00",
-    kpiTakenToday: "{n} cobro(s) hoy · {amount}",
+    kpiTakenToday: "{n} hoy · {amount}",
+    payment_one: "cobro",
+    payment_other: "cobros",
+    bill_one: "cuenta",
+    bill_other: "cuentas",
     kpiOldestBill: " · la cuenta más antigua lleva {age}",
     creating: "Creando…",
     create: "Crear",
@@ -565,6 +594,7 @@ const dict = {
     payTabC2P: "C2P",
     payTabPaid: "I already paid",
     available: "Available",
+    lineCount: "lines",
     unavailable: "Unavailable",
     updatedFem: "updated",
     reference: "Reference",
@@ -808,11 +838,35 @@ const dict = {
     tipsOwedToStaff: "Owed to staff",
     tipsUnclassified: "Unclassified",
     tipsByWaiter: "By waiter",
+    payWaiting: "{n} waiting",
+    payOldest: " · the oldest has been {age}",
+    payClaimsHint:
+      "A notice pays nothing until you confirm it. Look for the reference in your bank app.",
+    payToVerify: "To verify",
+    payConfirmArrived: "Confirm: the money arrived",
+    payNotThere: "Not there",
+    tipsTodayHint:
+      "Cash is already in the till; electronic tips are held by the restaurant and owed to staff.",
+    c2pUnresolvedHint:
+      "The bank did not give a clear answer. Asking again is safe; charging again is not.",
+    c2pInDoubt: "Unconfirmed",
+    c2pAmbiguous: "Ambiguous",
+    waitUnderMinute: "under a minute",
+    feedTitle: "Activity",
+    feedEmpty: "Nothing has happened yet today.",
+    feedOther: "Activity",
+    myTips: "Your tips",
+    myTipsSub: "Only yours, for the bills you served.",
+    myTipsAmount: "Tips",
+    myTipsBilled: "Billed",
+    myTipsRate: "Of the billed amount",
+    myTipsFailed: "They could not be loaded right now.",
+    myTipsEmpty:
+      "No tips in this period. They count for whoever the bill is assigned to: if you served a table someone else opened, ask for it to be assigned to you from the panel.",
     tipsNoWaiter: "No waiter assigned",
     c2pUnresolvedTitle: "Unresolved C2P charges",
     c2pNoPending: "No pending charges.",
     c2pUnconfirmed: "Unconfirmed",
-    c2pAmbiguous: "Ambiguous",
     c2pSettled: "Settled: the movement was found and credited.",
     c2pNoDebit: "There was no debit. The diner can pay again.",
     c2pStillUnconfirmed: "Still unconfirmed.",
@@ -824,7 +878,11 @@ const dict = {
     kpiClaims: "Notices to verify",
     kpiC2P: "Unresolved C2P",
     tillAmountHint: "Type the amount in bolívares, for example 2.500,00",
-    kpiTakenToday: "{n} payment(s) today · {amount}",
+    kpiTakenToday: "{n} today · {amount}",
+    payment_one: "payment",
+    payment_other: "payments",
+    bill_one: "bill",
+    bill_other: "bills",
     kpiOldestBill: " · oldest bill open for {age}",
     creating: "Creating…",
     create: "Create",
@@ -951,9 +1009,25 @@ const dict = {
 
 export type Key = keyof (typeof dict)["es"];
 
-const Ctx = createContext<{ lang: Lang; t: (k: Key) => string; setLang: (l: Lang) => void }>({
+/**
+ * Singular o plural, según el número.
+ *
+ * El panel escribía "1 cobro(s) hoy", "3 sección(es)", "2 sesión(es)
+ * cerrada(s)". Ese paréntesis es lenguaje de formulario, no de producto, y en
+ * inglés queda igual de mal. Las dos formas están en el diccionario, así que
+ * cada idioma elige la suya.
+ */
+export type CountKey = "payment" | "bill";
+
+const Ctx = createContext<{
+  lang: Lang;
+  t: (k: Key) => string;
+  plural: (n: number, k: CountKey) => string;
+  setLang: (l: Lang) => void;
+}>({
   lang: "es",
   t: (k) => dict.es[k],
+  plural: (n, k) => dict.es[`${k}_${n === 1 ? "one" : "other"}` as Key],
   setLang: () => {},
 });
 
@@ -968,7 +1042,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem("mesa-lang", l);
   };
   return (
-    <Ctx.Provider value={{ lang, setLang: update, t: (k) => dict[lang][k] }}>
+    <Ctx.Provider
+      value={{
+        lang,
+        setLang: update,
+        t: (k) => dict[lang][k],
+        plural: (n, k) => dict[lang][`${k}_${n === 1 ? "one" : "other"}` as Key],
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

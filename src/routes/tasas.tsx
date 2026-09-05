@@ -91,7 +91,7 @@ function RatesPage() {
                   {code} · {t("valueDate")} {formatDay(r.valueDate, lang) ?? "—"} ·{" "}
                   {sourceLabel(r.source, t)}
                 </span>
-                <span>{formatFxRate(r.rate)} Bs</span>
+                <span className="figure">{formatFxRate(r.rate)} Bs</span>
               </li>
             ))}
           </ul>

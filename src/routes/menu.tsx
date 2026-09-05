@@ -358,11 +358,11 @@ function MenuPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-right">
                   <div>
-                    <p className="font-display text-2xl tabular-nums">{activeCount}</p>
+                    <p className="figure text-2xl">{activeCount}</p>
                     <p className="text-xs text-muted-foreground">Activos</p>
                   </div>
                   <div>
-                    <p className="font-display text-2xl tabular-nums">{inactiveCount}</p>
+                    <p className="figure text-2xl">{inactiveCount}</p>
                     <p className="text-xs text-muted-foreground">Inactivos</p>
                   </div>
                 </div>
@@ -420,7 +420,7 @@ function MenuPage() {
                         inputMode="decimal"
                         onChange={(e) => setPrice(e.target.value)}
                         placeholder="1.250,50"
-                        className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm tabular-nums outline-none focus:border-ring"
+                        className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm figure outline-none focus:border-ring"
                       />
                       <span className="text-xs text-muted-foreground">
                         {settings.data?.menuCurrency ?? ""}
@@ -489,7 +489,7 @@ function MenuPage() {
             <section className="surface mt-6 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3 px-2">
                 <h2 className="text-xl">{t("items")}</h2>
-                <span className="text-xs text-muted-foreground tabular-nums">
+                <span className="text-xs text-muted-foreground figure">
                   {visible.length} / {all.length}
                 </span>
               </div>
@@ -593,7 +593,7 @@ function MenuPage() {
                       <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                         {cat}
                       </span>
-                      <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
+                      <span className="ml-auto text-[11px] figure text-muted-foreground">
                         {items.length}
                       </span>
                     </div>
@@ -661,13 +661,13 @@ function MenuPage() {
                                     {p.description}
                                   </p>
                                 )}
-                                <p className="mt-0.5 tabular-nums text-xs sm:hidden">
+                                <p className="mt-0.5 figure text-xs sm:hidden">
                                   {formatMoney(p.priceMinorUnits, p.currency)}
                                 </p>
                               </div>
                             </div>
                             <span className="flex items-center gap-2 sm:justify-end">
-                              <span className="hidden tabular-nums text-sm sm:inline">
+                              <span className="hidden figure text-sm sm:inline">
                                 {formatMoney(p.priceMinorUnits, p.currency)}
                               </span>
                               <button
@@ -803,7 +803,7 @@ function EditRow({
             value={price}
             inputMode="decimal"
             onChange={(e) => setPrice(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-sm tabular-nums outline-none focus:border-ring"
+            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-sm figure outline-none focus:border-ring"
           />
           <span className="text-xs text-muted-foreground">{product.currency}</span>
         </div>

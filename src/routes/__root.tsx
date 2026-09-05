@@ -14,7 +14,6 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { I18nProvider } from "@/lib/i18n";
 import { Toaster } from "@/components/ui/sonner";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -90,11 +89,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:title", content: "Splite — Pay at table para restaurantes modernos" },
       { name: "twitter:title", content: "Splite — Pay at table para restaurantes modernos" },
-      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
-      { name: "twitter:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c4684a029351a50ab7525e855f2d9221/id-preview-5cab6856--b2c5c7ee-96f5-4253-b5fb-e4d39f958e9d.lovable.app-1786127887508.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c4684a029351a50ab7525e855f2d9221/id-preview-5cab6856--b2c5c7ee-96f5-4253-b5fb-e4d39f958e9d.lovable.app-1786127887508.png" },
-      { name: "google-site-verification", content: "xcKZYGfBHKsmRvI-POFUilb7g1rWM8oe8-WafMDgmT4" }
+      {
+        property: "og:description",
+        content:
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c4684a029351a50ab7525e855f2d9221/id-preview-5cab6856--b2c5c7ee-96f5-4253-b5fb-e4d39f958e9d.lovable.app-1786127887508.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c4684a029351a50ab7525e855f2d9221/id-preview-5cab6856--b2c5c7ee-96f5-4253-b5fb-e4d39f958e9d.lovable.app-1786127887508.png",
+      },
+      { name: "google-site-verification", content: "xcKZYGfBHKsmRvI-POFUilb7g1rWM8oe8-WafMDgmT4" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -102,7 +117,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Instrument+Serif&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Instrument+Sans:wght@400..700&family=Instrument+Serif&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
@@ -140,4 +155,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

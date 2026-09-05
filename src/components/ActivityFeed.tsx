@@ -55,13 +55,13 @@ export function ActivityFeed() {
   return (
     <section className="surface p-5">
       <h2 className="inline-flex items-center gap-2 text-xl">
-        <Activity className="h-5 w-5 text-muted-foreground" /> Movimiento
+        <Activity className="h-5 w-5 text-muted-foreground" /> {t("feedTitle")}
       </h2>
 
-      {feed.isLoading && <p className="mt-3 text-sm text-muted-foreground">Cargando…</p>}
+      {feed.isLoading && <p className="mt-3 text-sm text-muted-foreground">{t("loading")}</p>}
 
       {!feed.isLoading && rows.length === 0 && (
-        <p className="mt-3 text-sm text-muted-foreground">Todavía no ha pasado nada hoy.</p>
+        <p className="mt-3 text-sm text-muted-foreground">{t("feedEmpty")}</p>
       )}
 
       <ul className="mt-3 space-y-2 text-sm">
@@ -74,7 +74,7 @@ export function ActivityFeed() {
           >
             <span className="min-w-0">
               <span className="text-xs text-muted-foreground">{formatWhen(r.at, lang) ?? ""}</span>{" "}
-              {KIND_KEY[r.kind] ? t(KIND_KEY[r.kind]!) : r.kind}
+              {t(KIND_KEY[r.kind] ?? "feedOther")}
               {r.tableName && <span className="text-muted-foreground"> · {r.tableName}</span>}
               {r.paymentMethod && (
                 <span className="text-muted-foreground">
@@ -84,7 +84,7 @@ export function ActivityFeed() {
               )}
             </span>
             {r.amountVes && (
-              <span className="shrink-0 tabular-nums">
+              <span className="shrink-0 figure">
                 {formatMoney(r.amountVes, "VES")}
                 {r.tipVes && BigInt(r.tipVes) > 0n && (
                   <span className="text-xs text-muted-foreground">

@@ -108,6 +108,7 @@ function Login() {
       <main className="flex flex-1 items-center justify-center px-5 pb-20">
         {challenge ? (
           <form
+            method="post"
             onSubmit={submitCode}
             className="surface w-full max-w-sm p-8 shadow-[var(--shadow-glow)]"
           >
@@ -164,6 +165,7 @@ function Login() {
           </form>
         ) : (
           <form
+            method="post"
             onSubmit={submit}
             className="surface w-full max-w-sm p-8 shadow-[var(--shadow-glow)]"
           >

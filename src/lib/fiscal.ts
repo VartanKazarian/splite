@@ -151,7 +151,7 @@ export const fmtVes = (minor: bigint) =>
 export const fmt = (minor: bigint) => (Number(minor) / 100).toFixed(2);
 
 export const CURRENCY_SYMBOL: Record<MenuCurrency, string> = {
-  VES: "Bs.",
+  VES: "Bs",
   USD: "$",
   EUR: "€",
 };

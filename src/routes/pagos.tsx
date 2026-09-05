@@ -18,6 +18,7 @@ import { ErrorBox } from "@/routes/dashboard";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { MyTipsCard } from "@/components/MyTipsCard";
 import { PanelHeader } from "@/components/PanelHeader";
+import { formatDateTime } from "../lib/dates";
 
 export const Route = createFileRoute("/pagos")({
   head: () => ({
@@ -51,7 +52,7 @@ function formatWait(seconds: number) {
 }
 
 function PaymentsPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
@@ -230,7 +231,7 @@ function PaymentsPage() {
                   <div>
                     <dt className="inline">{t("payDeclared")}</dt>
                     <dd className="inline">
-                      {new Date(claim.declaredAt ?? claim.createdAt).toLocaleString("es-VE")}
+                      {formatDateTime(claim.declaredAt ?? claim.createdAt, lang) ?? "—"}
                     </dd>
                   </div>
                 </dl>

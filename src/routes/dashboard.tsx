@@ -51,6 +51,7 @@ import {
   type TillPaymentMethod,
 } from "@/lib/api";
 import { PanelHeader } from "@/components/PanelHeader";
+import { formatDay } from "../lib/dates";
 
 /**
  * La última tarjeta de la fila en la que está la tarjeta elegida.
@@ -133,7 +134,7 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function Dashboard() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
@@ -325,7 +326,7 @@ function Dashboard() {
       return bills.pay(bill!.id, digits, idemKey, { paymentMethod: payMethod });
     },
     onSuccess: (result) => {
-      toast.success(`${t("takePayment")} · ${formatMinor(result.remaining)} Bs.`);
+      toast.success(`${t("takePayment")} · ${formatMinor(result.remaining)} Bs`);
       setAmount("");
       setIdemKey(newIdempotencyKey());
       queryClient.invalidateQueries({ queryKey: ["floor"] });
@@ -700,10 +701,18 @@ function Dashboard() {
               <span>{t("outstanding")}</span>
               <span className="font-display text-3xl">{formatMoney(bill.remainingVes, "VES")}</span>
             </div>
-            {(bill.fxRateVesPerUnit ?? bill.fxRate) && (
+            {/* Sólo cuando hay conversión de verdad. Una cuenta en bolívares
+                no tiene tasa: enseñaba "Tasa congelada al abrir la cuenta: 1 ·
+                Fecha valor" -- un 1 que no significa nada y una etiqueta sin
+                fecha detrás, porque `fxValueDate` puede venir nula. Y la fecha
+                salía en ISO, que es justo lo que se acaba de corregir en el
+                resto de la aplicación. */}
+            {bill.currency !== "VES" && (bill.fxRateVesPerUnit ?? bill.fxRate) && (
               <p className="pt-2 text-[11px] text-muted-foreground">
-                {t("frozenRate")}: {formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)} ·{" "}
-                {t("valueDate")} {bill.fxValueDate}
+                {t("frozenRate")}: {formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)}
+                {formatDay(bill.fxValueDate, lang)
+                  ? ` · ${t("valueDate")} ${formatDay(bill.fxValueDate, lang)}`
+                  : ""}
               </p>
             )}
           </div>
@@ -758,7 +767,7 @@ function Dashboard() {
                         leía lo tecleado como céntimos y nadie podía verlo. */}
             <p className="mt-1 text-[11px] text-muted-foreground">
               {amount && BigInt(parseMinorInput(amount) || "0") > 0n
-                ? `Se registrarán ${formatMinor(parseMinorInput(amount))} Bs.`
+                ? `Se registrarán ${formatMinor(parseMinorInput(amount))} Bs`
                 : t("tillAmountHint")}
             </p>
             {/* La clave de idempotencia ya no se enseña. Es un UUID: quien
@@ -973,7 +982,7 @@ function Dashboard() {
                           <div className="flex justify-between">
                             <span>Pendiente</span>
                             <span className="text-foreground">
-                              {formatMinor(ob.remainingVes)} Bs.
+                              {formatMinor(ob.remainingVes)} Bs
                             </span>
                           </div>
                           <div className="flex justify-between">

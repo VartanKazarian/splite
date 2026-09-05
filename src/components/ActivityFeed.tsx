@@ -3,6 +3,7 @@ import { Activity } from "lucide-react";
 
 import { formatMoney, payments, type ActivityEntry } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { formatWhen } from "../lib/dates";
 
 /**
  * Los dos tipos que devuelve el servidor.
@@ -25,13 +26,13 @@ const KIND_KEY: Record<string, "feedSettled" | "feedDeclared"> = {
   DECLARED: "feedDeclared",
 };
 
-/** Hora local, que es como se lee un turno. */
-function at(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? ""
-    : d.toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" });
-}
+/**
+ * La hora si es de hoy, y el día si no.
+ *
+ * Enseñaba sólo la hora, y las últimas veinte entradas no caben en un turno:
+ * la lista iba "10:02 p. m., 08:49 a. m., 01:51 p. m." y parecía desordenada
+ * cuando lo que pasaba es que eran días distintos.
+ */
 
 /**
  * Lo que ha ido pasando en el turno.
@@ -41,7 +42,7 @@ function at(iso: string): string {
  * se deriva de los otros, que traen estado actual y no historia.
  */
 export function ActivityFeed() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const feed = useQuery({
     queryKey: ["payments-activity"],
     queryFn: () => payments.activity(undefined, 20),
@@ -72,7 +73,7 @@ export function ActivityFeed() {
             className="flex items-baseline justify-between gap-3 border-b border-border pb-2 last:border-0"
           >
             <span className="min-w-0">
-              <span className="text-xs text-muted-foreground">{at(r.at)}</span>{" "}
+              <span className="text-xs text-muted-foreground">{formatWhen(r.at, lang) ?? ""}</span>{" "}
               {KIND_KEY[r.kind] ? t(KIND_KEY[r.kind]!) : r.kind}
               {r.tableName && <span className="text-muted-foreground"> · {r.tableName}</span>}
               {r.paymentMethod && (

@@ -118,7 +118,7 @@ function Verificar() {
         Elige una contraseña y entras directo al panel.
       </p>
 
-      <form onSubmit={submit} className="mt-6">
+      <form method="post" onSubmit={submit} className="mt-6">
         <label
           htmlFor="verify-password"
           className="block text-xs uppercase tracking-widest text-muted-foreground"

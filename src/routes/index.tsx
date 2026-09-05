@@ -262,7 +262,7 @@ function Demo() {
               key={s.n}
               className="rounded-2xl border border-border bg-card p-6 transition-transform duration-200 hover:-translate-y-1"
             >
-              <span className="text-[13px] font-semibold tabular-nums text-primary">{s.n}</span>
+              <span className="text-[13px] font-semibold figure text-primary">{s.n}</span>
               <h3 className="mt-3 text-xl">{s.t}</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{s.d}</p>
             </article>
@@ -311,7 +311,7 @@ function ItemSplit() {
                   <p className="truncate">{r.n}</p>
                   <p className="truncate text-xs text-primary">{r.who}</p>
                 </div>
-                <span className="tabular-nums text-muted-foreground">{r.p}</span>
+                <span className="figure text-muted-foreground">{r.p}</span>
               </div>
             ))}
           </div>
@@ -474,7 +474,7 @@ function Onboarding() {
           },
         ].map((s) => (
           <li key={s.n} className="rounded-2xl border border-border bg-card p-6">
-            <span className="text-[13px] font-semibold tabular-nums text-primary">{s.n}</span>
+            <span className="text-[13px] font-semibold figure text-primary">{s.n}</span>
             <h3 className="mt-3 text-lg">{s.t}</h3>
             <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{s.d}</p>
           </li>

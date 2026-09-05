@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Check, Copy } from "lucide-react";
 
 import { GuestC2PForm } from "@/components/GuestC2PForm";
+import { useI18n } from "@/lib/i18n";
 
 import {
   ApiError,
@@ -51,7 +52,7 @@ function CopyRow({
     <div className="flex items-center justify-between gap-3 border-b border-border py-2.5 last:border-b-0">
       <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
       <span className="flex items-center gap-2">
-        <span className="text-sm tabular-nums">{display}</span>
+        <span className="text-sm figure">{display}</span>
         <button
           type="button"
           onClick={copy}
@@ -135,6 +136,7 @@ export function GuestPaymentPanel({
   /** Lo que el comensal eligió dejar de propina, en céntimos. */
   tipVes?: string;
 }) {
+  const { t } = useI18n();
   const payee: Payee | null =
     bill.payee ??
     (demo
@@ -249,9 +251,13 @@ export function GuestPaymentPanel({
       <div className="grid grid-cols-3 gap-2">
         {(
           [
-            { id: "payee", label: "Pago móvil" },
-            { id: "c2p", label: "Pagar con C2P" },
-            { id: "claim", label: "Ya pagué" },
+            // "Pagar con C2P" era la única de las tres que se partía en dos
+            // líneas, así que la fila salía más alta por el centro. C2P es el
+            // nombre del servicio del banco, igual que "Pago móvil": no hace
+            // falta el verbo delante.
+            { id: "payee", label: t("payTabMobile") },
+            { id: "c2p", label: t("payTabC2P") },
+            { id: "claim", label: t("payTabPaid") },
           ] as const
         ).map((x) => (
           <button
@@ -334,7 +340,7 @@ export function GuestPaymentPanel({
               </div>
               <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                 <span>Falta por pagar</span>
-                <span>{formatMoney(bill.remainingVes ?? "0", "VES")}</span>
+                <span className="figure">{formatMoney(bill.remainingVes ?? "0", "VES")}</span>
               </div>
             </div>
           ) : sessionDead ? (

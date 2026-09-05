@@ -98,7 +98,7 @@ export function AddProductsDialog({
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
-                  <span className="w-5 text-center tabular-nums">{n}</span>
+                  <span className="w-5 text-center figure">{n}</span>
                   <button
                     type="button"
                     disabled={mismatch}

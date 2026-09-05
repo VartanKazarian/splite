@@ -18,6 +18,7 @@ import { ErrorBox } from "@/routes/dashboard";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { MyTipsCard } from "@/components/MyTipsCard";
 import { PanelHeader } from "@/components/PanelHeader";
+import { formatDateTime } from "../lib/dates";
 
 export const Route = createFileRoute("/pagos")({
   head: () => ({
@@ -42,8 +43,8 @@ export const Route = createFileRoute("/pagos")({
 });
 
 /** La espera se muestra en la unidad que importa: minutos, no segundos exactos. */
-function formatWait(seconds: number) {
-  if (seconds < 60) return "menos de un minuto";
+function formatWait(seconds: number, underMinute: string) {
+  if (seconds < 60) return underMinute;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
@@ -51,7 +52,7 @@ function formatWait(seconds: number) {
 }
 
 function PaymentsPage() {
-  const { t } = useI18n();
+  const { t, lang, plural } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
@@ -187,15 +188,16 @@ function PaymentsPage() {
             <h2 className="text-xl">{t("payClaimsTitle")}</h2>
             {summaryQuery.data && summaryQuery.data.pending > 0 && (
               <p className="text-xs text-muted-foreground">
-                {summaryQuery.data.pending} en espera
+                {t("payWaiting").replace("{n}", String(summaryQuery.data.pending))}
                 {summaryQuery.data.oldestPendingAgeSeconds != null &&
-                  ` · el más antiguo lleva ${formatWait(summaryQuery.data.oldestPendingAgeSeconds)}`}
+                  t("payOldest").replace(
+                    "{age}",
+                    formatWait(summaryQuery.data.oldestPendingAgeSeconds, t("waitUnderMinute")),
+                  )}
               </p>
             )}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Un aviso no paga nada hasta que lo confirmas. Busca la referencia en tu app del banco.
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{t("payClaimsHint")}</p>
 
           {claimsQuery.isError && <ErrorBox error={claimsQuery.error} fallback={t("apiDown")} />}
           {claimsQuery.isSuccess && claimsQuery.data.length === 0 && (
@@ -205,17 +207,15 @@ function PaymentsPage() {
             {(claimsQuery.data ?? []).map((claim: StaffPaymentClaim) => (
               <li key={claim.id} className="rounded-lg border border-border p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <span className="font-display text-2xl">
-                    {formatMoney(claim.amountVes, "VES")}
-                  </span>
+                  <span className="figure text-2xl">{formatMoney(claim.amountVes, "VES")}</span>
                   <span className="rounded-full border border-amber-500/50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground">
-                    Por verificar
+                    {t("payToVerify")}
                   </span>
                 </div>
                 <dl className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
                   <div>
                     <dt className="inline">{t("payReference")}</dt>
-                    <dd className="inline tabular-nums text-foreground">
+                    <dd className="inline figure text-foreground">
                       {claim.declaredReference ?? "—"}
                     </dd>
                   </div>
@@ -230,7 +230,7 @@ function PaymentsPage() {
                   <div>
                     <dt className="inline">{t("payDeclared")}</dt>
                     <dd className="inline">
-                      {new Date(claim.declaredAt ?? claim.createdAt).toLocaleString("es-VE")}
+                      {formatDateTime(claim.declaredAt ?? claim.createdAt, lang) ?? "—"}
                     </dd>
                   </div>
                 </dl>
@@ -268,7 +268,7 @@ function PaymentsPage() {
                       onClick={() => confirmClaim.mutate(claim.id)}
                       className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground disabled:opacity-40"
                     >
-                      <Check className="h-3.5 w-3.5" /> Confirmar: el dinero llegó
+                      <Check className="h-3.5 w-3.5" /> {t("payConfirmArrived")}
                     </button>
                     <button
                       onClick={() => {
@@ -277,7 +277,7 @@ function PaymentsPage() {
                       }}
                       className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs"
                     >
-                      <X className="h-3.5 w-3.5" /> No aparece
+                      <X className="h-3.5 w-3.5" /> {t("payNotThere")}
                     </button>
                   </div>
                 )}
@@ -293,26 +293,25 @@ function PaymentsPage() {
         {tipsQuery.data && (
           <section className="surface mt-6 p-6">
             <h2 className="text-xl">{t("tipsToday")}</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              El efectivo ya está en caja; lo electrónico lo tiene el restaurante y se le debe al
-              personal.
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("tipsTodayHint")}</p>
             <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
               <div>
                 <dt className="text-xs text-muted-foreground">Total</dt>
-                <dd className="mt-1">{formatMoney(tipsQuery.data.totalTipsVes, "VES")}</dd>
+                <dd className="mt-1 figure">{formatMoney(tipsQuery.data.totalTipsVes, "VES")}</dd>
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground">{t("tipsInTill")}</dt>
-                <dd className="mt-1">{formatMoney(tipsQuery.data.inTillVes, "VES")}</dd>
+                <dd className="mt-1 figure">{formatMoney(tipsQuery.data.inTillVes, "VES")}</dd>
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground">{t("tipsOwedToStaff")}</dt>
-                <dd className="mt-1">{formatMoney(tipsQuery.data.owedToStaffVes, "VES")}</dd>
+                <dd className="mt-1 figure">{formatMoney(tipsQuery.data.owedToStaffVes, "VES")}</dd>
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground">{t("tipsUnclassified")}</dt>
-                <dd className="mt-1">{formatMoney(tipsQuery.data.unclassifiedVes, "VES")}</dd>
+                <dd className="mt-1 figure">
+                  {formatMoney(tipsQuery.data.unclassifiedVes, "VES")}
+                </dd>
               </div>
             </dl>
 
@@ -331,12 +330,10 @@ function PaymentsPage() {
                       <span className={row.userId ? "" : "text-muted-foreground"}>
                         {row.email ?? t("tipsNoWaiter")}
                         <span className="ml-2 text-xs text-muted-foreground">
-                          {row.payments} cobro(s)
+                          {row.payments} {plural(row.payments, "payment")}
                         </span>
                       </span>
-                      <span className="shrink-0 tabular-nums">
-                        {formatMoney(row.tipsVes, "VES")}
-                      </span>
+                      <span className="shrink-0 figure">{formatMoney(row.tipsVes, "VES")}</span>
                     </li>
                   ))}
                 </ul>
@@ -353,9 +350,7 @@ function PaymentsPage() {
 
         <section className="surface mt-6 p-6">
           <h2 className="text-xl">{t("c2pUnresolvedTitle")}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            El banco no dio una respuesta clara. Volver a preguntar es seguro; cobrar de nuevo no.
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{t("c2pUnresolvedHint")}</p>
           {unresolvedQuery.isError && (
             <ErrorBox error={unresolvedQuery.error} fallback={t("apiDown")} />
           )}
@@ -368,9 +363,9 @@ function PaymentsPage() {
               return (
                 <li key={c.paymentId} className="rounded-lg border border-border p-4">
                   <div className="flex flex-wrap items-baseline justify-between gap-3">
-                    <span className="font-display text-2xl">{formatMoney(c.amountVes, "VES")}</span>
+                    <span className="figure text-2xl">{formatMoney(c.amountVes, "VES")}</span>
                     <span className="rounded-full border border-amber-500/50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground">
-                      {c.status === "IN_DOUBT" ? "Sin confirmar" : "Ambiguo"}
+                      {c.status === "IN_DOUBT" ? t("c2pInDoubt") : t("c2pAmbiguous")}
                     </span>
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">

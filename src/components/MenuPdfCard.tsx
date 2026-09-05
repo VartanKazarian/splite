@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { API_BASE_URL, ApiError, menu, type MenuDocument } from "@/lib/api";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useI18n } from "@/lib/i18n";
+import { formatDateTime } from "../lib/dates";
 
 /** "394" -> "394 B", "2100000" -> "2,1 MB". Sólo para enseñar un tamaño. */
 function humanSize(bytes: number): string {
@@ -23,7 +24,7 @@ function humanSize(bytes: number): string {
  * que nadie haya tecleado un precio.
  */
 export function MenuPdfCard() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -117,8 +118,8 @@ export function MenuPdfCard() {
               {current.filename}
             </a>
             <p className="text-xs text-muted-foreground">
-              {humanSize(current.sizeBytes)} · actualizada{" "}
-              {new Date(current.updatedAt).toLocaleString("es-VE")}
+              {humanSize(current.sizeBytes)} · {t("updatedFem")}{" "}
+              {formatDateTime(current.updatedAt, lang) ?? "—"}
             </p>
           </div>
           <ConfirmButton

@@ -341,26 +341,31 @@ export function GuestBillScreen({
       <div className="surface p-6">
         <h1 className="text-3xl">{t("yourBill")}</h1>
         <p className="mt-1 text-xs text-muted-foreground">
-          {t("quotedIn")} {bill.currency}
+          {t("quotedIn")} {t(`currency${bill.currency}` as never)}
         </p>
 
-        <ul className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
-          {(bill.items ?? []).map((item) => (
-            <li key={item.id} className="flex justify-between gap-3">
-              <span>
-                {item.quantity} × {item.name}
-              </span>
-              <span className="flex shrink-0 items-baseline gap-3">
-                <span>{formatMoney(item.subtotalMinor, bill.currency)}</span>
-                {showVes && (
-                  <span className="w-24 text-right text-xs text-muted-foreground">
-                    {formatMoney(toVes(item.subtotalMinor, rateStr), "VES")}
-                  </span>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {/* La lista trae su propia línea superior y su relleno, así que sin
+            productos quedaban dos separadores seguidos con un hueco en medio y
+            nada dentro. Una cuenta sin líneas no dibuja la lista. */}
+        {(bill.items ?? []).length > 0 && (
+          <ul className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
+            {(bill.items ?? []).map((item) => (
+              <li key={item.id} className="flex justify-between gap-3">
+                <span>
+                  {item.quantity} × {item.name}
+                </span>
+                <span className="flex shrink-0 items-baseline gap-3">
+                  <span className="figure">{formatMoney(item.subtotalMinor, bill.currency)}</span>
+                  {showVes && (
+                    <span className="w-24 text-right text-xs text-muted-foreground">
+                      {formatMoney(toVes(item.subtotalMinor, rateStr), "VES")}
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {/* Sin nada en la cuenta, cuatro filas de ceros no informan de nada:
             el mensaje de abajo ya dice lo que pasa. */}
@@ -393,14 +398,14 @@ export function GuestBillScreen({
           <span className="text-xs uppercase tracking-widest text-muted-foreground">
             {t("total")}
           </span>
-          <span className="font-display text-4xl">{formatMoney(bill.totalDue, bill.currency)}</span>
+          <span className="figure text-4xl">{formatMoney(bill.totalDue, bill.currency)}</span>
         </div>
 
         {bill.currency !== "VES" && (
           <div className="mt-4 space-y-1 border-t border-border pt-4">
             <div className="flex items-baseline justify-between text-foreground">
               <span className="text-xs uppercase tracking-widest">{t("totalPayable")}</span>
-              <span className="font-display text-3xl">{formatMoney(bill.totalDueVes, "VES")}</span>
+              <span className="figure text-3xl">{formatMoney(bill.totalDueVes, "VES")}</span>
             </div>
             {(bill.fxRateVesPerUnit ?? bill.fxRate) && (
               <div className="flex justify-between text-xs text-muted-foreground">
@@ -416,7 +421,7 @@ export function GuestBillScreen({
             <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
             <div className="flex items-baseline justify-between pt-2 text-foreground">
               <span>{t("outstanding")}</span>
-              <span className="font-display text-2xl">{formatMoney(bill.remainingVes, "VES")}</span>
+              <span className="figure text-2xl">{formatMoney(bill.remainingVes, "VES")}</span>
             </div>
           </div>
         )}
@@ -484,7 +489,7 @@ export function GuestBillScreen({
                 >
                   −
                 </button>
-                <span className="font-display text-3xl">{diners}</span>
+                <span className="figure text-3xl">{diners}</span>
                 <button
                   onClick={() => setDiners((n) => Math.min(50, n + 1))}
                   className="h-10 w-10 rounded-full border border-border text-lg text-muted-foreground"
@@ -562,7 +567,7 @@ export function GuestBillScreen({
                         >
                           −
                         </button>
-                        <span className="w-5 text-center tabular-nums">{qty}</span>
+                        <span className="w-5 text-center figure">{qty}</span>
                         <button
                           aria-label="+"
                           onClick={() => setMineQty(item.id, qty + 1, max)}
@@ -609,24 +614,39 @@ export function GuestBillScreen({
                 <span className="text-xs uppercase tracking-widest text-muted-foreground">
                   {mode === "EQUAL" ? t("perPerson") : t("yourShare")}
                 </span>
-                <span className="font-display text-3xl">
+                <span className="figure text-3xl">
                   {formatMoney(myShare(preview, mode), "VES")}
                 </span>
               </div>
-              <div className="mt-3 flex justify-between text-xs text-muted-foreground">
-                <span>{t("outstanding")}</span>
-                <span>{formatMoney(preview.outstandingVes, "VES")}</span>
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{t("allocated")}</span>
-                <span>{formatMoney(preview.totalAllocatedVes, "VES")}</span>
-              </div>
+              {/* Las dos filas de apoyo sólo dicen algo cuando el reparto es de
+                  verdad. Pagando la cuenta entera valen lo mismo que el titular,
+                  y la tarjeta enseñaba el mismo importe tres veces seguidas -- en
+                  serif arriba y en la fuente del texto justo debajo, que parecía
+                  un fallo de composición más que una jerarquía. */}
+              {(preview.outstandingVes !== myShare(preview, mode) ||
+                preview.totalAllocatedVes !== myShare(preview, mode)) && (
+                <>
+                  <div className="mt-3 flex justify-between text-xs text-muted-foreground">
+                    <span>{t("outstanding")}</span>
+                    <span className="figure">{formatMoney(preview.outstandingVes, "VES")}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{t("allocated")}</span>
+                    <span className="figure">{formatMoney(preview.totalAllocatedVes, "VES")}</span>
+                  </div>
+                </>
+              )}
               <div className="mt-5 border-t border-border pt-4">
                 <p className="text-xs uppercase tracking-widest text-muted-foreground">
                   {t("tipTitle")}
                 </p>
                 <p className="mt-1 text-[11px] text-muted-foreground">{t("tipHint")}</p>
-                <div className="mt-3 grid grid-cols-5 gap-2">
+                {/* Seis columnas y la primera ocupa dos: con cinco iguales,
+                    "Sin propina" era la única etiqueta de dos palabras y se
+                    partía en dos líneas, así que la fila de propina salía más
+                    alta por su lado izquierdo. Los porcentajes siguen midiendo
+                    lo mismo entre ellos. */}
+                <div className="mt-3 grid grid-cols-6 gap-2">
                   {[0, 10, 15, 20].map((p) => (
                     <button
                       key={p}
@@ -635,6 +655,8 @@ export function GuestBillScreen({
                         setTipCustom("");
                       }}
                       className={`rounded-lg border px-2 py-2 text-xs transition-colors ${
+                        p === 0 ? "col-span-2" : ""
+                      } ${
                         tipPct === p
                           ? "border-primary bg-primary/15 text-foreground"
                           : "border-border text-muted-foreground hover:bg-secondary"
@@ -665,11 +687,11 @@ export function GuestBillScreen({
                 )}
                 <div className="mt-3 flex justify-between text-xs text-muted-foreground">
                   <span>{t("tipAmount")}</span>
-                  <span>{formatMoney(tipMinor, "VES")}</span>
+                  <span className="figure">{formatMoney(tipMinor, "VES")}</span>
                 </div>
                 <div className="mt-1 flex items-baseline justify-between text-foreground">
                   <span className="text-xs uppercase tracking-widest">{t("yourTotalWithTip")}</span>
-                  <span className="font-display text-2xl">
+                  <span className="figure text-2xl">
                     {formatMoney(
                       (BigInt(myShare(preview, mode)) + BigInt(tipMinor)).toString(),
                       "VES",
@@ -727,7 +749,7 @@ export function GuestBillScreen({
                     </span>
                   </button>
                   <span className="text-right">
-                    <span className="block">{formatMoney(p.amountVes, "VES")}</span>
+                    <span className="block figure">{formatMoney(p.amountVes, "VES")}</span>
                     {!p.settled && BigInt(p.amountPaidVes) > 0n && (
                       <span className="block text-[11px] text-muted-foreground">
                         Falta {formatMoney(p.remainingVes, "VES")}
@@ -779,7 +801,7 @@ function MoneyRow({
   return (
     <div className={`flex justify-between ${highlight ? "text-foreground" : ""}`}>
       <span>{label}</span>
-      <span>{formatMoney(amount, currency)}</span>
+      <span className="figure">{formatMoney(amount, currency)}</span>
     </div>
   );
 }

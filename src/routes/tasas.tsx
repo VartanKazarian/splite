@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { exchangeRate, formatFxRate, staffSession } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
 import { PanelHeader } from "@/components/PanelHeader";
+import { formatDay } from "../lib/dates";
 
 export const Route = createFileRoute("/tasas")({
   head: () => ({
@@ -87,9 +88,10 @@ function RatesPage() {
                     en inglés. La fecha llega en ISO desde el servidor, así que
                     se puede escribir en el idioma de quien mira. */}
                 <span className="text-muted-foreground">
-                  {code} · {t("valueDate")} {fxDate(r.valueDate, lang)} · {sourceLabel(r.source, t)}
+                  {code} · {t("valueDate")} {formatDay(r.valueDate, lang) ?? "—"} ·{" "}
+                  {sourceLabel(r.source, t)}
                 </span>
-                <span>{formatFxRate(r.rate)} Bs.</span>
+                <span className="figure">{formatFxRate(r.rate)} Bs</span>
               </li>
             ))}
           </ul>

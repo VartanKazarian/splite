@@ -149,7 +149,7 @@ export function GuestC2PForm({
           : "border-amber-500/50 bg-amber-500/10";
     return (
       <div className={`mt-5 rounded-lg border p-4 ${tone}`}>
-        <p className="font-display text-2xl">
+        <p className="figure text-2xl">
           {result.status === "SUCCEEDED"
             ? "Pago confirmado"
             : result.status === "FAILED"

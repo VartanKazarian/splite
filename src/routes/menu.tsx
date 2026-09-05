@@ -1,7 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, Pencil, Plus, Search, Smartphone, Tag, Trash2, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ImageIcon,
+  Pencil,
+  Plus,
+  Search,
+  Smartphone,
+  Tag,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { ConfirmButton } from "@/components/ConfirmButton";
@@ -16,6 +27,7 @@ import {
   errorFields,
   errorFieldsText,
   formatMinor,
+  formatMoney,
   menu,
   parseMinorInput,
   staffSession,
@@ -24,6 +36,7 @@ import {
 } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
 import { PanelHeader } from "@/components/PanelHeader";
+import { formatDateTime } from "../lib/dates";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -99,8 +112,7 @@ function lastUpdated(products: Product[]): string | null {
     .sort();
   const latest = stamps[stamps.length - 1];
   if (!latest) return null;
-  const d = new Date(latest);
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleString("es-VE");
+  return latest;
 }
 
 const UNCATEGORIZED = "Sin categoría";
@@ -108,7 +120,7 @@ const UNCATEGORIZED = "Sin categoría";
 /* ---------------------------------------------------------------- page */
 
 function MenuPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
@@ -337,18 +349,20 @@ function MenuPage() {
                   <p className="text-xs uppercase tracking-widest text-muted-foreground">
                     {settings.data?.name ?? t("menuTitle")}
                   </p>
-                  <p className="mt-1 font-display text-3xl tabular-nums">
-                    {settings.data?.menuCurrency ?? "—"}
+                  <p className="mt-1 font-display text-3xl">
+                    {settings.data?.menuCurrency
+                      ? t(`currency${settings.data.menuCurrency}` as never)
+                      : "—"}
                   </p>
-                  <p className="text-xs text-muted-foreground">Moneda del menú</p>
+                  <p className="text-xs text-muted-foreground">{t("menuCurrency")}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-right">
                   <div>
-                    <p className="font-display text-2xl tabular-nums">{activeCount}</p>
+                    <p className="figure text-2xl">{activeCount}</p>
                     <p className="text-xs text-muted-foreground">Activos</p>
                   </div>
                   <div>
-                    <p className="font-display text-2xl tabular-nums">{inactiveCount}</p>
+                    <p className="figure text-2xl">{inactiveCount}</p>
                     <p className="text-xs text-muted-foreground">Inactivos</p>
                   </div>
                 </div>
@@ -358,7 +372,7 @@ function MenuPage() {
 
               {updatedAt && (
                 <p className="mt-3 text-xs text-muted-foreground">
-                  Última actualización: {updatedAt}
+                  {t("lastUpdated")}: {formatDateTime(updatedAt, lang)}
                 </p>
               )}
 
@@ -406,7 +420,7 @@ function MenuPage() {
                         inputMode="decimal"
                         onChange={(e) => setPrice(e.target.value)}
                         placeholder="1.250,50"
-                        className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm tabular-nums outline-none focus:border-ring"
+                        className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm figure outline-none focus:border-ring"
                       />
                       <span className="text-xs text-muted-foreground">
                         {settings.data?.menuCurrency ?? ""}
@@ -475,7 +489,7 @@ function MenuPage() {
             <section className="surface mt-6 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3 px-2">
                 <h2 className="text-xl">{t("items")}</h2>
-                <span className="text-xs text-muted-foreground tabular-nums">
+                <span className="text-xs text-muted-foreground figure">
                   {visible.length} / {all.length}
                 </span>
               </div>
@@ -579,7 +593,7 @@ function MenuPage() {
                       <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                         {cat}
                       </span>
-                      <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
+                      <span className="ml-auto text-[11px] figure text-muted-foreground">
                         {items.length}
                       </span>
                     </div>
@@ -607,13 +621,27 @@ function MenuPage() {
                             <div
                               className={`flex min-w-0 items-center gap-2.5 ${p.active ? "" : "text-muted-foreground"}`}
                             >
-                              {p.imageUrl && (
+                              {/* El hueco de la foto se reserva siempre. La
+                                  imagen sólo salía si el plato tenía una, así
+                                  que en una carta a medio fotografiar los
+                                  nombres empezaban en dos sitios distintos y la
+                                  lista quedaba con el margen izquierdo roto.
+                                  Además el hueco vacío se ve, que es la mitad
+                                  de recordar que ese plato no tiene foto. */}
+                              {p.imageUrl ? (
                                 <img
                                   src={`${API_BASE_URL}${p.imageUrl}`}
                                   alt=""
                                   loading="lazy"
                                   className="h-9 w-9 shrink-0 rounded-md object-cover"
                                 />
+                              ) : (
+                                <span
+                                  aria-hidden
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground/50"
+                                >
+                                  <ImageIcon className="h-4 w-4" />
+                                </span>
                               )}
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-1.5">
@@ -625,7 +653,7 @@ function MenuPage() {
                                         : "bg-secondary text-muted-foreground"
                                     }`}
                                   >
-                                    {p.active ? "Disponible" : "No disponible"}
+                                    {p.active ? t("available") : t("unavailable")}
                                   </span>
                                 </div>
                                 {p.description && (
@@ -633,14 +661,14 @@ function MenuPage() {
                                     {p.description}
                                   </p>
                                 )}
-                                <p className="mt-0.5 tabular-nums text-xs sm:hidden">
-                                  {p.currency} {formatMinor(p.priceMinorUnits)}
+                                <p className="mt-0.5 figure text-xs sm:hidden">
+                                  {formatMoney(p.priceMinorUnits, p.currency)}
                                 </p>
                               </div>
                             </div>
                             <span className="flex items-center gap-2 sm:justify-end">
-                              <span className="hidden tabular-nums text-sm sm:inline">
-                                {p.currency} {formatMinor(p.priceMinorUnits)}
+                              <span className="hidden figure text-sm sm:inline">
+                                {formatMoney(p.priceMinorUnits, p.currency)}
                               </span>
                               <button
                                 onClick={() => setEditing(p)}
@@ -775,7 +803,7 @@ function EditRow({
             value={price}
             inputMode="decimal"
             onChange={(e) => setPrice(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-sm tabular-nums outline-none focus:border-ring"
+            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-sm figure outline-none focus:border-ring"
           />
           <span className="text-xs text-muted-foreground">{product.currency}</span>
         </div>

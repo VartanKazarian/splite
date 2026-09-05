@@ -4,7 +4,12 @@ export type Lang = "es" | "en";
 
 const dict = {
   es: {
-    brand: "Mesa",
+    // El producto se llama Splite: es el dominio, la web y lo que dice la
+    // pantalla de pago ("Splite no cobra el pago"). "Mesa" era el nombre de
+    // antes y se quedó aquí, así que la aplicación se presentaba con un
+    // nombre distinto al de todo lo demás -- y a un comensal "Mesa" le suena
+    // a etiqueta de su mesa, no a quién le está cobrando.
+    brand: "Splite",
     tagline: "Pagar la cuenta del restaurante en 30 segundos",
     heroSub: "Un QR por mesa. El cliente ve la cuenta, la divide, deja propina y paga.",
     ctaDemo: "Ver demo de cliente",
@@ -461,7 +466,7 @@ const dict = {
   },
 
   en: {
-    brand: "Mesa",
+    brand: "Splite",
     tagline: "Settle the restaurant bill in 30 seconds",
     heroSub: "One QR per table. Guests view the bill, split it, tip and pay.",
     ctaDemo: "See guest demo",

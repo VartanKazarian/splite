@@ -3,13 +3,8 @@ import { useMutation } from "@tanstack/react-query";
 import { Loader2, ScanText, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  ApiError,
-  formatMinor,
-  menu,
-  parseMinorInput,
-  type MenuOcrDraft,
-} from "@/lib/api";
+import { ApiError, formatMinor, menu, parseMinorInput, type MenuOcrDraft } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
 type Row = {
   name: string;
@@ -38,6 +33,7 @@ function rowsFromDraft(draft: MenuOcrDraft): Row[] {
 
 /** Sube una foto o PDF del menú, revisa el borrador y confirma la importación. */
 export function MenuOcrImport({ onImported }: { onImported: () => void }) {
+  const { t } = useI18n();
   const fileRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [notes, setNotes] = useState<string | null>(null);
@@ -47,15 +43,15 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
     onSuccess: (draft) => {
       setRows(rowsFromDraft(draft));
       setNotes(draft.notes ?? null);
-      if (!draft.items?.length) toast.error("No se pudo leer ningún producto de la imagen.");
+      if (!draft.items?.length) toast.error(t("ocrNothingRead"));
     },
     onError: (error) => {
       if (!(error instanceof ApiError)) {
-        toast.error("No se pudo contactar con el servidor.");
+        toast.error(t("apiUnreachable"));
         return;
       }
       if (error.code === "MENU_OCR_NOT_CONFIGURED") {
-        toast.error("La lectura automática de menús no está disponible en este servidor.");
+        toast.error(t("ocrNotConfigured"));
         return;
       }
       toast.error(`${error.code} · ${error.message}`);
@@ -83,7 +79,7 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
     },
     onError: (error) => {
       if (!(error instanceof ApiError)) {
-        toast.error("No se pudo contactar con el servidor.");
+        toast.error(t("apiUnreachable"));
         return;
       }
       toast.error(`${error.code} · ${error.message}`);
@@ -129,7 +125,7 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
         ) : (
           <Upload className="h-4 w-4" />
         )}
-        {extract.isPending ? "Leyendo la carta…" : "Subir foto o PDF"}
+        {extract.isPending ? t("ocrReading") : t("ocrUploadPhoto")}
       </button>
 
       {notes && <p className="mt-3 text-xs text-muted-foreground">{notes}</p>}
@@ -153,12 +149,15 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
 
           <ul className="mt-4 space-y-3 text-sm">
             {rows.map((r, i) => (
-              <li key={i} className="grid gap-2 border-b border-border pb-3 sm:grid-cols-[1.2fr_0.6fr_auto]">
+              <li
+                key={i}
+                className="grid gap-2 border-b border-border pb-3 sm:grid-cols-[1.2fr_0.6fr_auto]"
+              >
                 <input
                   value={r.name}
                   maxLength={160}
                   onChange={(e) => setRow(i, { name: e.target.value })}
-                  placeholder="Nombre"
+                  placeholder={t("ocrName")}
                   className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
                 />
                 <div className="flex flex-col gap-1">
@@ -177,16 +176,20 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
                     entre las dos cifras es exactamente lo que hay que mirar.
                   */}
                   {r.priceText ? (
-                    <span className="text-[11px] text-muted-foreground">En la carta: {r.priceText}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      En la carta: {r.priceText}
+                    </span>
                   ) : (
                     !r.price.trim() && (
-                      <span className="text-[11px] text-destructive">Sin precio legible en la foto</span>
+                      <span className="text-[11px] text-destructive">
+                        Sin precio legible en la foto
+                      </span>
                     )
                   )}
                 </div>
                 <button
                   type="button"
-                  aria-label="Quitar"
+                  aria-label={t("ocrDrop")}
                   onClick={() => setRows((prev) => prev?.filter((_, x) => x !== i) ?? prev)}
                   className="justify-self-start rounded-full border border-border p-2 text-destructive"
                 >
@@ -196,14 +199,14 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
                   value={r.section}
                   maxLength={80}
                   onChange={(e) => setRow(i, { section: e.target.value })}
-                  placeholder="Sección"
+                  placeholder={t("ocrSection")}
                   className="rounded-lg border border-input bg-secondary px-3 py-2 text-xs outline-none focus:border-ring"
                 />
                 <input
                   value={r.description}
                   maxLength={500}
                   onChange={(e) => setRow(i, { description: e.target.value })}
-                  placeholder="Descripción (opcional)"
+                  placeholder={t("ocrDescription")}
                   className="rounded-lg border border-input bg-secondary px-3 py-2 text-xs outline-none focus:border-ring sm:col-span-2"
                 />
                 {r.duplicate && (

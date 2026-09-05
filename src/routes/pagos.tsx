@@ -120,7 +120,7 @@ function PaymentsPage() {
   const confirmClaim = useMutation({
     mutationFn: (id: string) => payments.confirmClaim(id),
     onSuccess: () => {
-      toast.success("Pago confirmado y acreditado");
+      toast.success(t("payConfirmed"));
       refresh();
     },
     onError: fail,
@@ -134,7 +134,7 @@ function PaymentsPage() {
     onSuccess: () => {
       setRejecting(null);
       setReason("");
-      toast.success("Aviso rechazado. La referencia queda libre.");
+      toast.success(t("payRejected"));
       refresh();
     },
     onError: fail,
@@ -163,16 +163,14 @@ function PaymentsPage() {
             está en Tasas, la otra pantalla que se recarga a mano. */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl">Verificación de pagos</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Splite no mueve el dinero: aquí se confirma lo que ya llegó al banco del restaurante.
-            </p>
+            <h1 className="text-3xl">{t("payVerifyTitle")}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{t("payVerifySub")}</p>
           </div>
           <button
             onClick={refresh}
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary"
           >
-            <RefreshCw className="h-4 w-4" /> Actualizar
+            <RefreshCw className="h-4 w-4" /> {t("payRefresh")}
           </button>
         </div>
 
@@ -186,7 +184,7 @@ function PaymentsPage() {
 
         <section className="surface mt-6 p-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-xl">Avisos de pago móvil</h2>
+            <h2 className="text-xl">{t("payClaimsTitle")}</h2>
             {summaryQuery.data && summaryQuery.data.pending > 0 && (
               <p className="text-xs text-muted-foreground">
                 {summaryQuery.data.pending} en espera
@@ -201,7 +199,7 @@ function PaymentsPage() {
 
           {claimsQuery.isError && <ErrorBox error={claimsQuery.error} fallback={t("apiDown")} />}
           {claimsQuery.isSuccess && claimsQuery.data.length === 0 && (
-            <p className="mt-4 text-sm text-muted-foreground">No hay avisos por verificar.</p>
+            <p className="mt-4 text-sm text-muted-foreground">{t("payNoClaims")}</p>
           )}
           <ul className="mt-4 space-y-3">
             {(claimsQuery.data ?? []).map((claim: StaffPaymentClaim) => (
@@ -216,21 +214,21 @@ function PaymentsPage() {
                 </div>
                 <dl className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
                   <div>
-                    <dt className="inline">Referencia: </dt>
+                    <dt className="inline">{t("payReference")}</dt>
                     <dd className="inline tabular-nums text-foreground">
                       {claim.declaredReference ?? "—"}
                     </dd>
                   </div>
                   <div>
-                    <dt className="inline">Banco del pagador: </dt>
+                    <dt className="inline">{t("payPayerBank")}</dt>
                     <dd className="inline">{claim.bankOrigin ?? "—"}</dd>
                   </div>
                   <div>
-                    <dt className="inline">Teléfono: </dt>
+                    <dt className="inline">{t("payPhone")}</dt>
                     <dd className="inline">{claim.phoneOrigin ?? "—"}</dd>
                   </div>
                   <div>
-                    <dt className="inline">Declarado: </dt>
+                    <dt className="inline">{t("payDeclared")}</dt>
                     <dd className="inline">
                       {new Date(claim.declaredAt ?? claim.createdAt).toLocaleString("es-VE")}
                     </dd>
@@ -243,7 +241,7 @@ function PaymentsPage() {
                       autoFocus
                       value={reason}
                       maxLength={500}
-                      placeholder="Motivo: no aparece, el monto no coincide…"
+                      placeholder={t("payRejectReason")}
                       onChange={(e) => setReason(e.target.value)}
                       className="w-full rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
                     />
@@ -294,7 +292,7 @@ function PaymentsPage() {
 
         {tipsQuery.data && (
           <section className="surface mt-6 p-6">
-            <h2 className="text-xl">Propinas de hoy</h2>
+            <h2 className="text-xl">{t("tipsToday")}</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               El efectivo ya está en caja; lo electrónico lo tiene el restaurante y se le debe al
               personal.
@@ -305,15 +303,15 @@ function PaymentsPage() {
                 <dd className="mt-1">{formatMoney(tipsQuery.data.totalTipsVes, "VES")}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">En caja</dt>
+                <dt className="text-xs text-muted-foreground">{t("tipsInTill")}</dt>
                 <dd className="mt-1">{formatMoney(tipsQuery.data.inTillVes, "VES")}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">Debido al personal</dt>
+                <dt className="text-xs text-muted-foreground">{t("tipsOwedToStaff")}</dt>
                 <dd className="mt-1">{formatMoney(tipsQuery.data.owedToStaffVes, "VES")}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">Sin clasificar</dt>
+                <dt className="text-xs text-muted-foreground">{t("tipsUnclassified")}</dt>
                 <dd className="mt-1">{formatMoney(tipsQuery.data.unclassifiedVes, "VES")}</dd>
               </div>
             </dl>
@@ -323,7 +321,7 @@ function PaymentsPage() {
                 atendió una mesa mueve también estas cifras. */}
             {(tipsQuery.data.byServer?.length ?? 0) > 0 && (
               <div className="mt-6 border-t border-border pt-4">
-                <h3 className="text-sm">Por mesero</h3>
+                <h3 className="text-sm">{t("tipsByWaiter")}</h3>
                 <ul className="mt-3 space-y-2 text-sm">
                   {tipsQuery.data.byServer?.map((row) => (
                     <li
@@ -331,7 +329,7 @@ function PaymentsPage() {
                       className="flex items-baseline justify-between gap-3"
                     >
                       <span className={row.userId ? "" : "text-muted-foreground"}>
-                        {row.email ?? "Sin mesero asignado"}
+                        {row.email ?? t("tipsNoWaiter")}
                         <span className="ml-2 text-xs text-muted-foreground">
                           {row.payments} cobro(s)
                         </span>
@@ -354,7 +352,7 @@ function PaymentsPage() {
         )}
 
         <section className="surface mt-6 p-6">
-          <h2 className="text-xl">Cargos C2P sin resolver</h2>
+          <h2 className="text-xl">{t("c2pUnresolvedTitle")}</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             El banco no dio una respuesta clara. Volver a preguntar es seguro; cobrar de nuevo no.
           </p>
@@ -362,7 +360,7 @@ function PaymentsPage() {
             <ErrorBox error={unresolvedQuery.error} fallback={t("apiDown")} />
           )}
           {unresolvedQuery.isSuccess && unresolvedQuery.data.length === 0 && (
-            <p className="mt-4 text-sm text-muted-foreground">No hay cargos pendientes.</p>
+            <p className="mt-4 text-sm text-muted-foreground">{t("c2pNoPending")}</p>
           )}
           <ul className="mt-4 space-y-3">
             {(unresolvedQuery.data ?? []).map((c: C2PUnresolvedCharge) => {
@@ -400,12 +398,12 @@ function PaymentsPage() {
                     <div className="mt-3 rounded-lg border border-border bg-secondary/60 p-3 text-xs">
                       <p className="font-medium">
                         {res.status === "SUCCEEDED"
-                          ? "Liquidado: el movimiento se encontró y se acreditó."
+                          ? t("c2pSettled")
                           : res.status === "FAILED"
-                            ? "No hubo débito. El comensal puede pagar otra vez."
+                            ? t("c2pNoDebit")
                             : res.status === "IN_DOUBT"
-                              ? "Sigue sin confirmarse."
-                              : "Débito confirmado sin poder acreditarlo: hace falta reembolso."}
+                              ? t("c2pStillUnconfirmed")
+                              : t("c2pNeedsRefund")}
                       </p>
                       {res.reason && <p className="mt-1 text-muted-foreground">{res.reason}</p>}
                       {res.resolutionPending && (

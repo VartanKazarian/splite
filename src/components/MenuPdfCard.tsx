@@ -46,8 +46,7 @@ export function MenuPdfCard() {
 
   const fail = (error: unknown) => {
     if (error instanceof ApiError) {
-      if (error.code === "MENU_PDF_UNSUPPORTED_MEDIA")
-        return toast.error("Sólo se aceptan archivos PDF");
+      if (error.code === "MENU_PDF_UNSUPPORTED_MEDIA") return toast.error(t("pdfOnlyPdf"));
       if (error.code === "MENU_PDF_FILE_TOO_LARGE") {
         const max = Number(error.details?.["maxBytes"] ?? 0);
         return toast.error(
@@ -56,13 +55,13 @@ export function MenuPdfCard() {
       }
       return toast.error(`${error.code} · ${error.message}`);
     }
-    return toast.error("No se pudo conectar con el servidor");
+    return toast.error(t("apiUnreachable"));
   };
 
   const upload = useMutation({
     mutationFn: (file: File) => menu.uploadPdf(file),
     onSuccess: () => {
-      toast.success("Carta subida");
+      toast.success(t("pdfUploaded"));
       refresh();
     },
     onError: fail,
@@ -71,7 +70,7 @@ export function MenuPdfCard() {
   const remove = useMutation({
     mutationFn: () => menu.deletePdf(),
     onSuccess: () => {
-      toast.success("Carta eliminada");
+      toast.success(t("pdfDeleted"));
       refresh();
     },
     onError: fail,
@@ -82,7 +81,7 @@ export function MenuPdfCard() {
     // Se comprueba también en el servidor, por los bytes y no por la etiqueta.
     // Aquí es sólo para dar la respuesta antes de subir 20 MB en vano.
     if (file.type && file.type !== "application/pdf") {
-      toast.error("Sólo se aceptan archivos PDF");
+      toast.error(t("pdfOnlyPdf"));
       return;
     }
     upload.mutate(file);
@@ -168,7 +167,7 @@ export function MenuPdfCard() {
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60"
           >
             <Upload className="h-4 w-4" />
-            {upload.isPending ? "Subiendo…" : current ? "Sustituir la carta" : "Subir la carta"}
+            {upload.isPending ? t("pdfUploading") : current ? t("pdfReplace") : t("pdfUpload")}
           </button>
           <p className="mt-2 text-xs text-muted-foreground">
             PDF, hasta 20 MB. También puedes arrastrarla aquí.

@@ -167,8 +167,20 @@ export type GuestSession = {
  * `hasOpenBill` es lo único que dice del dinero: si ofrecer la cuenta o no.
  * Cuánto se debe queda detrás de la sesión.
  */
+/**
+ * La cara del restaurante: la portada y el logo.
+ *
+ * Se usan tal cual vienen, con su sufijo `?v=`: cambia cuando cambia la imagen,
+ * y es lo único que impide que un móvil siga enseñando la portada anterior.
+ * `null` es lo normal -- casi ningún restaurante sube nada el primer día -- y
+ * tiene que verse deliberado, no roto.
+ */
+export type Branding = { coverUrl: string | null; logoUrl: string | null };
+
+export type BrandingKind = "COVER" | "LOGO";
+
 export type QrContext = {
-  restaurant: { id: string; name: string; menuCurrency: MenuCurrency };
+  restaurant: { id: string; name: string; menuCurrency: MenuCurrency } & Branding;
   table: { id: string; name: string };
   hasOpenBill: boolean;
 };
@@ -999,7 +1011,7 @@ export type MenuDocument = {
 };
 
 export type PublicMenu = {
-  restaurant: { id: string; name: string; menuCurrency: MenuCurrency };
+  restaurant: { id: string; name: string; menuCurrency: MenuCurrency } & Branding;
   /** La carta subida, o null si no hay ninguna. */
   menuPdf: MenuDocument | null;
   categories: MenuCategory[];
@@ -1235,6 +1247,21 @@ export const menu = {
       method: "DELETE",
       auth: "staff",
     }),
+
+  /* --------------------------------------------- portada y logo del local */
+
+  uploadBranding: (kind: BrandingKind, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return apiRequest<{ kind: BrandingKind; url: string }>(`/api/v1/menu/branding/${kind}`, {
+      method: "PUT",
+      auth: "staff",
+      body: form,
+    });
+  },
+
+  deleteBranding: (kind: BrandingKind) =>
+    apiRequest<void>(`/api/v1/menu/branding/${kind}`, { method: "DELETE", auth: "staff" }),
 
   /**
    * La carta que ve un comensal. Sin token: quien escanea la mesa no tiene

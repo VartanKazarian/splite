@@ -36,6 +36,7 @@ import {
   errorFieldsText,
   formatBps,
   GUEST_BASE_URL,
+  isEphemeralGuestHost,
   formatFxRate,
   formatMinor,
   parseMinorInput,
@@ -759,7 +760,7 @@ function Dashboard() {
             <p className="mt-1 text-[11px] text-muted-foreground">
               {amount && BigInt(parseMinorInput(amount) || "0") > 0n
                 ? `Se registrarán ${formatMinor(parseMinorInput(amount))} Bs.`
-                : "Escribe el importe en bolívares, por ejemplo 2.500,00"}
+                : t("tillAmountHint")}
             </p>
             <p className="mt-2 break-all text-[10px] text-muted-foreground">
               {t("idemKey")}: {idemKey} — {t("idemNote")}
@@ -787,7 +788,7 @@ function Dashboard() {
 
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
-            label="Mesas ocupadas"
+            label={t("kpiOpenTables")}
             value={
               snap
                 ? `${snap.tables.occupied}/${snap.tables.total}`
@@ -797,16 +798,16 @@ function Dashboard() {
           {/* Lo que la sala debe ahora mismo. Antes no se podía enseñar: son
               sumas de importes, y eso lo hace el servidor. */}
           <StatCard
-            label="Pendiente de cobro"
+            label={t("kpiOutstanding")}
             value={snap ? formatMoney(snap.openBills.outstandingVes, "VES") : "—"}
           />
           <StatCard
-            label="Avisos por verificar"
+            label={t("kpiClaims")}
             value={String(snap?.claims.pending ?? pendingCount)}
             alert={(snap?.claims.pending ?? pendingCount) > 0}
           />
           <StatCard
-            label="C2P sin resolver"
+            label={t("kpiC2P")}
             value={String(
               snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount,
             )}
@@ -819,26 +820,37 @@ function Dashboard() {
 
         {snap && (
           <p className="mt-2 text-xs text-muted-foreground">
-            {snap.taken.payments} cobro(s) hoy · {formatMoney(snap.taken.paymentsVes, "VES")}
+            {t("kpiTakenToday")
+              .replace("{n}", String(snap.taken.payments))
+              .replace("{amount}", formatMoney(snap.taken.paymentsVes, "VES"))}
             {BigInt(snap.taken.tipsVes) > 0n && (
               <> · {formatMoney(snap.taken.tipsVes, "VES")} en propinas</>
             )}
             {snap.openBills.oldestOpenedAt && (
-              <> · la cuenta más antigua lleva {relativeAge(snap.openBills.oldestOpenedAt)}</>
+              <>{t("kpiOldestBill").replace("{age}", relativeAge(snap.openBills.oldestOpenedAt))}</>
             )}
           </p>
         )}
 
+        {/* `min-w-0` en los hijos no es cosmético. Un hijo de grid trae
+            `min-width: auto`, así que se niega a encogerse por debajo del ancho
+            mínimo de su contenido: la fila de "Crear mesa / Crear varias" medía
+            472px en un teléfono de 393 y estiraba la página entera. Todo lo de
+            debajo -- las tarjetas de mesa, los filtros, el detalle -- heredaba
+            ese ancho y quedaba descuadrado y cortado por la derecha. */}
         <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
-          <div>
+          <div className="min-w-0">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-xl">{t("tables")}</h2>
-              <div className="flex gap-2">
+              {/* Se envuelve y el campo ocupa la fila entera cuando no cabe:
+                  en un móvil el nombre de la mesa y sus dos botones no entran
+                  en la misma línea, y forzarlo era lo que desbordaba. */}
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                 <input
                   value={newTableName}
                   onChange={(e) => setNewTableName(e.target.value)}
                   placeholder={t("tableName")}
-                  className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
+                  className="min-w-0 flex-1 rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring sm:flex-none"
                 />
                 <button
                   disabled={!newTableName.trim() || createTable.isPending}
@@ -851,7 +863,7 @@ function Dashboard() {
                   onClick={() => setBulkOpen((v) => !v)}
                   className="whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
                 >
-                  {bulkOpen ? t("cancel") : "Crear varias"}
+                  {bulkOpen ? t("cancel") : t("bulkCreate")}
                 </button>
               </div>
             </div>
@@ -859,7 +871,7 @@ function Dashboard() {
             {bulkOpen && (
               <div className="mb-3 flex flex-wrap items-end gap-2 rounded-lg border border-border bg-secondary p-3">
                 <label className="grid gap-1">
-                  <span className="text-xs text-muted-foreground">¿Cuántas mesas tienes?</span>
+                  <span className="text-xs text-muted-foreground">{t("bulkHowMany")}</span>
                   <input
                     type="number"
                     min={1}
@@ -877,7 +889,7 @@ function Dashboard() {
                   onClick={() => createTablesBulk.mutate()}
                   className="rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-40"
                 >
-                  {createTablesBulk.isPending ? "Creando…" : "Crear"}
+                  {createTablesBulk.isPending ? t("creating") : t("create")}
                 </button>
                 <p className="w-full text-[11px] text-muted-foreground">
                   Crea «Mesa 1» hasta «Mesa {Number(bulkCount) || 0}». Las que ya existan se dejan
@@ -966,7 +978,7 @@ function Dashboard() {
                 );
               })}
               {!tablesQuery.isLoading && visibleTables.length === 0 && (
-                <p className="text-sm text-muted-foreground">Sin mesas en este filtro.</p>
+                <p className="text-sm text-muted-foreground">{t("noTablesInFilter")}</p>
               )}
             </div>
           </div>
@@ -999,6 +1011,15 @@ function Dashboard() {
             {qrQuery.isError && <ErrorBox error={qrQuery.error} fallback={t("forbidden")} />}
             {guestUrl && (
               <>
+                {/* Antes de imprimir nada: un código sacado de una vista
+                    previa funciona hoy y deja de resolver cuando el host rota,
+                    semanas después y ya pegado a una mesa. */}
+                {isEphemeralGuestHost() && (
+                  <p className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
+                    {t("qrEphemeralHost")}
+                  </p>
+                )}
+
                 {/* Abrir la mesa tal cual la abre el comensal. Es el único
                     sitio donde se puede comprobar la cuenta de verdad: la
                     vista previa del panel enseña la carta, porque la cuenta

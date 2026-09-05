@@ -49,22 +49,21 @@ export function MenuSections({
 
   const fail = (error: unknown) => {
     if (error instanceof ApiError) {
-      if (error.code === "CATEGORY_NAME_TAKEN")
-        return toast.error("Ya existe una sección con ese nombre");
+      if (error.code === "CATEGORY_NAME_TAKEN") return toast.error(t("sectionNameTaken"));
       if (error.code === "CATEGORY_NOT_FOUND") {
         refresh();
-        return toast.error("Esa sección ya no existe");
+        return toast.error(t("sectionGone"));
       }
       return toast.error(`${error.code} · ${error.message}`);
     }
-    return toast.error("No se pudo conectar con el servidor");
+    return toast.error(t("apiUnreachable"));
   };
 
   const create = useMutation({
     mutationFn: (name: string) => menu.createCategory({ name }),
     onSuccess: () => {
       setNewName("");
-      toast.success("Sección creada");
+      toast.success(t("sectionCreated"));
       refresh();
     },
     onError: fail,
@@ -74,7 +73,7 @@ export function MenuSections({
     mutationFn: (p: { id: string; name: string }) => menu.updateCategory(p.id, { name: p.name }),
     onSuccess: () => {
       setEditingId(null);
-      toast.success("Sección renombrada");
+      toast.success(t("sectionRenamed"));
       refresh();
     },
     onError: fail,
@@ -96,7 +95,7 @@ export function MenuSections({
   const remove = useMutation({
     mutationFn: (id: string) => menu.deleteCategory(id),
     onSuccess: () => {
-      toast.success("Sección eliminada. Sus productos quedan sin sección.");
+      toast.success(t("sectionDeleted"));
       refresh();
     },
     onError: fail,
@@ -117,7 +116,7 @@ export function MenuSections({
       }
     },
     onSuccess: () => {
-      toast.success("Secciones importadas");
+      toast.success(t("sectionsImported"));
       legacy?.onImported();
       refresh();
     },
@@ -165,7 +164,7 @@ export function MenuSections({
             disabled={busy}
             className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground disabled:opacity-60"
           >
-            {importLegacy.isPending ? "Importando…" : "Importarlas"}
+            {importLegacy.isPending ? t("importing") : t("importThem")}
           </button>
         </div>
       )}
@@ -180,7 +179,7 @@ export function MenuSections({
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          placeholder="Entradas, Principales, Postres…"
+          placeholder={t("sectionPlaceholder")}
           maxLength={80}
           className="min-w-0 flex-1 rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
         />
@@ -274,7 +273,7 @@ export function MenuSections({
                   onClick={() => toggle.mutate({ id: c.id, active: !c.active })}
                   disabled={busy}
                   aria-label={c.active ? `Ocultar ${c.name}` : `Mostrar ${c.name}`}
-                  title={c.active ? "Quitar de la carta sin borrarla" : "Volver a mostrarla"}
+                  title={c.active ? t("sectionHide") : t("sectionShow")}
                   className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground"
                 >
                   {c.active ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}

@@ -15,18 +15,15 @@ import { ErrorBox } from "@/routes/dashboard";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useI18n } from "@/lib/i18n";
 
-const ROLE_LABEL: Record<StaffRole, string> = {
-  OWNER: "Dueño",
-  MANAGER: "Encargado",
-  CASHIER: "Caja",
-  WAITER: "Mesero",
-};
-
-const ROLE_HINT: Record<StaffRole, string> = {
-  OWNER: "Todo, incluidas las credenciales de cobro",
-  MANAGER: "El menú, las mesas y el personal por debajo suyo",
-  CASHIER: "Cobrar y verificar avisos de pago",
-  WAITER: "Abrir cuentas y añadir productos",
+/** Los nombres viven en el diccionario: son los mismos que enseña la cabecera. */
+const ROLE_HINT_KEY: Record<
+  StaffRole,
+  "roleOwnerWhat" | "roleManagerWhat" | "roleCashierWhat" | "roleWaiterWhat"
+> = {
+  OWNER: "roleOwnerWhat",
+  MANAGER: "roleManagerWhat",
+  CASHIER: "roleCashierWhat",
+  WAITER: "roleWaiterWhat",
 };
 
 /** El servidor exige 12 caracteres; decirlo antes evita un viaje y un 400. */
@@ -64,15 +61,14 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["staff"] });
 
   const fail = (error: unknown) => {
-    if (!(error instanceof ApiError)) return toast.error("No se pudo conectar con el servidor");
+    if (!(error instanceof ApiError)) return toast.error(t("apiUnreachable"));
     const say: Partial<Record<string, string>> = {
-      STAFF_EMAIL_TAKEN: "Alguien aquí ya usa ese correo",
-      STAFF_ROLE_TOO_HIGH: "No puedes dar un rol igual o superior al tuyo",
-      STAFF_OUTRANKED: "Esa persona está en tu mismo rol o por encima",
-      STAFF_SELF_FORBIDDEN:
-        "No puedes cambiarte el rol ni darte de baja a ti mismo. Otro dueño sí puede",
-      STAFF_LAST_OWNER: "El restaurante tiene que conservar un dueño activo",
-      STAFF_NOT_FOUND: "Esa persona ya no está en el restaurante",
+      STAFF_EMAIL_TAKEN: t("staffEmailTaken"),
+      STAFF_ROLE_TOO_HIGH: t("staffNoHigherRole"),
+      STAFF_OUTRANKED: t("staffPeerOrAbove"),
+      STAFF_SELF_FORBIDDEN: t("staffNoSelfChange"),
+      STAFF_LAST_OWNER: t("staffNeedsOwner"),
+      STAFF_NOT_FOUND: t("staffGone"),
       FORBIDDEN_ROLE: "Tu rol no permite gestionar al personal",
     };
     const known = say[error.code];
@@ -93,7 +89,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
       setRole("WAITER");
       setFieldErrors({});
       setAdding(false);
-      toast.success(`${user.email} añadido como ${ROLE_LABEL[user.role]}`);
+      toast.success(`${user.email} añadido como ${t(`role${user.role}` as never)}`);
       refresh();
     },
     onError: fail,
@@ -108,7 +104,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
       toast.success(
         res.sessionsRevoked > 0
           ? `Guardado. ${res.sessionsRevoked} sesión(es) cerrada(s).`
-          : "Guardado",
+          : t("staffSaved"),
       );
       refresh();
     },
@@ -121,7 +117,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
       toast.success(
         res.sessionsRevoked > 0
           ? `Contraseña cambiada. ${res.sessionsRevoked} sesión(es) cerrada(s).`
-          : "Contraseña cambiada",
+          : t("staffPasswordChanged"),
       ),
     onError: fail,
   });
@@ -168,7 +164,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
           disabled={busy || grantable.length === 0}
           className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-60"
         >
-          <UserPlus className="h-4 w-4" /> {adding ? "Cancelar" : "Añadir persona"}
+          <UserPlus className="h-4 w-4" /> {adding ? "Cancelar" : t("staffAddPerson")}
         </button>
       </div>
 
@@ -210,7 +206,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
               >
                 {grantable.map((r) => (
                   <option key={r} value={r}>
-                    {ROLE_LABEL[r]} — {ROLE_HINT[r]}
+                    {t(`role${r}` as never)} — {t(ROLE_HINT_KEY[r])}
                   </option>
                 ))}
               </select>
@@ -244,7 +240,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
               disabled={busy || password.length < MIN_PASSWORD}
               className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60"
             >
-              {create.isPending ? "Añadiendo…" : "Añadir"}
+              {create.isPending ? t("staffAdding") : t("staffAdd")}
             </button>
           </div>
         </form>
@@ -264,14 +260,16 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
               <div className="min-w-0 flex-1">
                 <p className={`truncate text-sm ${m.active ? "" : "text-muted-foreground"}`}>
                   {m.email}
-                  {mine && <span className="ml-2 text-[11px] text-muted-foreground">(tú)</span>}
+                  {mine && (
+                    <span className="ml-2 text-[11px] text-muted-foreground">{t("staffYou")}</span>
+                  )}
                   {!m.active && (
                     <span className="ml-2 rounded-full bg-secondary px-1.5 py-px text-[10px] text-muted-foreground">
                       dado de baja
                     </span>
                   )}
                 </p>
-                <p className="text-xs text-muted-foreground">{ROLE_HINT[m.role]}</p>
+                <p className="text-xs text-muted-foreground">{t(ROLE_HINT_KEY[m.role])}</p>
               </div>
 
               <select
@@ -287,7 +285,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
                   .sort((a, b) => STAFF_RANK[b] - STAFF_RANK[a])
                   .map((r) => (
                     <option key={r} value={r} disabled={!grantable.includes(r)}>
-                      {ROLE_LABEL[r]}
+                      {t(`role${r}` as never)}
                     </option>
                   ))}
               </select>
@@ -305,7 +303,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
                   resetPassword.mutate({ id: m.id, password: next });
                 }}
                 disabled={busy || !editable}
-                title="Ponerle una contraseña nueva"
+                title={t("staffNewPassword")}
                 aria-label={`Cambiar la contraseña de ${m.email}`}
                 className="flex h-8 w-8 items-center justify-center text-muted-foreground disabled:opacity-30"
               >

@@ -30,6 +30,21 @@ export const GUEST_BASE_URL: string =
   import.meta.env["VITE_GUEST_BASE_URL"] ??
   (typeof window === "undefined" ? "" : window.location.origin);
 
+/**
+ * Si el enlace que se va a imprimir vive en un dominio que va a caducar.
+ *
+ * Los despliegues de vista previa de Lovable cuelgan de un host temporal.
+ * Imprimir un QR desde ahí produce un código que funciona hoy y deja de
+ * resolver cuando la vista previa rota, y el fallo aparece semanas después,
+ * en la mesa, sin nada que lo explique. Fijar `VITE_GUEST_BASE_URL` lo
+ * resuelve; mientras no esté, al menos se avisa antes de imprimir.
+ */
+export function isEphemeralGuestHost(): boolean {
+  if (import.meta.env["VITE_GUEST_BASE_URL"]) return false;
+  if (!GUEST_BASE_URL) return false;
+  return /(^|\/\/)[^/]*id-preview--|\.lovableproject\.com/.test(GUEST_BASE_URL);
+}
+
 /** "1893852" -> "18.938,52" (agrupación venezolana). Pura manipulación de strings. */
 export function formatMinor(minor: string): string {
   const negative = minor.startsWith("-");

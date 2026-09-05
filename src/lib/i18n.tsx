@@ -4,7 +4,12 @@ export type Lang = "es" | "en";
 
 const dict = {
   es: {
-    brand: "Mesa",
+    // El producto se llama Splite: es el dominio, la web y lo que dice la
+    // pantalla de pago ("Splite no cobra el pago"). "Mesa" era el nombre de
+    // antes y se quedó aquí, así que la aplicación se presentaba con un
+    // nombre distinto al de todo lo demás -- y a un comensal "Mesa" le suena
+    // a etiqueta de su mesa, no a quién le está cobrando.
+    brand: "Splite",
     tagline: "Pagar la cuenta del restaurante en 30 segundos",
     heroSub: "Un QR por mesa. El cliente ve la cuenta, la divide, deja propina y paga.",
     ctaDemo: "Ver demo de cliente",
@@ -367,6 +372,12 @@ const dict = {
     splitTheBill: "Dividir la cuenta",
     tillRetrySafe: "Si algo se corta a medias, vuelve a intentarlo: no se cobra dos veces.",
     kpiTips: " · {amount} en propinas",
+    authBadCredentials: "Correo o contraseña incorrectos.",
+    authBadCode: "Ese código no vale. Puede haber caducado: prueba con el siguiente.",
+    authGeneric: "No hemos podido entrar. Vuelve a intentarlo.",
+    fxSourceBCV: "publicada por el BCV",
+    fxSourceBCVLastInForce: "última publicada por el BCV",
+    fxSourceIdentity: "sin conversión",
     deleteForever: "Borrar",
     paymentsNav: "Pagos",
     chargesInMenuHint: "El IVA y el servicio se configuran en",
@@ -461,7 +472,7 @@ const dict = {
   },
 
   en: {
-    brand: "Mesa",
+    brand: "Splite",
     tagline: "Settle the restaurant bill in 30 seconds",
     heroSub: "One QR per table. Guests view the bill, split it, tip and pay.",
     ctaDemo: "See guest demo",
@@ -816,6 +827,12 @@ const dict = {
     splitTheBill: "Split the bill",
     tillRetrySafe: "If something cuts out halfway, just try again: it will not charge twice.",
     kpiTips: " · {amount} in tips",
+    authBadCredentials: "Wrong email or password.",
+    authBadCode: "That code is not valid. It may have expired: try the next one.",
+    authGeneric: "We could not sign you in. Please try again.",
+    fxSourceBCV: "published by the BCV",
+    fxSourceBCVLastInForce: "last one published by the BCV",
+    fxSourceIdentity: "no conversion",
     deleteForever: "Delete",
     paymentsNav: "Payments",
     chargesInMenuHint: "VAT and service are configured in",

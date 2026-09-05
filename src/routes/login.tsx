@@ -139,21 +139,7 @@ function Login() {
               className="mt-2 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-center text-lg tracking-[0.3em] outline-none focus:border-ring"
             />
 
-            {error && (
-              <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs">
-                <p className="font-medium text-destructive">{error.code}</p>
-                <p className="mt-1 text-muted-foreground">
-                  {error.code === "INVALID_CREDENTIALS"
-                    ? "Ese código no vale. Puede haber caducado: prueba con el siguiente."
-                    : error.message}
-                </p>
-                {error.requestId && (
-                  <p className="mt-1 break-all text-[10px] text-muted-foreground">
-                    {t("requestId")}: {error.requestId}
-                  </p>
-                )}
-              </div>
-            )}
+            {error && <AuthError code={error.code} step="code" />}
 
             <button
               type="submit"
@@ -218,17 +204,7 @@ function Login() {
               className="mt-2 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
             />
 
-            {error && (
-              <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs">
-                <p className="font-medium text-destructive">{error.code}</p>
-                <p className="mt-1 text-muted-foreground">{error.message}</p>
-                {error.requestId && (
-                  <p className="mt-1 break-all text-[10px] text-muted-foreground">
-                    {t("requestId")}: {error.requestId}
-                  </p>
-                )}
-              </div>
-            )}
+            {error && <AuthError code={error.code} step="password" />}
 
             <button
               type="submit"
@@ -240,6 +216,36 @@ function Login() {
           </form>
         )}
       </main>
+    </div>
+  );
+}
+
+/**
+ * Lo que se le dice a alguien que no consigue entrar.
+ *
+ * Escribir mal la contraseña es el error más común que existe, y aquí se
+ * contestaba con `INVALID_CREDENTIALS`, el mensaje del backend en inglés y el
+ * identificador de la petición -- en la primera pantalla que ve un
+ * restaurante, antes de haber entrado nunca.
+ *
+ * El mismo código significa dos cosas según el paso: en la contraseña, que la
+ * pareja correo/contraseña no vale; en el código de dos pasos, que ese código
+ * no sirve. Por eso `step`.
+ *
+ * Ni código ni identificador de petición: aquí no hay nadie a quien
+ * dárselos. Siguen en la respuesta y en los logs del servidor.
+ */
+function AuthError({ code, step }: { code: string; step: "password" | "code" }) {
+  const { t } = useI18n();
+  const message =
+    code === "INVALID_CREDENTIALS"
+      ? step === "code"
+        ? t("authBadCode")
+        : t("authBadCredentials")
+      : t("authGeneric");
+  return (
+    <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3">
+      <p className="text-sm">{message}</p>
     </div>
   );
 }

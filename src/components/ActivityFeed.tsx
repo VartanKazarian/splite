@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity } from "lucide-react";
 
 import { formatMoney, payments, type ActivityEntry } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * Los dos tipos que devuelve el servidor.
@@ -10,17 +11,18 @@ import { formatMoney, payments, type ActivityEntry } from "@/lib/api";
  * traducía nombres plausibles (`PAYMENT_SUCCEEDED` y compañía) que el servidor
  * no emite, así que todas las entradas habrían salido con su código en crudo.
  */
-const KIND: Record<string, string> = {
-  SETTLED: "Cobro",
-  DECLARED: "Aviso de pago",
-};
-
-const METHOD: Record<string, string> = {
-  CASH: "efectivo",
-  CARD: "tarjeta",
-  PAGO_MOVIL: "Pago Móvil",
-  C2P: "C2P",
-  TRANSFER: "transferencia",
+/**
+ * Los nombres salen del diccionario, no de aquí.
+ *
+ * Esto era un segundo juego de traducciones, privado de este componente y
+ * escrito a mano en español: no cambiaba con el selector de idioma, discrepaba
+ * en mayúsculas con el resto de la aplicación ("Efectivo" en caja, "efectivo"
+ * aquí) y no tenía entrada para SPLITE, así que esa fila enseñaba el enum en
+ * crudo -- "Cobro · Mesa 4 · splite".
+ */
+const KIND_KEY: Record<string, "feedSettled" | "feedDeclared"> = {
+  SETTLED: "feedSettled",
+  DECLARED: "feedDeclared",
 };
 
 /** Hora local, que es como se lee un turno. */
@@ -39,6 +41,7 @@ function at(iso: string): string {
  * se deriva de los otros, que traen estado actual y no historia.
  */
 export function ActivityFeed() {
+  const { t } = useI18n();
   const feed = useQuery({
     queryKey: ["payments-activity"],
     queryFn: () => payments.activity(undefined, 20),
@@ -70,12 +73,12 @@ export function ActivityFeed() {
           >
             <span className="min-w-0">
               <span className="text-xs text-muted-foreground">{at(r.at)}</span>{" "}
-              {KIND[r.kind] ?? r.kind}
+              {KIND_KEY[r.kind] ? t(KIND_KEY[r.kind]!) : r.kind}
               {r.tableName && <span className="text-muted-foreground"> · {r.tableName}</span>}
               {r.paymentMethod && (
                 <span className="text-muted-foreground">
                   {" "}
-                  · {METHOD[r.paymentMethod] ?? r.paymentMethod.toLowerCase()}
+                  · {t(`method${r.paymentMethod}` as never)}
                 </span>
               )}
             </span>

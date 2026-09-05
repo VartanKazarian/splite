@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, ExternalLink, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { SetupChecklist } from "@/components/SetupChecklist";
@@ -35,6 +35,7 @@ import {
   errorFields,
   errorFieldsText,
   formatBps,
+  GUEST_BASE_URL,
   formatFxRate,
   formatMinor,
   parseMinorInput,
@@ -474,7 +475,7 @@ function Dashboard() {
   // El token ya contiene mesa y restaurante: la ruta no lleva el id (QR más corto).
   // El token puede contener caracteres no seguros en URL (+, /, =): hay que escaparlo.
   const guestUrl = qrQuery.data
-    ? `https://splite.lovable.app/t?qr=${encodeURIComponent(qrQuery.data.token)}`
+    ? `${GUEST_BASE_URL}/t?qr=${encodeURIComponent(qrQuery.data.token)}`
     : "";
 
   /**
@@ -998,6 +999,19 @@ function Dashboard() {
             {qrQuery.isError && <ErrorBox error={qrQuery.error} fallback={t("forbidden")} />}
             {guestUrl && (
               <>
+                {/* Abrir la mesa tal cual la abre el comensal. Es el único
+                    sitio donde se puede comprobar la cuenta de verdad: la
+                    vista previa del panel enseña la carta, porque la cuenta
+                    necesita consumo y una sesión y no se pueden inventar. */}
+                <a
+                  href={guestUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
+                >
+                  <ExternalLink className="h-4 w-4" /> {t("previewOpenReal")}
+                </a>
+
                 {/* El enlace lleva el token de invitado: nunca se muestra en pantalla. */}
                 <button
                   onClick={async () => {

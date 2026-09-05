@@ -222,6 +222,13 @@ const dict = {
     planNoCutoff:
       "Cuando la prueba termina no se desactiva nada: las mesas siguen abriendo cuentas y los comensales siguen pagando. Splite tampoco te cobra automáticamente.",
     planSince: "Restaurante dado de alta el {date}.",
+    previewTitle: "Vista del comensal",
+    previewSub:
+      "La carta tal y como la ve alguien sentado a una mesa, sin tener que escanear nada.",
+    previewOpenReal: "Abrir en una mesa real",
+    previewNote: "Es la misma pantalla que sale en el móvil.",
+    previewFromMenu: "Ver como comensal",
+    previewBackToEdit: "Volver a editar la carta",
     paymentsNav: "Pagos",
     chargesInMenuHint: "El IVA y el servicio se configuran en",
     chargesInMenuLink: "Configuración → Cobros",
@@ -531,6 +538,12 @@ const dict = {
     planNoCutoff:
       "Nothing is switched off when the trial ends: tables keep opening bills and diners keep paying. Splite does not charge you automatically either.",
     planSince: "Restaurant registered on {date}.",
+    previewTitle: "Diner's view",
+    previewSub: "The menu as somebody sitting at a table sees it, without scanning anything.",
+    previewOpenReal: "Open on a real table",
+    previewNote: "This is the same screen the phone shows.",
+    previewFromMenu: "See it as a diner",
+    previewBackToEdit: "Back to editing the menu",
     paymentsNav: "Payments",
     chargesInMenuHint: "VAT and service are configured in",
     chargesInMenuLink: "Settings → Getting paid",

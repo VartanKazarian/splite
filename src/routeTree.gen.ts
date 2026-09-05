@@ -14,6 +14,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as PagosRouteImport } from './routes/pagos'
+import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -46,6 +47,11 @@ const MenuRoute = MenuRouteImport.update({
 const PagosRoute = PagosRouteImport.update({
   id: '/pagos',
   path: '/pagos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewRoute = PreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegistroRoute = RegistroRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/pagos': typeof PagosRoute
+  '/preview': typeof PreviewRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/pagos': typeof PagosRoute
+  '/preview': typeof PreviewRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/pagos': typeof PagosRoute
+  '/preview': typeof PreviewRoute
   '/registro': typeof RegistroRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/menu'
     | '/pagos'
+    | '/preview'
     | '/registro'
     | '/settings'
     | '/sitemap.xml'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/menu'
     | '/pagos'
+    | '/preview'
     | '/registro'
     | '/settings'
     | '/sitemap.xml'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/menu'
     | '/pagos'
+    | '/preview'
     | '/registro'
     | '/settings'
     | '/sitemap.xml'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MenuRoute: typeof MenuRoute
   PagosRoute: typeof PagosRoute
+  PreviewRoute: typeof PreviewRoute
   RegistroRoute: typeof RegistroRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -234,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/pagos'
       fullPath: '/pagos'
       preLoaderRoute: typeof PagosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview': {
+      id: '/preview'
+      path: '/preview'
+      fullPath: '/preview'
+      preLoaderRoute: typeof PreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/registro': {
@@ -301,6 +321,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MenuRoute: MenuRoute,
   PagosRoute: PagosRoute,
+  PreviewRoute: PreviewRoute,
   RegistroRoute: RegistroRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

@@ -1,18 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { Check, ExternalLink, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { Check, ChevronDown, ExternalLink, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { SetupChecklist } from "@/components/SetupChecklist";
+import { ConfigurationCard } from "@/components/panel/ConfigurationCard";
+import { PanelIntro } from "@/components/panel/PanelIntro";
+import { PendingCollection } from "@/components/panel/PendingCollection";
+import { MetricCard } from "@/components/panel/MetricCard";
+import { TableRow } from "@/components/panel/TableRow";
+import { AttentionList } from "@/components/panel/AttentionList";
+import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { usePayoutConfigured } from "@/lib/use-payout";
 import { QrCode } from "@/components/QrCode";
 import { AddProductsDialog } from "@/components/AddProductsDialog";
@@ -52,66 +52,6 @@ import {
 } from "@/lib/api";
 import { PanelHeader } from "@/components/PanelHeader";
 import { formatDay } from "../lib/dates";
-
-/**
- * La última tarjeta de la fila en la que está la tarjeta elegida.
- *
- * Hace falta porque el detalle de la mesa se mete *dentro* de la rejilla: para
- * que empuje a las demás hacia abajo tiene que ir detrás de la última tarjeta
- * de su fila, no detrás de la suya -- en dos columnas, un panel a lo ancho
- * colocado detrás de la tarjeta izquierda se baja a la fila siguiente y deja la
- * derecha vacía.
- *
- * Se mide de la geometría de las propias tarjetas: las que comparten fila
- * comparten `offsetTop`. La primera versión contaba las columnas con
- * `getComputedStyle(...).gridTemplateColumns`, y en el navegador salía mal: si
- * la hoja de estilos todavía no había llegado, la rejilla aún no era una
- * rejilla, la cuenta se quedaba en 1 y nada la volvía a mirar. La posición real
- * no tiene ese problema -- es lo que el navegador ya ha calculado, y no depende
- * de saber qué dicen las clases.
- */
-function useRowEndIndex(
-  gridRef: React.RefObject<HTMLElement | null>,
-  selectedIndex: number,
-  revision: unknown,
-): number {
-  const [rowEnd, setRowEnd] = useState(-1);
-
-  const measure = useCallback(() => {
-    const grid = gridRef.current;
-    const cards = grid ? Array.from(grid.querySelectorAll<HTMLElement>("[data-table-card]")) : [];
-    const chosen = selectedIndex >= 0 ? cards[selectedIndex] : undefined;
-    if (!chosen) {
-      setRowEnd((current) => (current === -1 ? current : -1));
-      return;
-    }
-    let last = selectedIndex;
-    // Un pixel de tolerancia: los redondeos del layout no son motivo para
-    // partir una fila en dos.
-    while (
-      last + 1 < cards.length &&
-      Math.abs((cards[last + 1] as HTMLElement).offsetTop - chosen.offsetTop) <= 1
-    ) {
-      last += 1;
-    }
-    setRowEnd((current) => (current === last ? current : last));
-  }, [gridRef, selectedIndex]);
-
-  // `useLayoutEffect` y no `useEffect`: se mide y se coloca antes de pintar, de
-  // modo que el panel no aparece un fotograma en el sitio equivocado.
-  useLayoutEffect(() => {
-    measure();
-    const grid = gridRef.current;
-    if (!grid || typeof ResizeObserver === "undefined") return;
-    // Cambiar de ancho recoloca las tarjetas, y volver a medir es barato: es lo
-    // unico que mantiene el panel en su fila al girar el telefono.
-    const observer = new ResizeObserver(measure);
-    observer.observe(grid);
-    return () => observer.disconnect();
-  }, [measure, gridRef, revision]);
-
-  return rowEnd;
-}
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -259,22 +199,11 @@ function Dashboard() {
     [tableList, floorFilter],
   );
   const busyCount = tableList.filter((tb) => tb.openBill).length;
-  const partiallyPaid = tableList.filter(
-    (tb) => tb.openBill && (tb.openBill.amountPaidVes ?? "0") !== "0",
-  ).length;
   const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
 
-  // Detrás de qué tarjeta va el detalle: la última de la fila de la mesa
-  // elegida, no la suya. Ver `useRowEndIndex`.
   // Si el Pago Móvil de esta mesa puede llegar a alguna parte. Ver el aviso
   // junto al QR.
   const payoutReady = usePayoutConfigured();
-
-  const floorGrid = useRef<HTMLDivElement>(null);
-  const selectedIndex = visibleTables.findIndex((tb) => tb.id === selected?.id);
-  // La lista de mesas es lo que hay que volver a medir cuando cambia: filtrar
-  // "ocupadas" mueve todas las tarjetas de sitio.
-  const detailAfterIndex = useRowEndIndex(floorGrid, selectedIndex, visibleTables);
 
   // El token QR es permanente por mesa: se pide una sola vez y sólo se
   // vuelve a pedir tras rotar el nonce.
@@ -300,6 +229,7 @@ function Dashboard() {
   // porque es lo que más se teclea en una caja.
   const [payMethod, setPayMethod] = useState<TillPaymentMethod>("CASH");
   const [idemKey, setIdemKey] = useState(newIdempotencyKey());
+  const [tillOpen, setTillOpen] = useState(false);
 
   const floorBill = selected?.openBill ?? null;
 
@@ -490,7 +420,7 @@ function Dashboard() {
    * la mesa elegida, y no al final de la lista.
    */
   const tableDetail = selected ? (
-    <div className="surface p-6">
+    <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         {renaming ? (
           <div className="flex items-center gap-2">
@@ -529,7 +459,7 @@ function Dashboard() {
                 setRenameValue(selected.name);
                 setRenaming(true);
               }}
-              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:bg-secondary"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs transition-colors hover:bg-secondary"
             >
               <Pencil className="h-3.5 w-3.5" /> {t("renameTable")}
             </button>
@@ -537,7 +467,7 @@ function Dashboard() {
           {bill && (
             <button
               onClick={() => setCloseOpen(true)}
-              className="rounded-full border border-border px-3 py-1.5 text-xs transition-colors hover:bg-secondary"
+              className="inline-flex min-h-11 items-center rounded-full border border-border px-4 text-xs transition-colors hover:bg-secondary"
             >
               {t("closeBill")}
             </button>
@@ -545,7 +475,7 @@ function Dashboard() {
           {!bill && (
             <button
               onClick={() => setDeleteOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-secondary"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs text-destructive transition-colors hover:bg-secondary"
             >
               <Trash2 className="h-3.5 w-3.5" /> {t("deleteTable")}
             </button>
@@ -627,7 +557,7 @@ function Dashboard() {
                   <button
                     onClick={() => removeLine.mutate(item.id)}
                     aria-label={t("remove")}
-                    className="rounded-full border border-border p-1.5 text-destructive"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-destructive"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -644,43 +574,26 @@ function Dashboard() {
             )}
           </ul>
 
-          <div className="mt-4 border-t border-border pt-4">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              {t("addLines")}
-            </p>
-            {productsQuery.isSuccess && productsQuery.data.length === 0 ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                {t("menuEmptyHint")}{" "}
-                <Link to="/menu" className="underline">
-                  {t("manageMenu")}
-                </Link>
-              </p>
-            ) : (
-              <button
-                onClick={() => setPickerOpen(true)}
-                className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:border-primary"
-              >
-                <Plus className="h-4 w-4" /> {t("chooseProducts")}
-              </button>
-            )}
-            {(productsQuery.data ?? []).some((p) => p.active && p.currency !== bill.currency) && (
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                {t("currencyMismatchHint")}{" "}
-                <Link to="/menu" className="underline">
-                  {t("manageMenu")}
-                </Link>
-              </p>
-            )}
+          {/* El diálogo se queda: lo abre ahora el botón "Añadir productos"
+              de la fila de acciones, para no tener dos sitios desde donde
+              hacer lo mismo. */}
+          <AddProductsDialog
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            products={productsQuery.data ?? []}
+            billCurrency={bill.currency}
+            pending={addLines.isPending}
+            onConfirm={(lines) => addLines.mutate(lines)}
+          />
 
-            <AddProductsDialog
-              open={pickerOpen}
-              onOpenChange={setPickerOpen}
-              products={productsQuery.data ?? []}
-              billCurrency={bill.currency}
-              pending={addLines.isPending}
-              onConfirm={(lines) => addLines.mutate(lines)}
-            />
-          </div>
+          {(productsQuery.data ?? []).some((p) => p.active && p.currency !== bill.currency) && (
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              {t("currencyMismatchHint")}{" "}
+              <Link to="/menu" className="underline">
+                {t("manageMenu")}
+              </Link>
+            </p>
+          )}
 
           <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
             <MoneyRow label={t("subtotal")} amount={totals.subtotal} currency={bill.currency} />
@@ -717,383 +630,270 @@ function Dashboard() {
             )}
           </div>
 
-          <div className="mt-5 border-t border-border pt-4">
-            <label className="text-xs uppercase tracking-widest text-muted-foreground">
-              {t("chargeAmount")}
-            </label>
-            <div className="mt-2 flex gap-2">
-              <input
-                inputMode="decimal"
-                placeholder="2.500,00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
-              />
-              <button
-                disabled={
-                  payMutation.isPending || !amount || BigInt(parseMinorInput(amount) || "0") <= 0n
-                }
-                onClick={() => payMutation.mutate()}
-                className="whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
+          {/* Las acciones de la mesa, juntas y por orden de importancia.
+              Cobrar era un formulario al final de todo esto: en un teléfono
+              había que bajar por las líneas, los totales y la tasa congelada
+              con el cliente esperando. Ahora es el botón fuerte y el
+              formulario se abre encima. */}
+          <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
+            <button
+              onClick={() => setTillOpen(true)}
+              className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 sm:flex-none"
+            >
+              {t("registerPayment")}
+            </button>
+            {productsQuery.isSuccess && productsQuery.data.length === 0 ? (
+              <Link
+                to="/menu"
+                className="inline-flex min-h-12 items-center gap-2 rounded-full border border-border px-5 text-sm transition-colors hover:bg-secondary"
               >
-                {t("takePayment")}
+                <Plus className="h-4 w-4" /> {t("manageMenu")}
+              </Link>
+            ) : (
+              <button
+                onClick={() => setPickerOpen(true)}
+                className="inline-flex min-h-12 items-center gap-2 rounded-full border border-border px-5 text-sm transition-colors hover:bg-secondary"
+              >
+                <Plus className="h-4 w-4" /> {t("addProducts")}
               </button>
-            </div>
-            {/* Cómo entró el dinero. No es una etiqueta: el informe de propinas
-                reparte por aquí -- efectivo está en caja, tarjeta y
-                transferencia se le deben al personal -- y sin esto todo se
-                registraba como pago de la app y caía en "sin clasificar". */}
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {/* Los nombres salen del diccionario: ya existían como
-                  `methodCASH`/`methodCARD`/`methodTRANSFER` y aquí estaban
-                  escritos a mano, así que en inglés seguían en español. */}
-              {(["CASH", "CARD", "TRANSFER"] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setPayMethod(value)}
-                  aria-pressed={payMethod === value}
-                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                    payMethod === value
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:bg-secondary"
-                  }`}
-                >
-                  {t(`method${value}` as never)}
-                </button>
-              ))}
-            </div>
-            {/* Lo que se va a registrar, antes de pulsar. Esta casilla
-                        leía lo tecleado como céntimos y nadie podía verlo. */}
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              {amount && BigInt(parseMinorInput(amount) || "0") > 0n
-                ? `Se registrarán ${formatMinor(parseMinorInput(amount))} Bs`
-                : t("tillAmountHint")}
-            </p>
-            {/* La clave de idempotencia ya no se enseña. Es un UUID: quien
-                cobra en una barra no puede hacer nada con él, y lo único que
-                de verdad necesitaba saber -- que reintentar no cobra dos
-                veces -- se dice sin él. La clave sigue yendo en la petición y
-                sigue protegiendo el cobro. */}
-            <p className="mt-2 text-[11px] text-muted-foreground">{t("tillRetrySafe")}</p>
+            )}
           </div>
         </>
       )}
     </div>
   ) : null;
 
+  // El plano se vuelve a pedir cada ocho segundos; "En vivo" dice eso y no
+  // otra cosa. Si esa consulta falla, se dice, en vez de dejar el punto verde
+  // encendido sobre cifras congeladas.
+  const live = tablesQuery.isSuccess && !tablesQuery.isError;
+
+  const alerts =
+    (snap?.claims.pending ?? pendingCount) +
+    (snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount);
+
   return (
     <div className="min-h-screen">
       <PanelHeader current="dashboard" />
 
-      <main className="mx-auto max-w-6xl px-5 py-8">
-        <h1 className="text-3xl">{t("dashboard")}</h1>
+      <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
+        <PanelIntro live={live} />
 
         {(me.isError || tablesQuery.isError) && (
-          <ErrorBox error={(me.error ?? tablesQuery.error) as unknown} fallback={t("apiDown")} />
+          <div className="surface mt-4 p-4">
+            <p className="text-sm">{t("tablesCouldNotLoad")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("tryAgain")}</p>
+            <button
+              onClick={() => {
+                void tablesQuery.refetch();
+                void snapshot.refetch();
+              }}
+              className="mt-3 inline-flex min-h-11 items-center rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary"
+            >
+              {t("retry")}
+            </button>
+          </div>
         )}
 
-        {/* Arriba de los recuentos, y sólo mientras falte algo: son las paredes
-            contra las que choca un comensal, no cifras del turno. */}
-        <SetupChecklist />
-
-        {/* Los cuatro recuentos no valen lo mismo. "Pendiente de cobro" es
-            dinero que la sala debe ahora mismo; los otros tres son contexto y
-            colas de trabajo. Con las cuatro casillas idénticas había que
-            leerlas todas para encontrar la única que dice si hay algo en
-            riesgo, así que esa va primera y ocupa el doble. */}
-        {/* Cinco columnas, no cuatro: "Pendiente de cobro" ocupa dos, y con
-            cuatro se quedaba una casilla sola en una segunda fila. */}
-        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
-          {/* Lo que la sala debe ahora mismo. Antes no se podía enseñar: son
-              sumas de importes, y eso lo hace el servidor. */}
-          <StatCard
-            label={t("kpiOutstanding")}
-            value={snap ? formatMoney(snap.openBills.outstandingVes, "VES") : "—"}
-            wide
-          />
-          <StatCard
-            label={t("kpiOpenTables")}
-            value={
-              snap
-                ? `${snap.tables.occupied}/${snap.tables.total}`
-                : `${busyCount}/${tableList.length}`
-            }
-          />
-          <StatCard
-            label={t("kpiClaims")}
-            value={String(snap?.claims.pending ?? pendingCount)}
-            alert={(snap?.claims.pending ?? pendingCount) > 0}
-          />
-          <StatCard
-            label={t("kpiC2P")}
-            value={String(
-              snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount,
-            )}
-            alert={
-              (snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount) >
-              0
-            }
-          />
+        {/* Compacta y a lo ancho: desaparece sola en cuanto está todo, así que
+            no se le reserva una columna para siempre. */}
+        <div className="mt-6">
+          <ConfigurationCard />
         </div>
 
-        {snap && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            {t("kpiTakenToday")
-              .replace("{n}", `${snap.taken.payments} ${plural(snap.taken.payments, "payment")}`)
-              .replace("{amount}", formatMoney(snap.taken.paymentsVes, "VES"))}
-            {BigInt(snap.taken.tipsVes) > 0n && (
-              <>{t("kpiTips").replace("{amount}", formatMoney(snap.taken.tipsVes, "VES"))}</>
-            )}
-            {snap.openBills.oldestOpenedAt && (
-              <>{t("kpiOldestBill").replace("{age}", relativeAge(snap.openBills.oldestOpenedAt))}</>
-            )}
-          </p>
-        )}
+        <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          {/* Lo operativo: cuánto se debe, cómo va el turno y las mesas. */}
+          <div className="min-w-0 space-y-6">
+            <PendingCollection
+              outstandingVes={snap?.openBills.outstandingVes ?? null}
+              openBills={snap?.openBills.count ?? null}
+              loading={snapshot.isLoading && !snap}
+            />
 
-        {/* `min-w-0` en los hijos no es cosmético. Un hijo de grid trae
-            `min-width: auto`, así que se niega a encogerse por debajo del ancho
-            mínimo de su contenido: la fila de "Crear mesa / Crear varias" medía
-            472px en un teléfono de 393 y estiraba la página entera. Todo lo de
-            debajo -- las tarjetas de mesa, los filtros, el detalle -- heredaba
-            ese ancho y quedaba descuadrado y cortado por la derecha. */}
-        <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
-          <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-xl">{t("tables")}</h2>
-              {/* Se envuelve y el campo ocupa la fila entera cuando no cabe:
-                  en un móvil el nombre de la mesa y sus dos botones no entran
-                  en la misma línea, y forzarlo era lo que desbordaba. */}
-              <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-                <input
-                  value={newTableName}
-                  onChange={(e) => setNewTableName(e.target.value)}
-                  placeholder={t("tableName")}
-                  className="min-w-0 flex-1 rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring sm:flex-none"
-                />
-                <button
-                  disabled={!newTableName.trim() || createTable.isPending}
-                  onClick={() => createTable.mutate()}
-                  className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
-                >
-                  <Plus className="h-4 w-4" /> {t("createTable")}
-                </button>
-                <button
-                  onClick={() => setBulkOpen((v) => !v)}
-                  className="whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
-                >
-                  {bulkOpen ? t("cancel") : t("bulkCreate")}
-                </button>
-              </div>
+            {/* Tres cifras de contexto. "C2P sin resolver: 0" era una casilla
+                permanente para un cero: ahora los avisos y los C2P sin
+                resolver se suman en una sola, y sin nada pendiente dice que
+                está todo al día en vez de subrayar el cero. */}
+            <div className="grid grid-cols-3 gap-3">
+              <MetricCard
+                label={t("kpiOpenTables")}
+                value={
+                  snap
+                    ? `${snap.tables.occupied}/${snap.tables.total}`
+                    : `${busyCount}/${tableList.length}`
+                }
+                loading={snapshot.isLoading && !snap}
+              />
+              <MetricCard
+                label={t("kpiTakenTodayShort")}
+                value={snap ? formatMoney(snap.taken.paymentsVes, "VES") : "—"}
+                hint={
+                  snap
+                    ? `${snap.taken.payments} ${plural(snap.taken.payments, "payment")}`
+                    : undefined
+                }
+                loading={snapshot.isLoading && !snap}
+              />
+              <MetricCard
+                label={t("kpiAlerts")}
+                value={alerts > 0 ? String(alerts) : "✓"}
+                hint={alerts > 0 ? undefined : t("allClear")}
+                tone={alerts > 0 ? "attention" : "neutral"}
+                loading={snapshot.isLoading && !snap}
+              />
             </div>
 
-            {bulkOpen && (
-              <div className="mb-3 flex flex-wrap items-end gap-2 rounded-lg border border-border bg-secondary p-3">
-                <label className="grid gap-1">
-                  <span className="text-xs text-muted-foreground">{t("bulkHowMany")}</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={200}
-                    value={bulkCount}
-                    onChange={(e) => setBulkCount(e.target.value)}
-                    className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
-                  />
-                </label>
-                <button
-                  disabled={
-                    createTablesBulk.isPending ||
-                    !(Number(bulkCount) >= 1 && Number(bulkCount) <= 200)
-                  }
-                  onClick={() => createTablesBulk.mutate()}
-                  className="rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-40"
-                >
-                  {createTablesBulk.isPending ? t("creating") : t("create")}
-                </button>
-                <p className="w-full text-[11px] text-muted-foreground">
-                  Crea «Mesa 1» hasta «Mesa {Number(bulkCount) || 0}». Las que ya existan se dejan
-                  como están y no se borra ninguna.
-                </p>
-              </div>
-            )}
-
-            <div className="mb-3 flex flex-wrap gap-2">
-              {(
-                [
-                  ["ALL", `Todas (${tableList.length})`],
-                  ["BUSY", `Ocupadas (${busyCount})`],
-                  ["FREE", `Libres (${tableList.length - busyCount})`],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  onClick={() => setFloorFilter(value)}
-                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                    floorFilter === value
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border hover:bg-secondary"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {tablesQuery.isLoading && (
-              <p className="text-sm text-muted-foreground">{t("loading")}</p>
-            )}
-            {/* `items-start` para que una mesa libre no se estire hasta la altura de
-                la ocupada que tiene al lado: sin esto, media sala vacía ocupa
-                lo mismo que media sala llena y hay que bajar por tarjetas que
-                no dicen nada. Las de una misma fila siguen compartiendo
-                `offsetTop`, que es de lo que depende dónde se inserta el
-                detalle -- ver `useRowEndIndex`. */}
-            <div ref={floorGrid} className="grid items-start gap-3 sm:grid-cols-2">
-              {visibleTables.map((tb, index) => {
-                const ob = tb.openBill;
-                const openedAt = ob ? openedAtByBill.get(ob.id) : undefined;
-                return (
-                  <Fragment key={tb.id}>
-                    <button
-                      data-table-card=""
-                      onClick={() => setSelectedId(tb.id)}
-                      className={`surface text-left transition-colors hover:border-primary ${
-                        ob ? "p-5" : "px-5 py-3.5"
-                      } ${selected?.id === tb.id ? "border-primary" : ""}`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-display text-2xl">{tb.name}</span>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs ${
-                            ob ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
-                          }`}
-                        >
-                          {ob ? t("statusOPEN") : t("tableFree")}
-                        </span>
-                      </div>
-                      {ob && (
-                        <div className="mt-3 space-y-1 text-xs text-muted-foreground figure">
-                          <div className="flex justify-between">
-                            <span>{t("total")}</span>
-                            <span className="text-foreground">
-                              {formatMoney(ob.totalDue, ob.currency)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>{t("remaining")}</span>
-                            <span className="text-foreground">
-                              {formatMinor(ob.remainingVes)} Bs
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>
-                              {ob.itemCount ?? 0} {t("lineCount")}
-                            </span>
-                            <span>{openedAt ? relativeAge(openedAt) : "—"}</span>
-                          </div>
-                        </div>
-                      )}
-                    </button>
-                    {/* El detalle, dentro de la rejilla y a lo ancho, detrás de la
-                      última tarjeta de la fila de la mesa elegida: así aparece
-                      debajo de su mesa y empuja las demás hacia abajo, en vez
-                      de aparecer al final de toda la lista. */}
-                    {index === detailAfterIndex && (
-                      <div className="sm:col-span-2">{tableDetail}</div>
-                    )}
-                  </Fragment>
-                );
-              })}
-              {!tablesQuery.isLoading && visibleTables.length === 0 && (
-                <p className="text-sm text-muted-foreground">{t("noTablesInFilter")}</p>
-              )}
-            </div>
-          </div>
-
-          <aside className="surface h-fit p-6 text-center">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">{t("qrFor")}</p>
-            <p className="mt-1 font-display text-3xl">{selected?.name ?? "—"}</p>
-            <div id="qr-print-source" className="mt-5 flex justify-center animate-fade-in">
-              {guestUrl ? (
-                <QrCode value={guestUrl} size={240} />
-              ) : (
-                <div className="h-[264px] w-[264px] rounded-lg bg-secondary" />
-              )}
-            </div>
-            <p className="mt-4 text-xs text-muted-foreground">{t("qrScanHint")}</p>
-
-            {/* Aquí y no en otro sitio: es el momento en que alguien está a
-                punto de imprimir un código y pegarlo en una mesa. Sin payee,
-                `guestPayee` devuelve null y el Pago Móvil de esa mesa no lleva
-                a ninguna parte -- y se descubre con el cliente ya sentado. */}
-            {payoutReady === false && (
-              <p className="mt-3 rounded-lg border border-amber-500/50 bg-amber-500/5 px-3 py-2 text-left text-[11px] text-muted-foreground">
-                {t("payoutMissingQr")}{" "}
-                <Link to="/settings" className="underline">
-                  {t("payoutConfigure")}
-                </Link>
+            {/* La antigüedad de la cuenta más vieja iba dentro de una frase
+                larga junto a los cobros del día; aquí es su propio dato, que
+                es como se lee de un vistazo. */}
+            {snap?.openBills.oldestOpenedAt && (
+              <p className="flex items-baseline justify-between gap-3 text-xs text-muted-foreground">
+                <span>{t("oldestBillLabel")}</span>
+                <span className="figure">{relativeAge(snap.openBills.oldestOpenedAt)}</span>
               </p>
             )}
 
-            {qrQuery.isError && <ErrorBox error={qrQuery.error} fallback={t("forbidden")} />}
-            {guestUrl && (
-              <>
-                {/* Antes de imprimir nada: un código sacado de una vista
-                    previa funciona hoy y deja de resolver cuando el host rota,
-                    semanas después y ya pegado a una mesa. Avisar no basta --
-                    el aviso se lee una vez y el papel dura meses -- así que
-                    desde aquí no se imprime. Copiar el enlace y abrir la mesa
-                    siguen disponibles: eso se usa y se tira en el momento. */}
-                {ephemeralHost && (
-                  <p className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
-                    {t("qrEphemeralHost")}
-                  </p>
+            <section aria-labelledby="live-tables-heading">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
+                <h2 id="live-tables-heading" className="text-lg">
+                  {t("liveTables")}
+                </h2>
+                {/* Los filtros que ya existían hacen de "ver todas": no hay
+                    una pantalla de Mesas aparte, y no se inventa una. */}
+                <div className="flex gap-1">
+                  {(
+                    [
+                      ["ALL", `${t("seeAll")} (${tableList.length})`],
+                      ["BUSY", `${t("tableOpenShort")} (${busyCount})`],
+                      ["FREE", `${t("tableFreeShort")} (${tableList.length - busyCount})`],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      onClick={() => setFloorFilter(value)}
+                      aria-pressed={floorFilter === value}
+                      className={`min-h-11 whitespace-nowrap rounded-full px-3 text-xs transition-colors ${
+                        floorFilter === value
+                          ? "bg-secondary font-medium text-foreground"
+                          : "text-muted-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {tablesQuery.isLoading ? (
+                <div className="surface divide-y divide-border">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="px-4 py-3">
+                      <Skeleton className="h-5 w-40" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="surface divide-y divide-border overflow-hidden">
+                  {visibleTables.map((tb) => (
+                    <Fragment key={tb.id}>
+                      <TableRow
+                        table={tb}
+                        selected={selected?.id === tb.id}
+                        onSelect={() => setSelectedId(tb.id)}
+                        fallbackOpenedAt={
+                          tb.openBill ? openedAtByBill.get(tb.openBill.id) : undefined
+                        }
+                      />
+                      {/* El detalle va justo debajo de su mesa. Con una sola
+                          columna ya no hace falta medir en qué fila cae la
+                          tarjeta elegida. */}
+                      {/* El detalle, dentro de la misma tarjeta que la lista.
+                          Con su propio `surface` eran tres tarjetas anidadas:
+                          la lista, la banda del detalle y el detalle. */}
+                      {selected?.id === tb.id && (
+                        <div className="bg-secondary/30 px-4 py-4">{tableDetail}</div>
+                      )}
+                    </Fragment>
+                  ))}
+                  {visibleTables.length === 0 && (
+                    <p className="px-4 py-6 text-sm text-muted-foreground">
+                      {t("noTablesInFilter")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Lo que no es del turno: avisos, el QR de la mesa elegida y el alta
+              de mesas, que es trabajo de montaje y no de servicio. */}
+          <div className="min-w-0 space-y-6">
+            <AttentionList
+              tables={tableList}
+              unresolvedC2P={
+                snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount
+              }
+              openedAtByBill={openedAtByBill}
+            />
+
+            <aside className="surface p-5 text-center">
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                {t("qrFor")}
+              </p>
+              <p className="mt-1 font-display text-2xl">{selected?.name ?? "—"}</p>
+              <div id="qr-print-source" className="mt-4 flex justify-center">
+                {guestUrl ? (
+                  <QrCode value={guestUrl} size={200} />
+                ) : (
+                  <div className="h-[224px] w-[224px] rounded-lg bg-secondary" />
                 )}
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">{t("qrScanHint")}</p>
 
-                {/* Abrir la mesa tal cual la abre el comensal. Es el único
-                    sitio donde se puede comprobar la cuenta de verdad: la
-                    vista previa del panel enseña la carta, porque la cuenta
-                    necesita consumo y una sesión y no se pueden inventar. */}
-                <a
-                  href={guestUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
-                >
-                  <ExternalLink className="h-4 w-4" /> {t("previewOpenReal")}
-                </a>
+              {/* Aquí y no en otro sitio: es el momento en que alguien está a
+                  punto de imprimir un código y pegarlo en una mesa. Sin payee,
+                  `guestPayee` devuelve null y el Pago Móvil de esa mesa no lleva
+                  a ninguna parte -- y se descubre con el cliente ya sentado. */}
+              {payoutReady === false && (
+                <p className="mt-3 rounded-lg border border-amber-500/50 bg-amber-500/5 px-3 py-2 text-left text-[11px] text-muted-foreground">
+                  {t("payoutMissingQr")}{" "}
+                  <Link to="/settings" className="underline">
+                    {t("payoutConfigure")}
+                  </Link>
+                </p>
+              )}
 
-                {/* El enlace lleva el token de invitado: nunca se muestra en pantalla. */}
-                <button
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(guestUrl);
-                      toast.success(t("linkCopied"));
-                    } catch {
-                      toast.error(t("apiDown"));
-                    }
-                  }}
-                  className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
-                >
-                  {t("copyLink")}
-                </button>
+              {qrQuery.isError && <ErrorBox error={qrQuery.error} fallback={t("forbidden")} />}
+              {guestUrl && (
+                <>
+                  {/* Antes de imprimir nada: un código sacado de una vista
+                      previa funciona hoy y deja de resolver cuando el host rota,
+                      semanas después y ya pegado a una mesa. Avisar no basta --
+                      el aviso se lee una vez y el papel dura meses -- así que
+                      desde aquí no se imprime. */}
+                  {ephemeralHost && (
+                    <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left text-xs">
+                      {t("qrEphemeralHost")}
+                    </p>
+                  )}
 
-                <button
-                  onClick={() => {
-                    const svg = document
-                      .getElementById("qr-print-source")
-                      ?.querySelector("svg")?.outerHTML;
-                    if (!svg) {
-                      toast.error(t("apiDown"));
-                      return;
-                    }
-                    const win = window.open("", "_blank", "width=720,height=900");
-                    if (!win) {
-                      toast.error(t("apiDown"));
-                      return;
-                    }
-                    const name = (selected?.name ?? "").replace(/[<>&]/g, "");
-                    win.document.write(`<!doctype html><html><head><meta charset="utf-8">
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        const svg = document
+                          .getElementById("qr-print-source")
+                          ?.querySelector("svg")?.outerHTML;
+                        if (!svg) {
+                          toast.error(t("apiDown"));
+                          return;
+                        }
+                        const win = window.open("", "_blank", "width=720,height=900");
+                        if (!win) {
+                          toast.error(t("apiDown"));
+                          return;
+                        }
+                        const name = (selected?.name ?? "").replace(/[<>&]/g, "");
+                        win.document.write(`<!doctype html><html><head><meta charset="utf-8">
 <title>QR ${name}</title>
 <style>
   @page { margin: 16mm; }
@@ -1110,51 +910,155 @@ function Dashboard() {
   <div class="qr">${svg}</div>
   <p class="hint">${t("qrScanHint")}</p>
 </div><script>window.onload=function(){window.focus();window.print();}<\/script></body></html>`);
-                    win.document.close();
-                  }}
-                  disabled={ephemeralHost}
-                  title={ephemeralHost ? t("qrEphemeralHost") : undefined}
-                  className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
-                >
-                  {t("printQr")}
-                </button>
+                        win.document.close();
+                      }}
+                      disabled={ephemeralHost}
+                      title={ephemeralHost ? t("qrEphemeralHost") : undefined}
+                      className="min-h-11 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                    >
+                      {t("printQr")}
+                    </button>
+
+                    {/* El enlace lleva el token de invitado: nunca se muestra. */}
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(guestUrl);
+                          toast.success(t("linkCopied"));
+                        } catch {
+                          toast.error(t("apiDown"));
+                        }
+                      }}
+                      className="min-h-11 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary"
+                    >
+                      {t("copyLink")}
+                    </button>
+                  </div>
+
+                  {/* Abrir la mesa tal cual la abre el comensal. */}
+                  <a
+                    href={guestUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary"
+                  >
+                    <ExternalLink className="h-4 w-4" /> {t("previewOpenReal")}
+                  </a>
+
+                  <button
+                    onClick={() => setRotateOpen(true)}
+                    className="mt-2 min-h-11 w-full rounded-full px-4 text-xs text-muted-foreground transition-colors hover:bg-secondary"
+                  >
+                    {t("refreshQr")}
+                  </button>
+
+                  <AlertDialog open={rotateOpen} onOpenChange={setRotateOpen}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t("refreshQr")}</AlertDialogTitle>
+                        <AlertDialogDescription>{t("rotateQrWarning")}</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={async () => {
+                            try {
+                              await tablesApi.rotateQr(selected!.id);
+                              await qrQuery.refetch();
+                              toast.success(t("refreshQr"));
+                            } catch (error) {
+                              toast.error(error instanceof ApiError ? error.code : t("apiDown"));
+                            }
+                          }}
+                        >
+                          {t("continue")}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
+            </aside>
+
+            {/* Montar la sala es trabajo de una vez, no del turno: sigue aquí y
+                sigue funcionando igual, pero plegado y al final. */}
+            <Collapsible className="surface p-4">
+              <CollapsibleTrigger className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-sm">
+                {t("manageTables")}
+                <ChevronDown aria-hidden className="h-4 w-4 text-muted-foreground" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3">
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    value={newTableName}
+                    onChange={(e) => setNewTableName(e.target.value)}
+                    placeholder={t("tableName")}
+                    aria-label={t("tableName")}
+                    className="min-h-11 min-w-0 flex-1 rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
+                  />
+                  <button
+                    disabled={!newTableName.trim() || createTable.isPending}
+                    onClick={() => createTable.mutate()}
+                    className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                  >
+                    <Plus className="h-4 w-4" /> {t("createTable")}
+                  </button>
+                </div>
 
                 <button
-                  onClick={() => setRotateOpen(true)}
-                  className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
+                  onClick={() => setBulkOpen((v) => !v)}
+                  className="mt-2 min-h-11 whitespace-nowrap rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary"
                 >
-                  {t("refreshQr")}
+                  {bulkOpen ? t("cancel") : t("bulkCreate")}
                 </button>
 
-                <AlertDialog open={rotateOpen} onOpenChange={setRotateOpen}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{t("refreshQr")}</AlertDialogTitle>
-                      <AlertDialogDescription>{t("rotateQrWarning")}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={async () => {
-                          try {
-                            await tablesApi.rotateQr(selected!.id);
-                            await qrQuery.refetch();
-                            toast.success(t("refreshQr"));
-                          } catch (error) {
-                            toast.error(error instanceof ApiError ? error.code : t("apiDown"));
-                          }
-                        }}
-                      >
-                        {t("continue")}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
-            )}
-          </aside>
-        </section>
+                {bulkOpen && (
+                  <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-border bg-secondary p-3">
+                    <label className="grid gap-1">
+                      <span className="text-xs text-muted-foreground">{t("bulkHowMany")}</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={200}
+                        value={bulkCount}
+                        onChange={(e) => setBulkCount(e.target.value)}
+                        className="min-h-11 w-28 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring"
+                      />
+                    </label>
+                    <button
+                      disabled={
+                        createTablesBulk.isPending ||
+                        !(Number(bulkCount) >= 1 && Number(bulkCount) <= 200)
+                      }
+                      onClick={() => createTablesBulk.mutate()}
+                      className="min-h-11 rounded-full bg-primary px-4 text-sm text-primary-foreground disabled:opacity-40"
+                    >
+                      {createTablesBulk.isPending ? t("creating") : t("create")}
+                    </button>
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        </div>
       </main>
+
+      {/* El cobro, encima de todo. Misma mutación, misma clave de idempotencia
+          y mismo parseo: sólo cambia dónde se teclea. */}
+      {bill && selected && (
+        <PaymentDrawer
+          open={tillOpen}
+          onOpenChange={setTillOpen}
+          tableName={selected.name}
+          remainingVes={bill.remainingVes}
+          amount={amount}
+          onAmountChange={setAmount}
+          method={payMethod}
+          onMethodChange={setPayMethod}
+          onSubmit={() => payMutation.mutate()}
+          pending={payMutation.isPending}
+        />
+      )}
     </div>
   );
 }
@@ -1199,28 +1103,6 @@ export function ErrorBox({ error, fallback }: { error: unknown; fallback: string
           Request ID: {api.requestId}
         </p>
       )}
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  alert,
-  /** La cifra que manda: ocupa la fila entera en el móvil y media en el ancho. */
-  wide,
-}: {
-  label: string;
-  value: string;
-  alert?: boolean;
-  wide?: boolean;
-}) {
-  return (
-    <div className={`surface p-4 ${alert ? "border-primary" : ""} ${wide ? "col-span-2" : ""}`}>
-      <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className={`mt-1 figure ${wide ? "text-4xl" : "text-2xl"} ${alert ? "text-primary" : ""}`}>
-        {value}
-      </p>
     </div>
   );
 }

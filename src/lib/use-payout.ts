@@ -8,7 +8,7 @@ import { account } from "./api";
  * Se consulta donde se enseña el QR, porque es ahí donde alguien está a punto
  * de imprimir un código y ponerlo en una mesa.
  *
- * Vive fuera de `SetupChecklist` a propósito: un archivo que exporta un
+ * Vive fuera de `ConfigurationCard` a propósito: un archivo que exporta un
  * componente y además otra cosa rompe el fast refresh del componente.
  *
  * Devuelve `null` mientras no se sepa. Quien lo use tiene que distinguir "no

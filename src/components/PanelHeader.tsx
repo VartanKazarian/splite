@@ -10,9 +10,17 @@ import {
 } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
-import { auth, payments } from "@/lib/api";
+import { account, auth, payments } from "@/lib/api";
 import { LangToggle } from "@/components/LangToggle";
 import { PlanBanner } from "@/components/PlanBanner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 /**
  * La misma barra en todas las pantallas del panel.
@@ -23,11 +31,14 @@ import { PlanBanner } from "@/components/PlanBanner";
  * y ninguna decía en cuál estabas.
  *
  * Se enseñan todos los destinos a todo el mundo aunque el rol no pueda con
- * alguno. No es lo mismo que la fila de saltos de Configuración, donde un
- * enlace a un ancla inexistente no hacía absolutamente nada: aquí la pantalla
- * a la que se llega explica que ese rol no puede editar la carta. Además el
- * permiso lo decide el servidor, y repetir esa política aquí es tenerla en dos
- * sitios y equivocarse en uno.
+ * alguno. El permiso lo decide el servidor, y repetir esa política aquí es
+ * tenerla en dos sitios y equivocarse en uno.
+ *
+ * **Quién manda en la cabecera.** El correo iba en grande al lado del
+ * logotipo, así que lo más prominente después de la marca era una dirección de
+ * email. Lo que un turno necesita ver ahí es de qué restaurante es este panel:
+ * el correo contesta "¿estoy yo?", que se pregunta una vez al entrar, y ahora
+ * vive detrás del avatar junto con el idioma, Configuración y salir.
  */
 export function PanelHeader({
   current,
@@ -40,11 +51,17 @@ export function PanelHeader({
 
   const me = useQuery({ queryKey: ["me"], queryFn: () => auth.me(), retry: false });
 
+  // El nombre del restaurante, de la misma consulta que ya usan Configuración
+  // y la lista de comprobación: una clave compartida, no una llamada más.
+  const accountQuery = useQuery({
+    queryKey: ["account"],
+    queryFn: () => account.get(),
+    retry: false,
+  });
+
   // El resumen, no la lista. El panel de sala contaba `claims("PENDING")`, que
   // trae hasta cien avisos enteros -- con el teléfono de quien pagó -- para
-  // pintar un número; el backend tiene un endpoint aparte justo para esto y lo
-  // dice en su propio comentario. Ahí sólo era una pantalla. Aquí se sondea
-  // desde las cinco, así que la diferencia deja de ser teórica.
+  // pintar un número; el backend tiene un endpoint aparte justo para esto.
   const claims = useQuery({
     queryKey: ["payment-claims", "summary"],
     queryFn: () => payments.claimsSummary(),
@@ -54,60 +71,91 @@ export function PanelHeader({
   });
   const pending = claims.data?.pending ?? 0;
 
+  // Configuración sale de la barra y se va al menú del avatar: es un destino de
+  // cuenta, no una parada del turno.
   const items = [
     { key: "dashboard", to: "/dashboard", icon: LayoutGrid, label: t("dashboard") },
     { key: "menu", to: "/menu", icon: UtensilsCrossed, label: t("manageMenu") },
     { key: "tasas", to: "/tasas", icon: TrendingUp, label: t("fxRates") },
     { key: "pagos", to: "/pagos", icon: BadgeCheck, label: t("paymentsNav"), badge: pending },
-    { key: "settings", to: "/settings", icon: SettingsIcon, label: t("settings") },
   ] as const;
+
+  const email = me.data?.user.email ?? "";
+  const initial = (email.trim()[0] ?? "·").toUpperCase();
 
   return (
     <>
       <header className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-5 py-4">
-          {/* Dos filas fijas, no un wrap: quién eres y salir arriba, los
-              destinos abajo. Dejándolo al wrap, en un móvil de 390px se partía
-              en tres filas -- 185px de cabecera de una pantalla de 844. */}
+        <div className="mx-auto max-w-[1400px] px-4 pt-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex min-w-0 flex-1 items-baseline gap-3">
-              <Link to="/" className="shrink-0 font-display text-2xl">
-                {t("brand")}
-              </Link>
-              {/* Quién ha entrado, en una sola línea siempre. En el móvil se queda
-                  el correo a secas: es lo que contesta "¿estoy yo o el turno de
-                  antes?" cuando el teléfono se comparte, y era lo que hacía que la
-                  cabecera ocupara tres filas de una pantalla de 844px. El rol se
-                  lee entero en Configuración. */}
-              {me.data && (
-                <span className="truncate text-sm text-muted-foreground">
-                  <span className="hidden sm:inline">
-                    {t("signedInAs")} {me.data.user.email} ·{" "}
-                    {t(`role${me.data.user.role}` as never)}
-                  </span>
-                  <span className="sm:hidden">{me.data.user.email}</span>
-                </span>
-              )}
-            </div>
+            <Link
+              to="/"
+              className="inline-flex min-h-11 shrink-0 items-center font-display text-2xl leading-none"
+            >
+              {t("brand")}
+            </Link>
 
-            <div className="flex shrink-0 items-center gap-2">
-              <LangToggle />
-              <button
-                onClick={async () => {
-                  await auth.logout();
-                  queryClient.clear();
-                  navigate({ to: "/" });
-                }}
-                className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+            {/* De qué restaurante es este panel. Sin desplegable: una cuenta de
+                Splite es un restaurante, así que un menú de un solo elemento
+                sería un gesto que no lleva a ninguna parte. */}
+            {accountQuery.data ? (
+              <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+                {accountQuery.data.name}
+              </p>
+            ) : (
+              <span className="flex-1" />
+            )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={t("account")}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-sm font-medium transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <LogOut className="h-4 w-4" /> {t("logout")}
-              </button>
-            </div>
+                {initial}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                {me.data && (
+                  <>
+                    <DropdownMenuLabel className="font-normal">
+                      <span className="block truncate text-sm">{me.data.user.email}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {t(`role${me.data.user.role}` as never)}
+                      </span>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                <div className="px-2 py-1.5">
+                  <LangToggle />
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="cursor-pointer">
+                    <SettingsIcon className="h-4 w-4" /> {t("settings")}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onSelect={async () => {
+                    await auth.logout();
+                    queryClient.clear();
+                    navigate({ to: "/" });
+                  }}
+                >
+                  <LogOut className="h-4 w-4" /> {t("logout")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* En el móvil se desliza en lugar de partirse: el panel se usa de pie
-              en el comedor, y una cabecera alta deja la pantalla para nada. */}
-          <nav className="-mx-5 mt-3 flex gap-2 overflow-x-auto px-5 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              en el comedor, y una cabecera alta deja la pantalla para nada.
+              Subrayado en vez de píldora rellena: cinco cápsulas verdes
+              competían con el único botón verde que de verdad hace algo. */}
+          <nav
+            aria-label={t("dashboard")}
+            className="-mx-4 mt-1 flex gap-1 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:hidden"
+          >
             {items.map((item) => {
               const active = item.key === current;
               const Icon = item.icon;
@@ -116,10 +164,10 @@ export function PanelHeader({
                   key={item.key}
                   to={item.to}
                   aria-current={active ? "page" : undefined}
-                  className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm transition-colors ${
+                  className={`inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 text-sm transition-colors ${
                     active
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border hover:bg-secondary"
+                      ? "border-primary font-medium text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <Icon className="h-4 w-4" /> {item.label}
@@ -127,13 +175,7 @@ export function PanelHeader({
                       lo único que decía "hay dinero esperando" y sólo se veía
                       desde el panel de sala. */}
                   {"badge" in item && item.badge > 0 && (
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] ${
-                        active
-                          ? "bg-primary-foreground text-primary"
-                          : "bg-primary text-primary-foreground"
-                      }`}
-                    >
+                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[11px] leading-none text-primary-foreground">
                       {item.badge}
                     </span>
                   )}
@@ -144,8 +186,7 @@ export function PanelHeader({
         </div>
       </header>
       {/* Debajo de la barra, no dentro: es un aviso, no un destino. Al vivir
-          aquí sale en las cinco pantallas del panel sin repetirlo en cinco
-          sitios. */}
+          aquí sale en las pantallas del panel sin repetirlo en cinco sitios. */}
       <PlanBanner />
     </>
   );

@@ -21,7 +21,7 @@ import {
   type SplitPreviewRequest,
 } from "@/lib/api";
 
-import { ErrorBox } from "@/routes/dashboard";
+import { GuestError } from "@/components/GuestError";
 import { GuestPaymentPanel } from "@/components/GuestPaymentPanel";
 import { demoBill, demoSplit } from "@/lib/demo-bill";
 
@@ -243,7 +243,7 @@ export function GuestBillScreen({
               ? t("sessionExpired")
               : t("scanNeeded")}
         </p>
-        {sessionError && !code ? <ErrorBox error={sessionError} fallback={t("apiDown")} /> : null}
+        {sessionError && !code ? <GuestError error={sessionError} /> : null}
       </Shell>
     );
   }
@@ -270,7 +270,7 @@ export function GuestBillScreen({
     return (
       <Shell {...(onBack ? { onBack } : {})}>
         <h1 className="text-3xl">{t("errorTitle")}</h1>
-        <ErrorBox error={billQuery.error} fallback={t("apiDown")} />
+        <GuestError error={billQuery.error} />
       </Shell>
     );
   }
@@ -283,6 +283,10 @@ export function GuestBillScreen({
       </Shell>
     );
   }
+
+  // Nada que pagar: ni productos ni importe. `demo` siempre tiene cuenta.
+  const nothingToPay =
+    !demo && BigInt(bill.remainingVes ?? bill.totalDueVes ?? "0") === 0n && !activeSplit;
 
   const modes: { id: SplitMode; label: string }[] = [
     { id: "FULL", label: t("payAll") },
@@ -350,7 +354,13 @@ export function GuestBillScreen({
           ))}
         </ul>
 
-        <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
+        {/* Sin nada en la cuenta, cuatro filas de ceros no informan de nada:
+            el mensaje de abajo ya dice lo que pasa. */}
+        <div
+          className={`mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground ${
+            nothingToPay ? "hidden" : ""
+          }`}
+        >
           <MoneyRow label={t("subtotal")} amount={bill.subtotalMinor} currency={bill.currency} />
           <MoneyRow
             label={`${t("iva")} ${formatBps(bill.vatBps)}`}
@@ -391,69 +401,113 @@ export function GuestBillScreen({
         )}
       </div>
 
-      <div className="surface mt-4 p-6">
-        <div className="grid grid-cols-2 gap-2">
-          {modes.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => {
-                setMode(m.id);
-                setPreview(null);
-              }}
-              className={`rounded-lg border px-3 py-2.5 text-xs transition-colors ${
-                mode === m.id
-                  ? "border-primary bg-primary/15 text-foreground"
-                  : "border-border text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              {m.label}
+      {/* Una cuenta recién abierta no tiene nada, y es justo cuando más gente
+          escanea: te sientas, ves el código y lo pruebas antes de que el
+          mesero haya metido nada. Ofrecer "Pagar todo" y las tres formas de
+          dividir sobre cero terminaba en un aviso rojo con un código de la API
+          -- SPLIT_NOTHING_OUTSTANDING -- que además decía que la cuenta ya
+          estaba pagada. No lo estaba: estaba vacía. */}
+      {nothingToPay ? (
+        <div className="surface mt-4 p-6">
+          <h2 className="text-xl">{t("billEmptyTitle")}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{t("billEmptyBody")}</p>
+          {onBack && (
+            <button onClick={onBack} className="mt-4 text-sm underline underline-offset-2">
+              {t("billEmptyMenu")}
             </button>
-          ))}
+          )}
         </div>
-
-        {mode === "EQUAL" && (
-          <div className="mt-5">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              {t("howManyDiners")}
-            </p>
-            <div className="mt-3 flex items-center gap-4">
+      ) : (
+        <div className="surface mt-4 p-6">
+          <div className="grid grid-cols-2 gap-2">
+            {modes.map((m) => (
               <button
-                onClick={() => setDiners((n) => Math.max(2, n - 1))}
-                className="h-10 w-10 rounded-full border border-border text-lg text-muted-foreground"
+                key={m.id}
+                onClick={() => {
+                  setMode(m.id);
+                  setPreview(null);
+                }}
+                className={`rounded-lg border px-3 py-2.5 text-xs transition-colors ${
+                  mode === m.id
+                    ? "border-primary bg-primary/15 text-foreground"
+                    : "border-border text-muted-foreground hover:bg-secondary"
+                }`}
               >
-                −
+                {m.label}
               </button>
-              <span className="font-display text-3xl">{diners}</span>
-              <button
-                onClick={() => setDiners((n) => Math.min(50, n + 1))}
-                className="h-10 w-10 rounded-full border border-border text-lg text-muted-foreground"
-              >
-                +
-              </button>
-            </div>
+            ))}
           </div>
-        )}
 
-        {mode === "ITEMS" && (
-          <div className="mt-5 space-y-2">
-            <p className="text-xs text-muted-foreground">{t("selectYourItems")}</p>
-            {(bill.items ?? []).map((item) => {
-              const max = item.quantity ?? 1;
-              const qty = mine[item.id] ?? 0;
-              const on = qty > 0;
-              const unit = (BigInt(item.subtotalMinor) * BigInt(qty)) / BigInt(max || 1);
+          {mode === "EQUAL" && (
+            <div className="mt-5">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                {t("howManyDiners")}
+              </p>
+              <div className="mt-3 flex items-center gap-4">
+                <button
+                  onClick={() => setDiners((n) => Math.max(2, n - 1))}
+                  className="h-10 w-10 rounded-full border border-border text-lg text-muted-foreground"
+                >
+                  −
+                </button>
+                <span className="font-display text-3xl">{diners}</span>
+                <button
+                  onClick={() => setDiners((n) => Math.min(50, n + 1))}
+                  className="h-10 w-10 rounded-full border border-border text-lg text-muted-foreground"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
 
-              // Si solo hay una unidad, basta con marcar/desmarcar el producto.
-              if (max === 1) {
+          {mode === "ITEMS" && (
+            <div className="mt-5 space-y-2">
+              <p className="text-xs text-muted-foreground">{t("selectYourItems")}</p>
+              {(bill.items ?? []).map((item) => {
+                const max = item.quantity ?? 1;
+                const qty = mine[item.id] ?? 0;
+                const on = qty > 0;
+                const unit = (BigInt(item.subtotalMinor) * BigInt(qty)) / BigInt(max || 1);
+
+                // Si solo hay una unidad, basta con marcar/desmarcar el producto.
+                if (max === 1) {
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setMineQty(item.id, on ? 0 : 1, max)}
+                      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
+                        on ? "border-primary bg-primary/15" : "border-border text-muted-foreground"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                            on ? "border-primary bg-primary/40" : "border-border"
+                          }`}
+                        >
+                          {on && <Check className="h-3 w-3" />}
+                        </span>
+                        <span>{item.name}</span>
+                      </span>
+                      <span className="w-20 shrink-0 text-right">
+                        {formatMoney(item.subtotalMinor, bill.currency)}
+                      </span>
+                    </button>
+                  );
+                }
+
                 return (
-                  <button
+                  <div
                     key={item.id}
-                    onClick={() => setMineQty(item.id, on ? 0 : 1, max)}
                     className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
                       on ? "border-primary bg-primary/15" : "border-border text-muted-foreground"
                     }`}
                   >
-                    <span className="flex items-center gap-2">
+                    <button
+                      onClick={() => setMineQty(item.id, on ? 0 : 1, max)}
+                      className="flex flex-1 items-center gap-2 text-left"
+                    >
                       <span
                         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
                           on ? "border-primary bg-primary/40" : "border-border"
@@ -462,182 +516,154 @@ export function GuestBillScreen({
                         {on && <Check className="h-3 w-3" />}
                       </span>
                       <span>{item.name}</span>
-                    </span>
-                    <span className="w-20 shrink-0 text-right">
-                      {formatMoney(item.subtotalMinor, bill.currency)}
-                    </span>
-                  </button>
-                );
-              }
+                    </button>
 
-              return (
-                <div
-                  key={item.id}
-                  className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
-                    on ? "border-primary bg-primary/15" : "border-border text-muted-foreground"
-                  }`}
-                >
-                  <button
-                    onClick={() => setMineQty(item.id, on ? 0 : 1, max)}
-                    className="flex flex-1 items-center gap-2 text-left"
-                  >
-                    <span
-                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                        on ? "border-primary bg-primary/40" : "border-border"
+                    <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-1">
+                        <button
+                          aria-label="-"
+                          onClick={() => setMineQty(item.id, qty - 1, max)}
+                          disabled={qty <= 0}
+                          className="h-7 w-7 rounded-full border border-border text-sm disabled:opacity-30"
+                        >
+                          −
+                        </button>
+                        <span className="w-5 text-center tabular-nums">{qty}</span>
+                        <button
+                          aria-label="+"
+                          onClick={() => setMineQty(item.id, qty + 1, max)}
+                          disabled={qty >= max}
+                          className="h-7 w-7 rounded-full border border-border text-sm disabled:opacity-30"
+                        >
+                          +
+                        </button>
+                      </span>
+                      <span className="w-20 shrink-0 text-right">
+                        {formatMoney(unit.toString(), bill.currency)}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {mode === "CUSTOM" && (
+            <div className="mt-5">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                {t("yourAmount")}
+              </p>
+              <input
+                inputMode="decimal"
+                placeholder="0,00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="mt-3 w-full rounded-lg border border-input bg-secondary px-3 py-2.5 text-sm outline-none focus:border-ring"
+              />
+            </div>
+          )}
+
+          {splitMutation.isPending && (
+            <p className="mt-5 text-xs text-muted-foreground">{t("calculating")}</p>
+          )}
+
+          {splitMutation.isError && <GuestError error={splitMutation.error} />}
+
+          {preview && !splitMutation.isPending && (
+            <div className="mt-5 border-t border-border pt-4">
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                  {mode === "EQUAL" ? t("perPerson") : t("yourShare")}
+                </span>
+                <span className="font-display text-3xl">
+                  {formatMoney(myShare(preview, mode), "VES")}
+                </span>
+              </div>
+              <div className="mt-3 flex justify-between text-xs text-muted-foreground">
+                <span>{t("outstanding")}</span>
+                <span>{formatMoney(preview.outstandingVes, "VES")}</span>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{t("allocated")}</span>
+                <span>{formatMoney(preview.totalAllocatedVes, "VES")}</span>
+              </div>
+              <div className="mt-5 border-t border-border pt-4">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                  {t("tipTitle")}
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">{t("tipHint")}</p>
+                <div className="mt-3 grid grid-cols-5 gap-2">
+                  {[0, 5, 10, 15].map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => {
+                        setTipPct(p);
+                        setTipCustom("");
+                      }}
+                      className={`rounded-lg border px-2 py-2 text-xs transition-colors ${
+                        tipPct === p
+                          ? "border-primary bg-primary/15 text-foreground"
+                          : "border-border text-muted-foreground hover:bg-secondary"
                       }`}
                     >
-                      {on && <Check className="h-3 w-3" />}
-                    </span>
-                    <span>{item.name}</span>
-                  </button>
-
-                  <span className="flex items-center gap-2">
-                    <span className="flex items-center gap-1">
-                      <button
-                        aria-label="-"
-                        onClick={() => setMineQty(item.id, qty - 1, max)}
-                        disabled={qty <= 0}
-                        className="h-7 w-7 rounded-full border border-border text-sm disabled:opacity-30"
-                      >
-                        −
-                      </button>
-                      <span className="w-5 text-center tabular-nums">{qty}</span>
-                      <button
-                        aria-label="+"
-                        onClick={() => setMineQty(item.id, qty + 1, max)}
-                        disabled={qty >= max}
-                        className="h-7 w-7 rounded-full border border-border text-sm disabled:opacity-30"
-                      >
-                        +
-                      </button>
-                    </span>
-                    <span className="w-20 shrink-0 text-right">
-                      {formatMoney(unit.toString(), bill.currency)}
-                    </span>
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {mode === "CUSTOM" && (
-          <div className="mt-5">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              {t("yourAmount")}
-            </p>
-            <input
-              inputMode="decimal"
-              placeholder="0,00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="mt-3 w-full rounded-lg border border-input bg-secondary px-3 py-2.5 text-sm outline-none focus:border-ring"
-            />
-          </div>
-        )}
-
-        {splitMutation.isPending && (
-          <p className="mt-5 text-xs text-muted-foreground">{t("calculating")}</p>
-        )}
-
-        {splitMutation.isError && <ErrorBox error={splitMutation.error} fallback={t("apiDown")} />}
-
-        {preview && !splitMutation.isPending && (
-          <div className="mt-5 border-t border-border pt-4">
-            <div className="flex items-baseline justify-between">
-              <span className="text-xs uppercase tracking-widest text-muted-foreground">
-                {mode === "EQUAL" ? t("perPerson") : t("yourShare")}
-              </span>
-              <span className="font-display text-3xl">
-                {formatMoney(myShare(preview, mode), "VES")}
-              </span>
-            </div>
-            <div className="mt-3 flex justify-between text-xs text-muted-foreground">
-              <span>{t("outstanding")}</span>
-              <span>{formatMoney(preview.outstandingVes, "VES")}</span>
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{t("allocated")}</span>
-              <span>{formatMoney(preview.totalAllocatedVes, "VES")}</span>
-            </div>
-            <div className="mt-5 border-t border-border pt-4">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                {t("tipTitle")}
-              </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">{t("tipHint")}</p>
-              <div className="mt-3 grid grid-cols-5 gap-2">
-                {[0, 5, 10, 15].map((p) => (
+                      {p === 0 ? t("tipNone") : `${p}%`}
+                    </button>
+                  ))}
                   <button
-                    key={p}
-                    onClick={() => {
-                      setTipPct(p);
-                      setTipCustom("");
-                    }}
+                    onClick={() => setTipPct(null)}
                     className={`rounded-lg border px-2 py-2 text-xs transition-colors ${
-                      tipPct === p
+                      tipPct === null
                         ? "border-primary bg-primary/15 text-foreground"
                         : "border-border text-muted-foreground hover:bg-secondary"
                     }`}
                   >
-                    {p === 0 ? t("tipNone") : `${p}%`}
+                    {t("tipOther")}
                   </button>
-                ))}
-                <button
-                  onClick={() => setTipPct(null)}
-                  className={`rounded-lg border px-2 py-2 text-xs transition-colors ${
-                    tipPct === null
-                      ? "border-primary bg-primary/15 text-foreground"
-                      : "border-border text-muted-foreground hover:bg-secondary"
-                  }`}
-                >
-                  {t("tipOther")}
-                </button>
-              </div>
-              {tipPct === null && (
-                <input
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={tipCustom}
-                  onChange={(e) => setTipCustom(e.target.value)}
-                  className="mt-3 w-full rounded-lg border border-input bg-secondary px-3 py-2.5 text-sm outline-none focus:border-ring"
-                />
-              )}
-              <div className="mt-3 flex justify-between text-xs text-muted-foreground">
-                <span>{t("tipAmount")}</span>
-                <span>{formatMoney(tipMinor, "VES")}</span>
-              </div>
-              <div className="mt-1 flex items-baseline justify-between text-foreground">
-                <span className="text-xs uppercase tracking-widest">{t("yourTotalWithTip")}</span>
-                <span className="font-display text-2xl">
-                  {formatMoney(
-                    (BigInt(myShare(preview, mode)) + BigInt(tipMinor)).toString(),
-                    "VES",
-                  )}
-                </span>
-              </div>
-            </div>
-            <p className="mt-3 text-[11px] text-muted-foreground">{t("guestNoPay")}</p>
-
-            {!demo && !activeSplit && (
-              <div className="mt-4 border-t border-border pt-4">
-                <button
-                  disabled={confirmSplit.isPending}
-                  onClick={() => confirmSplit.mutate()}
-                  className="w-full rounded-lg border border-primary bg-primary/15 px-4 py-3 text-sm text-foreground disabled:opacity-40"
-                >
-                  {confirmSplit.isPending ? "Guardando…" : "Confirmar división"}
-                </button>
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  Al confirmarla, cada parte queda guardada y se paga por separado.
-                </p>
-                {confirmSplit.isError && (
-                  <ErrorBox error={confirmSplit.error} fallback={t("apiDown")} />
+                </div>
+                {tipPct === null && (
+                  <input
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={tipCustom}
+                    onChange={(e) => setTipCustom(e.target.value)}
+                    className="mt-3 w-full rounded-lg border border-input bg-secondary px-3 py-2.5 text-sm outline-none focus:border-ring"
+                  />
                 )}
+                <div className="mt-3 flex justify-between text-xs text-muted-foreground">
+                  <span>{t("tipAmount")}</span>
+                  <span>{formatMoney(tipMinor, "VES")}</span>
+                </div>
+                <div className="mt-1 flex items-baseline justify-between text-foreground">
+                  <span className="text-xs uppercase tracking-widest">{t("yourTotalWithTip")}</span>
+                  <span className="font-display text-2xl">
+                    {formatMoney(
+                      (BigInt(myShare(preview, mode)) + BigInt(tipMinor)).toString(),
+                      "VES",
+                    )}
+                  </span>
+                </div>
               </div>
-            )}
-          </div>
-        )}
-      </div>
+              <p className="mt-3 text-[11px] text-muted-foreground">{t("guestNoPay")}</p>
+
+              {!demo && !activeSplit && (
+                <div className="mt-4 border-t border-border pt-4">
+                  <button
+                    disabled={confirmSplit.isPending}
+                    onClick={() => confirmSplit.mutate()}
+                    className="w-full rounded-lg border border-primary bg-primary/15 px-4 py-3 text-sm text-foreground disabled:opacity-40"
+                  >
+                    {confirmSplit.isPending ? "Guardando…" : "Confirmar división"}
+                  </button>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Al confirmarla, cada parte queda guardada y se paga por separado.
+                  </p>
+                  {confirmSplit.isError && <GuestError error={confirmSplit.error} />}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {activeSplit && (
         <div className="surface mt-4 p-6">
@@ -681,13 +707,20 @@ export function GuestBillScreen({
         </div>
       )}
 
-      <GuestPaymentPanel
-        bill={bill}
-        demo={demo}
-        {...(myParticipant
-          ? { splitParticipantId: myParticipant.id, shareRemainingVes: myParticipant.remainingVes }
-          : {})}
-      />
+      {/* Cierra la rama de "hay algo que pagar": sin nada en la cuenta no se
+          enseñan ni las formas de dividir ni el panel de pago. */}
+      {!nothingToPay && (
+        <GuestPaymentPanel
+          bill={bill}
+          demo={demo}
+          {...(myParticipant
+            ? {
+                splitParticipantId: myParticipant.id,
+                shareRemainingVes: myParticipant.remainingVes,
+              }
+            : {})}
+        />
+      )}
     </div>
   );
 }

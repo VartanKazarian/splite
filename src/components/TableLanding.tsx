@@ -5,7 +5,7 @@ import { ArrowLeft, BookOpen, Receipt } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, guest, guestSession, scannedQr } from "@/lib/api";
-import { ErrorBox } from "@/routes/dashboard";
+import { GuestError } from "@/components/GuestError";
 import { GuestBillScreen } from "@/components/GuestBillScreen";
 import { GuestMenuView } from "@/components/GuestMenuView";
 import { RestaurantHero } from "@/components/RestaurantHero";
@@ -184,7 +184,7 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
     return (
       <Shell>
         <h1 className="text-3xl">{t("errorTitle")}</h1>
-        <ErrorBox error={contextQuery.error} fallback={t("apiDown")} />
+        <GuestError error={contextQuery.error} />
       </Shell>
     );
   }
@@ -246,7 +246,7 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
           />
         </div>
 
-        {openError ? <ErrorBox error={openError} fallback={t("apiDown")} /> : null}
+        {openError ? <GuestError error={openError} /> : null}
       </div>
     </div>
   );

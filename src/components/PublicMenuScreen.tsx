@@ -5,7 +5,7 @@ import { ChevronDown, FileText, List, Search, X } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { API_BASE_URL, formatMoney, menu, type PublicMenu, type PublicProduct } from "@/lib/api";
-import { ErrorBox } from "@/routes/dashboard";
+import { GuestError } from "@/components/GuestError";
 
 /**
  * La carta, tal y como la lee un comensal sentado en la mesa.
@@ -39,7 +39,7 @@ export function PublicMenuScreen({ restaurantId }: { restaurantId: string }) {
   if (menuQuery.isError) {
     return (
       <div className="px-5">
-        <ErrorBox error={menuQuery.error} fallback={t("apiDown")} />
+        <GuestError error={menuQuery.error} />
       </div>
     );
   }

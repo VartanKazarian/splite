@@ -177,6 +177,9 @@ const dict = {
     menuPdf: "Ver la carta completa",
     menuPdfHint: "Se abre el PDF del restaurante",
     backToTable: "Volver a la mesa",
+    menuSearch: "Buscar en la carta",
+    menuSearchPlaceholder: "Buscar un plato",
+    menuSearchEmpty: "Nada en la carta coincide con «{term}».",
     restaurantName: "Nombre del restaurante",
     restaurantNameHint:
       "Es lo primero que lee un comensal al escanear el código de la mesa, encima del número de mesa.",
@@ -439,6 +442,9 @@ const dict = {
     menuPdf: "See the full menu",
     menuPdfHint: "Opens the restaurant's PDF",
     backToTable: "Back to the table",
+    menuSearch: "Search the menu",
+    menuSearchPlaceholder: "Search for a dish",
+    menuSearchEmpty: "Nothing on the menu matches “{term}”.",
     restaurantName: "Restaurant name",
     restaurantNameHint:
       "The first thing a diner reads after scanning the table code, above the table number.",

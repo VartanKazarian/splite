@@ -192,8 +192,11 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
 
   if (view === "menu") {
     return (
-      <div className="mx-auto min-h-screen w-full max-w-md px-5 pb-16">
-        <header className="flex items-center justify-between py-5">
+      // Sin la tarjeta ni el `px-5` del resto de pantallas: la carta va de
+      // borde a borde, con sus propios márgenes por fila y sus separadores de
+      // ancho completo, que es como se lee una carta y no un formulario.
+      <div className="mx-auto min-h-screen w-full max-w-md">
+        <header className="flex items-center justify-between px-5 py-5">
           <button
             onClick={() => go("landing")}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground"
@@ -201,13 +204,11 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
             <ArrowLeft className="h-4 w-4" /> {context.table.name}
           </button>
         </header>
-        <div className="surface p-6">
+        <div className="px-5 pb-1">
           <h1 className="text-3xl">{t("theMenu")}</h1>
           <p className="mt-1 text-xs text-muted-foreground">{context.restaurant.name}</p>
-          <div className="mt-6">
-            <PublicMenuScreen restaurantId={context.restaurant.id} />
-          </div>
         </div>
+        <PublicMenuScreen restaurantId={context.restaurant.id} />
       </div>
     );
   }

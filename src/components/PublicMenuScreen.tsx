@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { FileText, Search, X } from "lucide-react";
+import { ChevronDown, FileText, List, Search, X } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { API_BASE_URL, formatMoney, menu, type PublicMenu, type PublicProduct } from "@/lib/api";
@@ -58,13 +58,12 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [active, setActive] = useState(0);
+  const [browsing, setBrowsing] = useState(false);
   const searchInput = useRef<HTMLInputElement>(null);
   // Un ancla por sección, para saltar a ella y para saber cuál se está mirando.
   const anchors = useRef<(HTMLElement | null)[]>([]);
   // Hasta cuándo el salto tiene prioridad sobre la posición. Ver el efecto.
   const locked = useRef(0);
-  // La tira de pestañas, para traer la marcada a la vista.
-  const chips = useRef<HTMLDivElement>(null);
 
   // La carta subida, si la hay. Se enlaza en vez de incrustarla: un visor de
   // PDF dentro de un iframe en un móvil es peor que el del propio teléfono, y
@@ -130,27 +129,10 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, [term, shown.length]);
 
-  // La pestaña marcada se trae a la vista cuando cambia: con seis secciones no
-  // caben todas en el ancho de un móvil, y la activa quedándose fuera de
-  // pantalla es justo lo que hace que uno deje de saber en qué parte va.
-  //
-  // Moviendo la tira a mano y no con `scrollIntoView`: ese método recoloca
-  // *todos* los contenedores con scroll por encima, incluida la página, y en el
-  // navegador se llevaba la carta de vuelta arriba justo después de saltar a
-  // una sección -- el salto parecía no funcionar. Aquí sólo se mueve la tira.
-  useEffect(() => {
-    const strip = chips.current;
-    const chip = strip?.children[active] as HTMLElement | undefined;
-    if (!strip || !chip) return;
-    const stripBox = strip.getBoundingClientRect();
-    const chipBox = chip.getBoundingClientRect();
-    const delta = chipBox.left - stripBox.left - (stripBox.width - chipBox.width) / 2;
-    strip.scrollTo({ left: strip.scrollLeft + delta, behavior: "smooth" });
-  }, [active]);
-
   const jump = (index: number) => {
     const el = anchors.current[index];
     if (!el) return;
+    setBrowsing(false);
     setActive(index);
     // Lo que dura un scroll suave. Pasado eso vuelve a mandar la posición, así
     // que en cuanto el comensal desliza con el dedo la marca se corrige sola.
@@ -200,27 +182,21 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
             </div>
           ) : (
             <>
-              {/* Las secciones, en una tira que se desplaza. La activa se marca
-                  sola según lo que se esté viendo, y pulsarla salta ahí. */}
-              <div
-                ref={chips}
-                className="flex flex-1 gap-1.5 overflow-x-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              {/* La sección en la que va, y la puerta a todas las demás.
+                  Una tira de pestañas obliga a desplazarla para encontrar
+                  "Cafés" en una carta de doce secciones; una lista las enseña
+                  todas de una vez, y con cuántos platos tiene cada una. */}
+              <button
+                onClick={() => setBrowsing(true)}
+                aria-haspopup="dialog"
+                className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-border px-4 py-2 text-left"
               >
-                {shown.map((group, i) => (
-                  <button
-                    key={group.id ?? "__none__"}
-                    onClick={() => jump(i)}
-                    aria-current={i === active}
-                    className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs transition-colors ${
-                      i === active
-                        ? "bg-primary text-primary-foreground"
-                        : "border border-border text-muted-foreground"
-                    }`}
-                  >
-                    {group.name ?? t("menuOther")}
-                  </button>
-                ))}
-              </div>
+                <List className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  {shown[active]?.name ?? t("menuOther")}
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </button>
               <button
                 onClick={() => {
                   setSearching(true);
@@ -243,6 +219,56 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
         <p className="px-5 pt-6 text-sm text-muted-foreground">
           {t("menuSearchEmpty").replace("{term}", query.trim())}
         </p>
+      )}
+
+      {/*
+        Las secciones, todas a la vez y con cuántos platos tiene cada una.
+        Es lo que convierte "¿tendrán postres?" en una respuesta sin recorrer
+        la carta entera.
+      */}
+      {browsing && (
+        <div className="fixed inset-0 z-20 flex flex-col justify-end">
+          <button
+            aria-label={t("cancel")}
+            onClick={() => setBrowsing(false)}
+            className="absolute inset-0 bg-black/40"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("browseMenu")}
+            className="relative max-h-[75vh] overflow-y-auto rounded-t-2xl border-t border-border bg-background pb-6"
+          >
+            <div className="sticky top-0 flex items-center justify-between border-b border-border bg-background px-5 py-4">
+              <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                {t("browseMenu")}
+              </span>
+              <button onClick={() => setBrowsing(false)} aria-label={t("cancel")}>
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+            <ul className="p-2">
+              {shown.map((group, i) => (
+                <li key={group.id ?? "__none__"}>
+                  <button
+                    onClick={() => jump(i)}
+                    aria-current={i === active}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-left ${
+                      i === active ? "bg-primary/10 text-primary" : ""
+                    }`}
+                  >
+                    <span className="min-w-0 truncate text-[15px]">
+                      {group.name ?? t("menuOther")}
+                    </span>
+                    <span className="ml-4 shrink-0 text-sm tabular-nums text-muted-foreground">
+                      {group.products.length}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       )}
 
       {shown.map((group, i) => (

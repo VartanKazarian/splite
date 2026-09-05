@@ -24,6 +24,7 @@ import { StaffManager } from "@/components/StaffManager";
 import { ChangePassword } from "@/components/ChangePassword";
 import { MfaPanel } from "@/components/MfaPanel";
 import { RestaurantName } from "@/components/RestaurantName";
+import { RestaurantBranding } from "@/components/RestaurantBranding";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -31,10 +32,15 @@ export const Route = createFileRoute("/settings")({
       { title: "Configuración del restaurante — Splite" },
       {
         name: "description",
-        content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+        content:
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
       { property: "og:title", content: "Configuración del restaurante — Splite" },
-      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
+      {
+        property: "og:description",
+        content:
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -213,6 +219,13 @@ function SettingsPage() {
                 cliente. Lo demás -- moneda, cargos, cobro -- lo ve el negocio. */}
             <RestaurantName canEdit={role === "OWNER" || role === "MANAGER"} />
 
+            {/* Junto al nombre: las tres cosas de esta pantalla que ve un
+                cliente van juntas, y el resto es del negocio. */}
+            <RestaurantBranding
+              restaurantId={settings.data?.id}
+              canEdit={role === "OWNER" || role === "MANAGER"}
+            />
+
             <section className="surface mt-6 p-6">
               <h2 className="text-xl">{t("menuCurrency")}</h2>
               {settings.isError && <ErrorBox error={settings.error} fallback={t("apiDown")} />}
@@ -310,7 +323,6 @@ function SettingsPage() {
             {role === "OWNER" && <ProvidersSection />}
           </>
         )}
-
       </main>
     </div>
   );
@@ -462,7 +474,13 @@ function PayoutSection() {
   );
 }
 
-const MERCANTIL_FIELDS = ["merchantId", "clientId", "secretKey", "integratorId", "terminalId"] as const;
+const MERCANTIL_FIELDS = [
+  "merchantId",
+  "clientId",
+  "secretKey",
+  "integratorId",
+  "terminalId",
+] as const;
 
 /**
  * Credenciales del banco para cobrar C2P dentro de la app. Sólo OWNER.
@@ -479,7 +497,9 @@ function ProvidersSection() {
     retry: false,
   });
 
-  const mercantil = (providersQuery.data ?? []).find((p: PaymentProviderConfig) => p.provider === "MERCANTIL") ?? null;
+  const mercantil =
+    (providersQuery.data ?? []).find((p: PaymentProviderConfig) => p.provider === "MERCANTIL") ??
+    null;
 
   const save = useMutation({
     mutationFn: () => account.setProvider("MERCANTIL", values),
@@ -570,4 +590,3 @@ function ProvidersSection() {
     </section>
   );
 }
-

@@ -8,6 +8,7 @@ import { ApiError, guest, guestSession, scannedQr } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
 import { GuestBillScreen } from "@/components/GuestBillScreen";
 import { PublicMenuScreen } from "@/components/PublicMenuScreen";
+import { RestaurantHero } from "@/components/RestaurantHero";
 import type { GuestView } from "@/lib/guest-view";
 
 type View = GuestView | "landing";
@@ -204,9 +205,12 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
             <ArrowLeft className="h-4 w-4" /> {context.table.name}
           </button>
         </header>
-        <div className="px-5 pb-1">
-          <h1 className="text-3xl">{t("theMenu")}</h1>
-          <p className="mt-1 text-xs text-muted-foreground">{context.restaurant.name}</p>
+        <div className="px-5 pb-3">
+          <RestaurantHero
+            branding={context.restaurant}
+            name={context.restaurant.name}
+            above={t("theMenu")}
+          />
         </div>
         <PublicMenuScreen restaurantId={context.restaurant.id} />
       </div>
@@ -222,12 +226,14 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
         <span className="text-sm text-muted-foreground">{t("brand")}</span>
       </header>
 
-      <div className="surface p-6">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          {context.table.name}
-        </p>
-        <h1 className="mt-1 text-3xl">{context.restaurant.name}</h1>
-        <p className="mt-3 text-sm text-muted-foreground">{t("landingPrompt")}</p>
+      <RestaurantHero
+        branding={context.restaurant}
+        name={context.restaurant.name}
+        above={context.table.name}
+      />
+
+      <div className="surface mt-6 p-6">
+        <p className="text-center text-sm text-muted-foreground">{t("landingPrompt")}</p>
 
         <div className="mt-6 space-y-3">
           <Choice

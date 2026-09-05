@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { ApiError, guest, guestSession, scannedQr } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
 import { GuestBillScreen } from "@/components/GuestBillScreen";
-import { PublicMenuScreen } from "@/components/PublicMenuScreen";
+import { GuestMenuView } from "@/components/GuestMenuView";
 import { RestaurantHero } from "@/components/RestaurantHero";
 import type { GuestView } from "@/lib/guest-view";
 
@@ -193,27 +193,20 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
 
   if (view === "menu") {
     return (
-      // Sin la tarjeta ni el `px-5` del resto de pantallas: la carta va de
-      // borde a borde, con sus propios márgenes por fila y sus separadores de
-      // ancho completo, que es como se lee una carta y no un formulario.
-      <div className="mx-auto min-h-screen w-full max-w-md">
-        <header className="flex items-center justify-between px-5 py-5">
+      <GuestMenuView
+        restaurantId={context.restaurant.id}
+        branding={context.restaurant}
+        name={context.restaurant.name}
+        above={t("theMenu")}
+        back={
           <button
             onClick={() => go("landing")}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground"
           >
             <ArrowLeft className="h-4 w-4" /> {context.table.name}
           </button>
-        </header>
-        <div className="px-5 pb-3">
-          <RestaurantHero
-            branding={context.restaurant}
-            name={context.restaurant.name}
-            above={t("theMenu")}
-          />
-        </div>
-        <PublicMenuScreen restaurantId={context.restaurant.id} />
-      </div>
+        }
+      />
     );
   }
 

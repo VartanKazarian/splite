@@ -13,6 +13,23 @@
 export const API_BASE_URL: string =
   import.meta.env["VITE_API_BASE_URL"] ?? "https://splite-backend-production.up.railway.app";
 
+/**
+ * De dónde cuelgan los enlaces que se imprimen en un QR de mesa.
+ *
+ * Estaba escrito a mano como "https://splite.lovable.app" dentro del panel, así
+ * que el código impreso apuntaba ahí pasara lo que pasara: en local se imprimían
+ * QRs que mandaban a producción, y el día que el panel viva en otro dominio los
+ * códigos ya pegados en las mesas seguirían llevando al de antes.
+ *
+ * Por defecto, el origen desde el que se está mirando el panel: el comensal
+ * acaba en la misma app. `VITE_GUEST_BASE_URL` lo fija cuando hacen falta
+ * códigos canónicos desde un despliegue de vista previa -- ahí el origen es una
+ * URL temporal, y un QR impreso con ella deja de funcionar cuando caduca.
+ */
+export const GUEST_BASE_URL: string =
+  import.meta.env["VITE_GUEST_BASE_URL"] ??
+  (typeof window === "undefined" ? "" : window.location.origin);
+
 /** "1893852" -> "18.938,52" (agrupación venezolana). Pura manipulación de strings. */
 export function formatMinor(minor: string): string {
   const negative = minor.startsWith("-");

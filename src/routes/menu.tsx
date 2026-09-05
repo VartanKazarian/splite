@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, Pencil, Plus, Search, Tag, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Pencil, Plus, Search, Smartphone, Tag, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { MenuOcrImport } from "@/components/MenuOcrImport";
@@ -30,10 +30,15 @@ export const Route = createFileRoute("/menu")({
       { title: "Menú del restaurante — Splite" },
       {
         name: "description",
-        content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+        content:
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
       { property: "og:title", content: "Menú del restaurante — Splite" },
-      { property: "og:description", content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia." },
+      {
+        property: "og:description",
+        content:
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+      },
     ],
   }),
   component: MenuPage,
@@ -73,7 +78,11 @@ function legacyCategoryNames(): string[] {
 }
 
 function forgetLegacyCategories() {
-  try { localStorage.removeItem(CATEGORY_KEY); } catch { /* nada que hacer */ }
+  try {
+    localStorage.removeItem(CATEGORY_KEY);
+  } catch {
+    /* nada que hacer */
+  }
 }
 
 /* ---------------------------------------------------------------- helpers */
@@ -144,7 +153,10 @@ function MenuPage() {
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
 
-  const categoryRows = useMemo<MenuCategory[]>(() => categories.data?.data ?? [], [categories.data]);
+  const categoryRows = useMemo<MenuCategory[]>(
+    () => categories.data?.data ?? [],
+    [categories.data],
+  );
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["menu-products"] });
   // Al mover un producto cambia el recuento de las secciones.
@@ -235,15 +247,14 @@ function MenuPage() {
     const q = query.trim().toLowerCase();
     // Sin sección va al final, nunca intercalado.
     const rank = (p: Product) =>
-      p.categoryId ? (orderOf.get(p.categoryId) ?? Number.MAX_SAFE_INTEGER - 1) : Number.MAX_SAFE_INTEGER;
+      p.categoryId
+        ? (orderOf.get(p.categoryId) ?? Number.MAX_SAFE_INTEGER - 1)
+        : Number.MAX_SAFE_INTEGER;
     return all
-      .filter((p) =>
-        status === "ALL" ? true : status === "ACTIVE" ? p.active : !p.active,
-      )
+      .filter((p) => (status === "ALL" ? true : status === "ACTIVE" ? p.active : !p.active))
       .filter((p) =>
         q
-          ? p.name.toLowerCase().includes(q) ||
-            (p.description ?? "").toLowerCase().includes(q)
+          ? p.name.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q)
           : true,
       )
       .filter((p) => {
@@ -286,7 +297,18 @@ function MenuPage() {
       <PanelHeader current="menu" />
 
       <main className="mx-auto max-w-4xl px-5 py-8">
-        <h1 className="text-3xl">{t("menuTitle")}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-3xl">{t("menuTitle")}</h1>
+          {/* Comprobar la carta no debería costar imprimir un código, ir a una
+              mesa y escanearlo con el móvil -- que es por lo que no la
+              comprobaba nadie. */}
+          <Link
+            to="/preview"
+            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary"
+          >
+            <Smartphone className="h-4 w-4" /> {t("previewFromMenu")}
+          </Link>
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">{t("menuSub")}</p>
         {/* Los cargos deciden el total de una cuenta, y se buscan aquí. Se
             quedan en Configuración con el resto del dinero -- IVA, servicio y
@@ -561,7 +583,10 @@ function MenuPage() {
                     <ul>
                       {items.map((p) =>
                         editing?.id === p.id ? (
-                          <li key={p.id} className="rounded-lg border border-border bg-secondary/40 mb-0.5 px-3 py-2">
+                          <li
+                            key={p.id}
+                            className="rounded-lg border border-border bg-secondary/40 mb-0.5 px-3 py-2"
+                          >
                             <EditRow
                               product={p}
                               categories={categoryRows}
@@ -622,7 +647,9 @@ function MenuPage() {
                                 <Pencil className="h-3 w-3" />
                               </button>
                               <button
-                                onClick={() => update.mutate({ id: p.id, body: { active: !p.active } })}
+                                onClick={() =>
+                                  update.mutate({ id: p.id, body: { active: !p.active } })
+                                }
                                 className="rounded-full border border-border px-2.5 py-0.5 text-[11px] hover:bg-secondary"
                               >
                                 {p.active ? t("deactivate") : t("activate")}

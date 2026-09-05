@@ -4,6 +4,8 @@ import { ArrowDown, ArrowUp, Check, Eye, EyeOff, Pencil, Plus, Trash2, X } from 
 import { toast } from "sonner";
 
 import { ApiError, menu, type MenuCategory } from "@/lib/api";
+import { ConfirmButton } from "@/components/ConfirmButton";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * Las secciones del menú, mantenidas a mano.
@@ -25,6 +27,7 @@ export function MenuSections({
   /** Categorías que quedaron en este navegador, si las hay. */
   legacy?: { names: string[]; onImported: () => void };
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -276,23 +279,21 @@ export function MenuSections({
                 >
                   {c.active ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                 </button>
-                <button
-                  onClick={() => {
-                    // Borrar la cabecera no borra la comida, y conviene decirlo
-                    // antes y no después.
-                    const n = c.productCount ?? 0;
-                    const warning =
-                      n > 0
-                        ? `Se elimina la sección "${c.name}". Sus ${n} producto(s) quedan sin sección, siguen a la venta. ¿Continuar?`
-                        : `¿Eliminar la sección "${c.name}"?`;
-                    if (window.confirm(warning)) remove.mutate(c.id);
-                  }}
+                {/* Borrar la cabecera no borra la comida, y conviene decirlo
+                    antes y no después. Con el `confirm()` del navegador el
+                    aviso iba escrito a mano en español: el selector de idioma
+                    no lo tocaba. */}
+                <ConfirmButton
+                  title={t("confirmDeleteSection")}
+                  description={t("confirmDeleteSectionBody")}
+                  confirmLabel={t("confirmDeleteSectionCta")}
+                  onConfirm={() => remove.mutate(c.id)}
                   disabled={busy}
-                  aria-label={`Eliminar ${c.name}`}
+                  aria-label={`${t("deleteForever")} ${c.name}`}
                   className="flex h-8 w-8 shrink-0 items-center justify-center text-destructive"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                </ConfirmButton>
               </>
             )}
           </li>

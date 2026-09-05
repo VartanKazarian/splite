@@ -20,6 +20,7 @@ import {
 import { ErrorBox } from "@/routes/dashboard";
 import { StaffManager } from "@/components/StaffManager";
 import { ChangePassword } from "@/components/ChangePassword";
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { MfaPanel } from "@/components/MfaPanel";
 import { RestaurantName } from "@/components/RestaurantName";
 import { RestaurantBranding } from "@/components/RestaurantBranding";
@@ -364,15 +365,16 @@ function SettingsPage() {
                       >
                         {t("deactivateOthers")}
                       </button>
-                      <button
+                      <ConfirmButton
+                        title={t("deleteOthersPermanently")}
+                        description={t("permanentDeleteConfirm")}
+                        confirmLabel={t("deleteOthersPermanently")}
+                        onConfirm={() => cleanup.mutate("delete")}
                         disabled={cleanup.isPending}
-                        onClick={() => {
-                          if (window.confirm(t("permanentDeleteConfirm"))) cleanup.mutate("delete");
-                        }}
                         className="rounded-full border border-destructive px-4 py-2 text-xs text-destructive disabled:opacity-40"
                       >
                         {t("deleteOthersPermanently")}
-                      </button>
+                      </ConfirmButton>
                     </div>
                   </div>
                 )}

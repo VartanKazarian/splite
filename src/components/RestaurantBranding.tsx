@@ -4,6 +4,7 @@ import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { API_BASE_URL, ApiError, menu, type BrandingKind, type PublicMenu } from "@/lib/api";
 
 /** Lo que acepta el backend, y el tope que aplica antes de subir nada. */
@@ -186,14 +187,16 @@ function Slot({
           {url ? t("productPhotoReplace") : t("productPhotoAdd")}
         </button>
         {url && (
-          <button
-            type="button"
+          <ConfirmButton
+            title={t("confirmDeleteBranding")}
+            description={t("confirmDeleteBrandingBody")}
+            confirmLabel={t("confirmDeleteBrandingCta")}
+            onConfirm={() => remove.mutate()}
             disabled={!canEdit || busy}
-            onClick={() => remove.mutate()}
             className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-destructive disabled:opacity-40"
           >
             <Trash2 className="h-3.5 w-3.5" /> {t("productPhotoRemove")}
-          </button>
+          </ConfirmButton>
         )}
       </div>
     </div>

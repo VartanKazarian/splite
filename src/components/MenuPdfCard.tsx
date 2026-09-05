@@ -4,6 +4,8 @@ import { FileText, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { API_BASE_URL, ApiError, menu, type MenuDocument } from "@/lib/api";
+import { ConfirmButton } from "@/components/ConfirmButton";
+import { useI18n } from "@/lib/i18n";
 
 /** "394" -> "394 B", "2100000" -> "2,1 MB". Sólo para enseñar un tamaño. */
 function humanSize(bytes: number): string {
@@ -21,6 +23,7 @@ function humanSize(bytes: number): string {
  * que nadie haya tecleado un precio.
  */
 export function MenuPdfCard() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -119,16 +122,16 @@ export function MenuPdfCard() {
               {new Date(current.updatedAt).toLocaleString("es-VE")}
             </p>
           </div>
-          <button
-            onClick={() => {
-              if (window.confirm("¿Eliminar la carta en PDF? Los productos no se tocan."))
-                remove.mutate();
-            }}
+          <ConfirmButton
+            title={t("confirmDeletePdf")}
+            description={t("confirmDeletePdfBody")}
+            confirmLabel={t("confirmDeletePdfCta")}
+            onConfirm={() => remove.mutate()}
             disabled={busy}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-destructive/40 px-3 py-1.5 text-xs text-destructive disabled:opacity-60"
           >
-            <Trash2 className="h-3.5 w-3.5" /> Eliminar
-          </button>
+            <Trash2 className="h-3.5 w-3.5" /> {t("deleteForever")}
+          </ConfirmButton>
         </div>
       )}
 

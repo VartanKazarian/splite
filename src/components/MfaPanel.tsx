@@ -4,6 +4,8 @@ import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { ApiError, auth } from "@/lib/api";
+import { ConfirmButton } from "@/components/ConfirmButton";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * El segundo factor de quien está mirando, y de nadie más.
@@ -17,6 +19,7 @@ import { ApiError, auth } from "@/lib/api";
  * nada -- no se ha activado, y volver a empezar da un secreto nuevo.
  */
 export function MfaPanel() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [secret, setSecret] = useState<{ secret: string; otpauthUri: string } | null>(null);
   const [code, setCode] = useState("");
@@ -178,17 +181,16 @@ export function MfaPanel() {
                   >
                     {regenerate.isPending ? "Generando…" : "Códigos de recuperación nuevos"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm("¿Desactivar la verificación en dos pasos de tu cuenta?"))
-                        disable.mutate();
-                    }}
+                  <ConfirmButton
+                    title={t("confirmDisableMfa")}
+                    description={t("confirmDisableMfaBody")}
+                    confirmLabel={t("confirmDisableMfaCta")}
+                    onConfirm={() => disable.mutate()}
                     disabled={busy || code.trim().length === 0}
                     className="rounded-lg border border-destructive/40 px-3 py-2 text-xs text-destructive disabled:opacity-60"
                   >
                     {disable.isPending ? "Desactivando…" : "Desactivarla"}
-                  </button>
+                  </ConfirmButton>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
                   Generar códigos nuevos invalida la hoja anterior, que es el objetivo si crees que

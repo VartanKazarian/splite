@@ -89,7 +89,8 @@ function toClaimError(error: unknown): ClaimError {
         fields: ["reference"],
       };
     case "PAYMENT_EXCEEDS_BALANCE": {
-      const remaining = typeof details['remainingVes'] === "string" ? details['remainingVes'] : undefined;
+      const remaining =
+        typeof details["remainingVes"] === "string" ? details["remainingVes"] : undefined;
       return {
         ...base,
         message: `Ese monto supera lo que falta por pagar (${remaining ? formatMinor(remaining) : "—"} Bs).`,
@@ -101,7 +102,7 @@ function toClaimError(error: unknown): ClaimError {
     case "OPEN_BILL_NOT_FOUND":
       return { ...base, message: "Esta cuenta ya fue cerrada. Habla con el mesero." };
     case "VALIDATION_FAILED": {
-      const raw = details['fields'];
+      const raw = details["fields"];
       const fields = Array.isArray(raw) ? raw.map(String) : [];
       return { ...base, message: "Revisa los datos.", fields };
     }
@@ -123,6 +124,7 @@ export function GuestPaymentPanel({
   demo = false,
   splitParticipantId,
   shareRemainingVes,
+  tipVes = "0",
 }: {
   bill: Bill;
   demo?: boolean;
@@ -130,6 +132,8 @@ export function GuestPaymentPanel({
   splitParticipantId?: string;
   /** Techo de esa parte: el backend rechaza cualquier cosa por encima. */
   shareRemainingVes?: string;
+  /** Lo que el comensal eligió dejar de propina, en céntimos. */
+  tipVes?: string;
 }) {
   const payee: Payee | null =
     bill.payee ??
@@ -138,10 +142,21 @@ export function GuestPaymentPanel({
       : null);
 
   // Con reparto acordado, lo que toca pagar es la parte, no la cuenta entera.
-  const dueVes = shareRemainingVes ?? bill.remainingVes ?? "0";
+  // Lo que hay que transferir es la cuenta más la propina, en un solo importe:
+  // es lo que el comensal teclea en su app del banco. Sin sumarla, la pantalla
+  // decía "Total a pagar 12.320,00" y justo debajo daba 11.200,00 para copiar,
+  // y la propina no llegaba a cobrarse nunca.
+  const billShareVes = shareRemainingVes ?? bill.remainingVes ?? "0";
+  const dueVes = (BigInt(billShareVes) + BigInt(tipVes || "0")).toString();
 
   const [tab, setTab] = useState<"payee" | "claim" | "c2p">("payee");
   const [amount, setAmount] = useState(() => formatMinor(dueVes));
+  // Si cambia la propina, cambia el importe sugerido -- salvo que el comensal
+  // ya lo haya escrito él, que entonces manda lo suyo.
+  const [amountTouched, setAmountTouched] = useState(false);
+  useEffect(() => {
+    if (!amountTouched) setAmount(formatMinor(dueVes));
+  }, [dueVes, amountTouched]);
   const [reference, setReference] = useState("");
   const [phoneOrigin, setPhoneOrigin] = useState("");
   const [bankOrigin, setBankOrigin] = useState("");
@@ -154,7 +169,6 @@ export function GuestPaymentPanel({
 
   const remaining = BigInt(dueVes);
   const billPaid = remaining === 0n;
-
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -175,7 +189,11 @@ export function GuestPaymentPanel({
         };
       }
       return guest.paymentClaim({
-        amountVes,
+        amountVes: (BigInt(amountVes) - BigInt(tipVes || "0") > 0n
+          ? BigInt(amountVes) - BigInt(tipVes || "0")
+          : BigInt(amountVes)
+        ).toString(),
+        ...(BigInt(tipVes || "0") > 0n ? { tipVes } : {}),
         reference: reference.trim(),
         ...(phoneOrigin.trim() ? { phoneOrigin: phoneOrigin.trim() } : {}),
         ...(bankOrigin.trim() ? { bankOrigin: bankOrigin.trim() } : {}),
@@ -284,8 +302,6 @@ export function GuestPaymentPanel({
 
       {tab === "c2p" && <GuestC2PForm maxVes={dueVes} demo={demo} />}
 
-
-
       {tab === "claim" && (
         <div className="mt-5">
           {billPaid ? (
@@ -335,14 +351,20 @@ export function GuestPaymentPanel({
               noValidate
             >
               <div>
-                <label htmlFor="claim-amount" className="text-xs uppercase tracking-widest text-muted-foreground">
+                <label
+                  htmlFor="claim-amount"
+                  className="text-xs uppercase tracking-widest text-muted-foreground"
+                >
                   Monto pagado (Bs)
                 </label>
                 <input
                   id="claim-amount"
                   inputMode="decimal"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    setAmountTouched(true);
+                    setAmount(e.target.value);
+                  }}
                   aria-invalid={invalid("amount") || invalid("amountVes")}
                   aria-describedby="claim-amount-help"
                   className={field}
@@ -353,7 +375,10 @@ export function GuestPaymentPanel({
               </div>
 
               <div className="mt-4">
-                <label htmlFor="claim-reference" className="text-xs uppercase tracking-widest text-muted-foreground">
+                <label
+                  htmlFor="claim-reference"
+                  className="text-xs uppercase tracking-widest text-muted-foreground"
+                >
                   Referencia de tu pago
                 </label>
                 <input
@@ -372,7 +397,10 @@ export function GuestPaymentPanel({
               </div>
 
               <div className="mt-4">
-                <label htmlFor="claim-phone" className="text-xs uppercase tracking-widest text-muted-foreground">
+                <label
+                  htmlFor="claim-phone"
+                  className="text-xs uppercase tracking-widest text-muted-foreground"
+                >
                   Teléfono desde el que pagaste (opcional)
                 </label>
                 <input
@@ -390,7 +418,10 @@ export function GuestPaymentPanel({
               </div>
 
               <div className="mt-4">
-                <label htmlFor="claim-bank" className="text-xs uppercase tracking-widest text-muted-foreground">
+                <label
+                  htmlFor="claim-bank"
+                  className="text-xs uppercase tracking-widest text-muted-foreground"
+                >
                   Tu banco (opcional)
                 </label>
                 <input

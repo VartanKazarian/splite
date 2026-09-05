@@ -119,8 +119,14 @@ export function GuestBillScreen({
   const [amount, setAmount] = useState("");
   const [preview, setPreview] = useState<SplitPreview | null>(null);
   // Propina opcional del comensal, encima del cargo por servicio de la cuenta.
-  const [tipPct, setTipPct] = useState<number | null>(0);
+  // Preseleccionada al 10%. Es lo que hacen Sunday, Toast y Square, y es de
+  // lejos lo que más mueve lo que acaba cobrando el personal. Se mantiene
+  // honesta porque el importe está siempre a la vista y "Sin propina" es el
+  // primer botón de la fila: un toque, sin buscarlo y sin explicaciones.
+  const [tipPct, setTipPct] = useState<number | null>(10);
   const [tipCustom, setTipCustom] = useState("");
+  /** Si el comensal ha abierto las formas de dividir. Cerrado = pagarlo todo. */
+  const [splitOpen, setSplitOpen] = useState(false);
 
   const demoBillData = useMemo(() => (demo ? demoBill() : null), [demo]);
   const bill = demo ? demoBillData : (billQuery.data ?? null);
@@ -288,6 +294,8 @@ export function GuestBillScreen({
   const nothingToPay =
     !demo && BigInt(bill.remainingVes ?? bill.totalDueVes ?? "0") === 0n && !activeSplit;
 
+  // "Pagar todo" ya no es una opción entre cuatro: es lo que pasa si no tocas
+  // nada. Vuelve a la lista sólo para poder deshacer una división empezada.
   const modes: { id: SplitMode; label: string }[] = [
     { id: "FULL", label: t("payAll") },
     { id: "ITEMS", label: t("splitItems") },
@@ -372,7 +380,20 @@ export function GuestBillScreen({
             amount={bill.serviceChargeMinor}
             currency={bill.currency}
           />
-          <MoneyRow label={t("total")} amount={bill.totalDue} currency={bill.currency} highlight />
+        </div>
+
+        {/* El número por el que alguien abre esto. Estaba con el mismo tamaño y
+            el mismo gris que "IVA 0%": cuatro filas iguales donde sólo una
+            contesta la pregunta que trae al comensal. */}
+        <div
+          className={`mt-3 flex items-baseline justify-between border-t border-border pt-3 ${
+            nothingToPay ? "hidden" : ""
+          }`}
+        >
+          <span className="text-xs uppercase tracking-widest text-muted-foreground">
+            {t("total")}
+          </span>
+          <span className="font-display text-4xl">{formatMoney(bill.totalDue, bill.currency)}</span>
         </div>
 
         {bill.currency !== "VES" && (
@@ -419,24 +440,37 @@ export function GuestBillScreen({
         </div>
       ) : (
         <div className="surface mt-4 p-6">
-          <div className="grid grid-cols-2 gap-2">
-            {modes.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => {
-                  setMode(m.id);
-                  setPreview(null);
-                }}
-                className={`rounded-lg border px-3 py-2.5 text-xs transition-colors ${
-                  mode === m.id
-                    ? "border-primary bg-primary/15 text-foreground"
-                    : "border-border text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
+          {/* Pagarlo todo es lo que hace la mayoría, y ya es el modo por
+              defecto: no necesita un botón compitiendo con los otros tres. Las
+              cuatro opciones con el mismo peso obligaban a leerlas y decidir
+              antes de poder hacer nada. Dividir sigue estando a un toque. */}
+          {!splitOpen ? (
+            <button
+              onClick={() => setSplitOpen(true)}
+              className="w-full rounded-full border border-border px-4 py-3 text-sm transition-colors hover:bg-secondary"
+            >
+              {t("splitTheBill")}
+            </button>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {modes.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    setMode(m.id);
+                    setPreview(null);
+                  }}
+                  className={`rounded-lg border px-3 py-2.5 text-xs transition-colors ${
+                    mode === m.id
+                      ? "border-primary bg-primary/15 text-foreground"
+                      : "border-border text-muted-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {mode === "EQUAL" && (
             <div className="mt-5">
@@ -593,7 +627,7 @@ export function GuestBillScreen({
                 </p>
                 <p className="mt-1 text-[11px] text-muted-foreground">{t("tipHint")}</p>
                 <div className="mt-3 grid grid-cols-5 gap-2">
-                  {[0, 5, 10, 15].map((p) => (
+                  {[0, 10, 15, 20].map((p) => (
                     <button
                       key={p}
                       onClick={() => {
@@ -645,7 +679,12 @@ export function GuestBillScreen({
               </div>
               <p className="mt-3 text-[11px] text-muted-foreground">{t("guestNoPay")}</p>
 
-              {!demo && !activeSplit && (
+              {/* Sólo cuando de verdad se está dividiendo. Con "Pagar todo"
+                  -- que ahora es el camino por defecto y no una opción que se
+                  elige -- un botón llamado "Confirmar división" aparecía sin
+                  que nadie hubiera dividido nada. Pagar la cuenta entera no
+                  necesita guardar ningún reparto: lo hace el panel de pago. */}
+              {!demo && !activeSplit && mode !== "FULL" && (
                 <div className="mt-4 border-t border-border pt-4">
                   <button
                     disabled={confirmSplit.isPending}
@@ -713,6 +752,7 @@ export function GuestBillScreen({
         <GuestPaymentPanel
           bill={bill}
           demo={demo}
+          tipVes={tipMinor}
           {...(myParticipant
             ? {
                 splitParticipantId: myParticipant.id,

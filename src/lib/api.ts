@@ -802,6 +802,14 @@ export type PaymentClaimInput = {
   reference: string;
   phoneOrigin?: string;
   bankOrigin?: string;
+  /**
+   * La propina, aparte del importe de la cuenta.
+   *
+   * El comensal transfiere `amountVes + tipVes` de una vez desde su banco; la
+   * cuenta sólo ve `amountVes`. El backend lo acepta desde hace tiempo y lo
+   * dice en su propio esquema: faltaba que el frontend lo mandara.
+   */
+  tipVes?: Money;
   /** Atribuye el aviso a una parte del reparto persistente. */
   splitParticipantId?: string;
 };

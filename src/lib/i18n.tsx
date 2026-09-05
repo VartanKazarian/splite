@@ -366,6 +366,7 @@ const dict = {
     billEmptyBody:
       "En cuanto el restaurante añada lo que has pedido, aparecerá aquí y podrás pagar o dividir.",
     billEmptyMenu: "Mientras tanto, mira la carta",
+    splitTheBill: "Dividir la cuenta",
     deleteForever: "Borrar",
     paymentsNav: "Pagos",
     chargesInMenuHint: "El IVA y el servicio se configuran en",
@@ -814,6 +815,7 @@ const dict = {
     billEmptyBody:
       "As soon as the restaurant adds what you ordered, it will show up here and you can pay or split it.",
     billEmptyMenu: "In the meantime, have a look at the menu",
+    splitTheBill: "Split the bill",
     deleteForever: "Delete",
     paymentsNav: "Payments",
     chargesInMenuHint: "VAT and service are configured in",

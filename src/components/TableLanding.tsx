@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ArrowLeft, BookOpen, Receipt } from "lucide-react";
@@ -8,8 +8,9 @@ import { ApiError, guest, guestSession, scannedQr } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
 import { GuestBillScreen } from "@/components/GuestBillScreen";
 import { PublicMenuScreen } from "@/components/PublicMenuScreen";
+import type { GuestView } from "@/lib/guest-view";
 
-type View = "landing" | "menu" | "bill";
+type View = GuestView | "landing";
 
 /**
  * Lo que se ve al escanear el QR de una mesa.
@@ -25,7 +26,37 @@ type View = "landing" | "menu" | "bill";
  */
 export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean }) {
   const { t } = useI18n();
-  const [view, setView] = useState<View>(demo ? "bill" : "landing");
+  const navigate = useNavigate();
+  // La pantalla vive en la URL, no en un estado interno.
+  //
+  // Con estado interno, el botón "atrás" del teléfono -- que es con el que
+  // vuelve de verdad alguien sentado a una mesa -- no veía ni la carta ni la
+  // cuenta: se llevaba al comensal fuera del sitio, a la página de Splite. Con
+  // la pantalla en la URL, atrás va de la cuenta a la carta y de la carta a la
+  // mesa, y recargar deja al comensal donde estaba.
+  //
+  // `strict: false` porque esto se pinta bajo dos rutas, /t/ y el comodín
+  // /t/$, y las dos declaran el mismo parámetro.
+  const search = useSearch({ strict: false }) as { view?: GuestView };
+  const view: View = demo ? "bill" : (search.view ?? "landing");
+
+  /**
+   * Cambia de pantalla dejando rastro en el historial.
+   *
+   * `replace: false` a propósito: cada paso tiene que ser una entrada para que
+   * atrás retroceda una pantalla en vez de salirse. El token se mantiene en la
+   * URL con `search` -- perderlo dejaría la mesa sin identificar al recargar.
+   */
+  const go = (next: View) => {
+    void navigate({
+      to: ".",
+      search: (prev: Record<string, unknown>) => {
+        const rest = { ...prev };
+        delete rest["view"];
+        return next === "landing" ? rest : { ...rest, view: next };
+      },
+    });
+  };
   const [opening, setOpening] = useState(false);
   const [openError, setOpenError] = useState<unknown>(null);
   // El token del QR: llega en la URL una vez y luego vive en la pestaña.
@@ -79,14 +110,14 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
    */
   const openBill = async () => {
     if (guestSession.get() || !token) {
-      setView("bill");
+      go("bill");
       return;
     }
     setOpening(true);
     setOpenError(null);
     try {
       await guest.openSession(token);
-      setView("bill");
+      go("bill");
     } catch (error) {
       setOpenError(error);
     } finally {
@@ -117,11 +148,11 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
   }
 
   // Sin token: la sesión ya está guardada, la acuñó `openBill`.
-  if (view === "bill") return <GuestBillScreen />;
+  if (view === "bill") return <GuestBillScreen onBack={() => go("landing")} />;
 
   // Sin token y sin sesión no hay nada que resolver: hay que volver a escanear.
   if (!token) {
-    if (guestSession.get()) return <GuestBillScreen />;
+    if (guestSession.get()) return <GuestBillScreen onBack={() => go("landing")} />;
     return (
       <Shell>
         <h1 className="text-3xl">{t("yourBill")}</h1>
@@ -164,7 +195,7 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
       <div className="mx-auto min-h-screen w-full max-w-md px-5 pb-16">
         <header className="flex items-center justify-between py-5">
           <button
-            onClick={() => setView("landing")}
+            onClick={() => go("landing")}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground"
           >
             <ArrowLeft className="h-4 w-4" /> {context.table.name}
@@ -183,10 +214,11 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-md px-5 pb-16">
+      {/* Sin enlace de salida: quien está sentado en la mesa no tiene nada que
+          hacer en la página comercial de Splite, y era el único sitio al que
+          llevaba esta cabecera. */}
       <header className="flex items-center justify-between py-5">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-          <ArrowLeft className="h-4 w-4" /> {t("brand")}
-        </Link>
+        <span className="text-sm text-muted-foreground">{t("brand")}</span>
       </header>
 
       <div className="surface p-6">
@@ -201,7 +233,7 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
             icon={<BookOpen className="h-5 w-5" />}
             title={t("theMenu")}
             hint={t("theMenuHint")}
-            onClick={() => setView("menu")}
+            onClick={() => go("menu")}
           />
           <Choice
             icon={<Receipt className="h-5 w-5" />}
@@ -252,10 +284,11 @@ function Shell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   return (
     <div className="mx-auto min-h-screen w-full max-w-md px-5">
+      {/* Tampoco aquí. Estas pantallas son las de cargando, error y código
+          inválido: lo que hay que hacer es volver a escanear la mesa, y la
+          página comercial no ayuda a eso. */}
       <header className="flex items-center justify-between py-5">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-          <ArrowLeft className="h-4 w-4" /> {t("brand")}
-        </Link>
+        <span className="text-sm text-muted-foreground">{t("brand")}</span>
       </header>
       <div className="surface p-6">{children}</div>
     </div>

@@ -4,6 +4,7 @@ import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { API_BASE_URL, ApiError, menu, type Product } from "@/lib/api";
 
 /** Lo que acepta el backend, y el tope que aplica antes de subir nada. */
@@ -118,14 +119,16 @@ export function ProductPhoto({ product }: { product: Product }) {
           {product.imageUrl ? t("productPhotoReplace") : t("productPhotoAdd")}
         </button>
         {product.imageUrl && (
-          <button
-            type="button"
+          <ConfirmButton
+            title={t("confirmDeletePhoto")}
+            description={t("confirmDeletePhotoBody")}
+            confirmLabel={t("confirmDeletePhotoCta")}
+            onConfirm={() => remove.mutate()}
             disabled={busy}
-            onClick={() => remove.mutate()}
             className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-destructive disabled:opacity-40"
           >
             <Trash2 className="h-3.5 w-3.5" /> {t("productPhotoRemove")}
-          </button>
+          </ConfirmButton>
         )}
       </div>
     </div>

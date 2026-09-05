@@ -12,6 +12,8 @@ import {
   type StaffRole,
 } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
+import { ConfirmButton } from "@/components/ConfirmButton";
+import { useI18n } from "@/lib/i18n";
 
 const ROLE_LABEL: Record<StaffRole, string> = {
   OWNER: "Dueño",
@@ -45,6 +47,7 @@ const MIN_PASSWORD = 12;
  * comprobación duplicada en el cliente es una que un día se queda atrás.
  */
 export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [email, setEmail] = useState("");
@@ -309,21 +312,32 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
                 <KeyRound className="h-4 w-4" />
               </button>
 
-              <button
-                onClick={() => {
-                  const verb = m.active ? "dar de baja a" : "reactivar a";
-                  if (!window.confirm(`¿Seguro que quieres ${verb} ${m.email}?`)) return;
-                  update.mutate({ id: m.id, body: { active: !m.active } });
-                }}
-                disabled={busy || !editable}
-                title={m.active ? "Dar de baja" : "Reactivar"}
-                aria-label={`${m.active ? "Dar de baja a" : "Reactivar a"} ${m.email}`}
-                className={`flex h-8 w-8 items-center justify-center disabled:opacity-30 ${
-                  m.active ? "text-destructive" : "text-muted-foreground"
-                }`}
-              >
-                <ShieldOff className="h-4 w-4" />
-              </button>
+              {/* Sólo pregunta la baja. Reactivar a alguien no rompe nada, y
+                  un aviso delante de cada acción enseña a pulsar "sí" sin
+                  leerlo -- que es como se pierde la que sí importaba. */}
+              {m.active ? (
+                <ConfirmButton
+                  title={t("confirmRemoveStaff").replace("{who}", m.email)}
+                  description={t("confirmRemoveStaffBody")}
+                  confirmLabel={t("confirmRemoveStaffCta")}
+                  onConfirm={() => update.mutate({ id: m.id, body: { active: false } })}
+                  disabled={busy || !editable}
+                  aria-label={`${t("confirmRemoveStaffCta")} ${m.email}`}
+                  className="flex h-8 w-8 items-center justify-center text-destructive disabled:opacity-30"
+                >
+                  <ShieldOff className="h-4 w-4" />
+                </ConfirmButton>
+              ) : (
+                <button
+                  onClick={() => update.mutate({ id: m.id, body: { active: true } })}
+                  disabled={busy || !editable}
+                  title="Reactivar"
+                  aria-label={`Reactivar a ${m.email}`}
+                  className="flex h-8 w-8 items-center justify-center text-muted-foreground disabled:opacity-30"
+                >
+                  <ShieldOff className="h-4 w-4" />
+                </button>
+              )}
             </li>
           );
         })}

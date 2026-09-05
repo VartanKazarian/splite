@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, Pencil, Plus, Search, Smartphone, Tag, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { MenuOcrImport } from "@/components/MenuOcrImport";
 import { MenuSections } from "@/components/MenuSections";
 import { MenuPdfCard } from "@/components/MenuPdfCard";
@@ -217,7 +218,9 @@ function MenuPage() {
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) => menu.deleteProduct(id),
+    // Permanente. Desactivar ya tiene su propio botón al lado; una papelera que
+    // hace lo mismo que él deja platos muertos en la lista para siempre.
+    mutationFn: (id: string) => menu.deleteProduct(id, true),
     onSuccess: () => {
       toast.success(t("productDeleted"));
       refreshAll();
@@ -654,13 +657,21 @@ function MenuPage() {
                               >
                                 {p.active ? t("deactivate") : t("activate")}
                               </button>
-                              <button
-                                onClick={() => remove.mutate(p.id)}
+                              {/* La papelera borra de verdad. Antes desactivaba
+                                  -- lo mismo que el botón de al lado -- así que
+                                  el plato seguía en la lista y no había forma
+                                  de sacarlo nunca. El backend ya sabía hacerlo
+                                  (`?permanent=true`); sólo faltaba pedírselo. */}
+                              <ConfirmButton
+                                title={t("confirmDeleteProduct")}
+                                description={t("confirmDeleteProductBody")}
+                                confirmLabel={t("confirmDeleteProductCta")}
+                                onConfirm={() => remove.mutate(p.id)}
                                 className="rounded-full border border-border p-1 text-destructive"
                                 aria-label={t("remove")}
                               >
                                 <Trash2 className="h-3 w-3" />
-                              </button>
+                              </ConfirmButton>
                             </span>
                           </li>
                         ),

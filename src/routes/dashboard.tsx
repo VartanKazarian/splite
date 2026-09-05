@@ -733,13 +733,10 @@ function Dashboard() {
                 transferencia se le deben al personal -- y sin esto todo se
                 registraba como pago de la app y caía en "sin clasificar". */}
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {(
-                [
-                  ["CASH", "Efectivo"],
-                  ["CARD", "Tarjeta"],
-                  ["TRANSFER", "Transferencia"],
-                ] as const
-              ).map(([value, label]) => (
+              {/* Los nombres salen del diccionario: ya existían como
+                  `methodCASH`/`methodCARD`/`methodTRANSFER` y aquí estaban
+                  escritos a mano, así que en inglés seguían en español. */}
+              {(["CASH", "CARD", "TRANSFER"] as const).map((value) => (
                 <button
                   key={value}
                   type="button"
@@ -751,7 +748,7 @@ function Dashboard() {
                       : "border-border text-muted-foreground hover:bg-secondary"
                   }`}
                 >
-                  {label}
+                  {t(`method${value}` as never)}
                 </button>
               ))}
             </div>
@@ -762,9 +759,12 @@ function Dashboard() {
                 ? `Se registrarán ${formatMinor(parseMinorInput(amount))} Bs.`
                 : t("tillAmountHint")}
             </p>
-            <p className="mt-2 break-all text-[10px] text-muted-foreground">
-              {t("idemKey")}: {idemKey} — {t("idemNote")}
-            </p>
+            {/* La clave de idempotencia ya no se enseña. Es un UUID: quien
+                cobra en una barra no puede hacer nada con él, y lo único que
+                de verdad necesitaba saber -- que reintentar no cobra dos
+                veces -- se dice sin él. La clave sigue yendo en la petición y
+                sigue protegiendo el cobro. */}
+            <p className="mt-2 text-[11px] text-muted-foreground">{t("tillRetrySafe")}</p>
           </div>
         </>
       )}
@@ -786,7 +786,21 @@ function Dashboard() {
             contra las que choca un comensal, no cifras del turno. */}
         <SetupChecklist />
 
-        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {/* Los cuatro recuentos no valen lo mismo. "Pendiente de cobro" es
+            dinero que la sala debe ahora mismo; los otros tres son contexto y
+            colas de trabajo. Con las cuatro casillas idénticas había que
+            leerlas todas para encontrar la única que dice si hay algo en
+            riesgo, así que esa va primera y ocupa el doble. */}
+        {/* Cinco columnas, no cuatro: "Pendiente de cobro" ocupa dos, y con
+            cuatro se quedaba una casilla sola en una segunda fila. */}
+        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          {/* Lo que la sala debe ahora mismo. Antes no se podía enseñar: son
+              sumas de importes, y eso lo hace el servidor. */}
+          <StatCard
+            label={t("kpiOutstanding")}
+            value={snap ? formatMoney(snap.openBills.outstandingVes, "VES") : "—"}
+            wide
+          />
           <StatCard
             label={t("kpiOpenTables")}
             value={
@@ -794,12 +808,6 @@ function Dashboard() {
                 ? `${snap.tables.occupied}/${snap.tables.total}`
                 : `${busyCount}/${tableList.length}`
             }
-          />
-          {/* Lo que la sala debe ahora mismo. Antes no se podía enseñar: son
-              sumas de importes, y eso lo hace el servidor. */}
-          <StatCard
-            label={t("kpiOutstanding")}
-            value={snap ? formatMoney(snap.openBills.outstandingVes, "VES") : "—"}
           />
           <StatCard
             label={t("kpiClaims")}
@@ -824,7 +832,7 @@ function Dashboard() {
               .replace("{n}", String(snap.taken.payments))
               .replace("{amount}", formatMoney(snap.taken.paymentsVes, "VES"))}
             {BigInt(snap.taken.tipsVes) > 0n && (
-              <> · {formatMoney(snap.taken.tipsVes, "VES")} en propinas</>
+              <>{t("kpiTips").replace("{amount}", formatMoney(snap.taken.tipsVes, "VES"))}</>
             )}
             {snap.openBills.oldestOpenedAt && (
               <>{t("kpiOldestBill").replace("{age}", relativeAge(snap.openBills.oldestOpenedAt))}</>
@@ -923,7 +931,13 @@ function Dashboard() {
             {tablesQuery.isLoading && (
               <p className="text-sm text-muted-foreground">{t("loading")}</p>
             )}
-            <div ref={floorGrid} className="grid gap-3 sm:grid-cols-2">
+            {/* `items-start` para que una mesa libre no se estire hasta la altura de
+                la ocupada que tiene al lado: sin esto, media sala vacía ocupa
+                lo mismo que media sala llena y hay que bajar por tarjetas que
+                no dicen nada. Las de una misma fila siguen compartiendo
+                `offsetTop`, que es de lo que depende dónde se inserta el
+                detalle -- ver `useRowEndIndex`. */}
+            <div ref={floorGrid} className="grid items-start gap-3 sm:grid-cols-2">
               {visibleTables.map((tb, index) => {
                 const ob = tb.openBill;
                 const openedAt = ob ? openedAtByBill.get(ob.id) : undefined;
@@ -932,9 +946,9 @@ function Dashboard() {
                     <button
                       data-table-card=""
                       onClick={() => setSelectedId(tb.id)}
-                      className={`surface p-5 text-left transition-colors hover:border-primary ${
-                        selected?.id === tb.id ? "border-primary" : ""
-                      }`}
+                      className={`surface text-left transition-colors hover:border-primary ${
+                        ob ? "p-5" : "px-5 py-3.5"
+                      } ${selected?.id === tb.id ? "border-primary" : ""}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-display text-2xl">{tb.name}</span>
@@ -1171,11 +1185,26 @@ export function ErrorBox({ error, fallback }: { error: unknown; fallback: string
   );
 }
 
-function StatCard({ label, value, alert }: { label: string; value: string; alert?: boolean }) {
+function StatCard({
+  label,
+  value,
+  alert,
+  /** La cifra que manda: ocupa la fila entera en el móvil y media en el ancho. */
+  wide,
+}: {
+  label: string;
+  value: string;
+  alert?: boolean;
+  wide?: boolean;
+}) {
   return (
-    <div className={`surface p-4 ${alert ? "border-primary" : ""}`}>
+    <div className={`surface p-4 ${alert ? "border-primary" : ""} ${wide ? "col-span-2" : ""}`}>
       <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className={`mt-1 font-display text-2xl tabular-nums ${alert ? "text-primary" : ""}`}>
+      <p
+        className={`mt-1 font-display tabular-nums ${wide ? "text-4xl" : "text-2xl"} ${
+          alert ? "text-primary" : ""
+        }`}
+      >
         {value}
       </p>
     </div>

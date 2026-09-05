@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { FileText, Search, X } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { API_BASE_URL, formatMoney, menu, type PublicMenu, type PublicProduct } from "@/lib/api";
@@ -13,17 +13,15 @@ import { ErrorBox } from "@/routes/dashboard";
  * Sin sesión y sin login: el endpoint público sólo necesita el id del
  * restaurante, que la pantalla anterior ya resolvió a partir del QR.
  *
- * Se lee **por secciones, de izquierda a derecha**, no como una lista larga.
- * Una carta es entradas, principales, postres y bebidas -- bloques con nombre,
- * no un scroll continuo -- y en un móvil el scroll continuo obliga a recorrer
- * los principales enteros para llegar a las bebidas. Con secciones, cada una
- * cabe en una pantalla y cambiar de una a otra es un gesto.
+ * La forma es la de una carta de verdad: una lista que se recorre de arriba
+ * abajo, con las secciones como títulos dentro de ella y un selector fijo
+ * arriba para saltar. La versión anterior era un carrusel por secciones, y
+ * pasar la carta entera obligaba a un gesto por sección sin poder ver nunca
+ * dos a la vez; una lista se hojea, que es lo que se hace con una carta.
  *
- * El carril es un `scroll-snap` nativo en vez de un carrusel en JavaScript:
- * arrastrar con el dedo lo lleva el navegador, con su propia inercia y su
- * propio rebote, que ningún `transform` animado a mano iguala en un móvil. Las
- * flechas y las pestañas son el mismo carril movido con `scrollIntoView`, así
- * que las tres formas de navegar terminan en el mismo sitio.
+ * Cada plato: el nombre, la descripción recortada a dos líneas, el precio, y
+ * la foto a la derecha cuando la hay. Las filas sin foto se leen igual -- la
+ * mayoría de las cartas empiezan sin ninguna.
  */
 export function PublicMenuScreen({ restaurantId }: { restaurantId: string }) {
   const { t } = useI18n();
@@ -35,16 +33,38 @@ export function PublicMenuScreen({ restaurantId }: { restaurantId: string }) {
   });
 
   if (menuQuery.isLoading) {
-    return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
+    return <p className="px-5 text-sm text-muted-foreground">{t("loading")}</p>;
   }
 
   if (menuQuery.isError) {
-    return <ErrorBox error={menuQuery.error} fallback={t("apiDown")} />;
+    return (
+      <div className="px-5">
+        <ErrorBox error={menuQuery.error} fallback={t("apiDown")} />
+      </div>
+    );
   }
 
   const data = menuQuery.data as PublicMenu;
   const groups = groupBySection(data);
-  const pdf = data.menuPdf;
+
+  return <MenuList groups={groups} pdf={data.menuPdf} />;
+}
+
+type Section = { id: string | null; name: string | null; products: PublicProduct[] };
+type Pdf = PublicMenu["menuPdf"];
+
+function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
+  const { t } = useI18n();
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [active, setActive] = useState(0);
+  const searchInput = useRef<HTMLInputElement>(null);
+  // Un ancla por sección, para saltar a ella y para saber cuál se está mirando.
+  const anchors = useRef<(HTMLElement | null)[]>([]);
+  // Hasta cuándo el salto tiene prioridad sobre la posición. Ver el efecto.
+  const locked = useRef(0);
+  // La tira de pestañas, para traer la marcada a la vista.
+  const chips = useRef<HTMLDivElement>(null);
 
   // La carta subida, si la hay. Se enlaza en vez de incrustarla: un visor de
   // PDF dentro de un iframe en un móvil es peor que el del propio teléfono, y
@@ -54,7 +74,7 @@ export function PublicMenuScreen({ restaurantId }: { restaurantId: string }) {
       href={`${API_BASE_URL}${pdf.url}`}
       target="_blank"
       rel="noreferrer"
-      className="flex items-center gap-3 rounded-lg border border-border bg-secondary px-4 py-3 transition-colors hover:border-primary"
+      className="mx-5 flex items-center gap-3 rounded-xl border border-border px-4 py-3 transition-colors hover:border-primary"
     >
       <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
       <span className="min-w-0">
@@ -64,151 +84,186 @@ export function PublicMenuScreen({ restaurantId }: { restaurantId: string }) {
     </a>
   ) : null;
 
-  // Una carta que sólo es un PDF sigue teniendo algo que enseñar: el aviso de
-  // "todavía no hay carta" sólo vale cuando tampoco hay archivo.
+  const term = query.trim().toLowerCase();
+  // Buscar recorta la carta en vez de saltar por ella: con veinte platos por
+  // sección, "pollo" es más rápido que recordar en qué sección estaba.
+  const shown = useMemo(() => {
+    if (!term) return groups;
+    return groups
+      .map((group) => ({
+        ...group,
+        products: group.products.filter(
+          (p) =>
+            p.name.toLowerCase().includes(term) ||
+            (p.description ?? "").toLowerCase().includes(term),
+        ),
+      }))
+      .filter((group) => group.products.length > 0);
+  }, [groups, term]);
+
+  /**
+   * Qué sección se está mirando.
+   *
+   * Se decide por la que tiene su título más arriba sin haberse ido de la
+   * pantalla, medido contra el alto de la cabecera fija: así el selector marca
+   * la sección cuyos platos se están viendo, no la que ya pasó de largo.
+   */
+  useEffect(() => {
+    if (term) return;
+    const onScroll = () => {
+      // Mientras dura el salto manda lo que se pulsó, no lo que se ve.
+      //
+      // Las últimas secciones de una carta corta no pueden llegar arriba del
+      // todo: el scroll topa con el final del documento. Sin esto, pulsar
+      // "Bebidas" dejaba la marca en "Postres" -- medido en el navegador -- y
+      // parecía que el botón no había hecho nada.
+      if (Date.now() < locked.current) return;
+      const line = 140;
+      let current = 0;
+      anchors.current.forEach((el, i) => {
+        if (el && el.getBoundingClientRect().top <= line) current = i;
+      });
+      setActive((prev) => (prev === current ? prev : current));
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [term, shown.length]);
+
+  // La pestaña marcada se trae a la vista cuando cambia: con seis secciones no
+  // caben todas en el ancho de un móvil, y la activa quedándose fuera de
+  // pantalla es justo lo que hace que uno deje de saber en qué parte va.
+  //
+  // Moviendo la tira a mano y no con `scrollIntoView`: ese método recoloca
+  // *todos* los contenedores con scroll por encima, incluida la página, y en el
+  // navegador se llevaba la carta de vuelta arriba justo después de saltar a
+  // una sección -- el salto parecía no funcionar. Aquí sólo se mueve la tira.
+  useEffect(() => {
+    const strip = chips.current;
+    const chip = strip?.children[active] as HTMLElement | undefined;
+    if (!strip || !chip) return;
+    const stripBox = strip.getBoundingClientRect();
+    const chipBox = chip.getBoundingClientRect();
+    const delta = chipBox.left - stripBox.left - (stripBox.width - chipBox.width) / 2;
+    strip.scrollTo({ left: strip.scrollLeft + delta, behavior: "smooth" });
+  }, [active]);
+
+  const jump = (index: number) => {
+    const el = anchors.current[index];
+    if (!el) return;
+    setActive(index);
+    // Lo que dura un scroll suave. Pasado eso vuelve a mandar la posición, así
+    // que en cuanto el comensal desliza con el dedo la marca se corrige sola.
+    locked.current = Date.now() + 900;
+    // `scroll-mt` en la propia sección deja sitio para la cabecera fija, así el
+    // título no queda debajo de ella al saltar.
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   if (groups.length === 0) {
-    return pdfLink ?? <p className="text-sm text-muted-foreground">{t("menuEmpty")}</p>;
+    return (
+      <div className="px-5">
+        {pdfLink ?? <p className="text-sm text-muted-foreground">{t("menuEmpty")}</p>}
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      {pdfLink}
-      <SectionPager groups={groups} otherLabel={t("menuOther")} />
-    </div>
-  );
-}
-
-/**
- * El carril de secciones, con sus pestañas.
- *
- * La sección visible se deduce de dónde está el scroll, no de lo último que se
- * pulsó: así arrastrar con el dedo mueve la pestaña activa igual que pulsarla
- * mueve el carril, y las dos no pueden discrepar.
- */
-function SectionPager({ groups, otherLabel }: { groups: Section[]; otherLabel: string }) {
-  const { t } = useI18n();
-  const rail = useRef<HTMLDivElement>(null);
-  const tabs = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(0);
-
-  const go = (to: number) => {
-    const clamped = Math.max(0, Math.min(groups.length - 1, to));
-    const panel = rail.current?.children[clamped] as HTMLElement | undefined;
-    // `scrollIntoView` en vez de fijar scrollLeft a mano: el navegador ya sabe
-    // cuánto mide cada panel, incluso mientras el usuario está arrastrando.
-    panel?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
-  };
-
-  // Qué panel se está mirando, leído del propio scroll. Sin `scrollend` porque
-  // Safari no lo tiene: se calcula en cada scroll, que son dos divisiones, y
-  // así no hay que esperar a que termine la inercia para mover la pestaña.
-  useEffect(() => {
-    const el = rail.current;
-    if (!el) return;
-    const onScroll = () => {
-      const width = el.clientWidth || 1;
-      const at = Math.max(0, Math.min(groups.length - 1, Math.round(el.scrollLeft / width)));
-      setIndex((current) => (current === at ? current : at));
-    };
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [groups.length]);
-
-  // La pestaña activa se trae a la vista cuando cambia: con seis secciones no
-  // caben todas, y la activa quedándose fuera de pantalla es justo lo que hace
-  // que uno deje de saber dónde está.
-  useEffect(() => {
-    const tab = tabs.current?.children[index] as HTMLElement | undefined;
-    tab?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  }, [index]);
-
-  return (
-    <div>
-      <div className="flex items-center gap-2">
-        <div
-          ref={tabs}
-          className="flex flex-1 gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {groups.map((group, i) => (
-            <button
-              key={group.id ?? "__none__"}
-              onClick={() => go(i)}
-              aria-current={i === index}
-              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs transition-colors ${
-                i === index
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border text-muted-foreground hover:border-primary"
-              }`}
-            >
-              {group.name ?? otherLabel}
-            </button>
-          ))}
-        </div>
-
-        {/* Sólo cuando sobra ancho: en un móvil el gesto es el arrastre, y dos
-            botones ahí le quitan sitio a los nombres de las secciones. */}
-        {groups.length > 1 && (
-          <div className="hidden shrink-0 gap-1 sm:flex">
-            <button
-              onClick={() => go(index - 1)}
-              disabled={index === 0}
-              aria-label={t("menuSectionPrev")}
-              className="rounded-full border border-border p-1.5 disabled:opacity-30"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => go(index + 1)}
-              disabled={index === groups.length - 1}
-              aria-label={t("menuSectionNext")}
-              className="rounded-full border border-border p-1.5 disabled:opacity-30"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-      </div>
-
+    <div className="pb-10">
       {/*
-        El carril. `snap-x snap-mandatory` con paneles al 100% es lo que hace
-        que un arrastre corto salte una sección entera y se pare en su borde en
-        vez de dejarla a medias, y lo lleva el navegador con la inercia del
-        sistema. `overscroll-x-contain` evita que el gesto en la última sección
-        se lo lleve el "atrás" del navegador.
+        Cabecera fija. Es lo que convierte una carta larga en algo que se puede
+        recorrer: el nombre de la sección y la búsqueda siguen ahí después de
+        veinte platos, que es justo cuando hacen falta.
       */}
-      <div
-        ref={rail}
-        className="mt-3 flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {groups.map((group) => (
-          <section
-            key={group.id ?? "__none__"}
-            className="w-full shrink-0 snap-start pr-0.5"
-            aria-label={group.name ?? otherLabel}
-          >
-            <ul className="space-y-2">
-              {group.products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </ul>
-          </section>
-        ))}
+      <div className="sticky top-0 z-10 -mx-px border-b border-border bg-background/95 backdrop-blur">
+        <div className="flex items-center gap-2 px-5 py-3">
+          {searching ? (
+            <div className="flex flex-1 items-center gap-2 rounded-full border border-input bg-secondary px-4 py-2">
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <input
+                ref={searchInput}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("menuSearchPlaceholder")}
+                className="w-full bg-transparent text-sm outline-none"
+              />
+              <button
+                onClick={() => {
+                  setQuery("");
+                  setSearching(false);
+                }}
+                aria-label={t("cancel")}
+                className="shrink-0 text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Las secciones, en una tira que se desplaza. La activa se marca
+                  sola según lo que se esté viendo, y pulsarla salta ahí. */}
+              <div
+                ref={chips}
+                className="flex flex-1 gap-1.5 overflow-x-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {shown.map((group, i) => (
+                  <button
+                    key={group.id ?? "__none__"}
+                    onClick={() => jump(i)}
+                    aria-current={i === active}
+                    className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs transition-colors ${
+                      i === active
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-border text-muted-foreground"
+                    }`}
+                  >
+                    {group.name ?? t("menuOther")}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  setSearching(true);
+                  // El foco después del render, o el input todavía no existe.
+                  window.setTimeout(() => searchInput.current?.focus(), 0);
+                }}
+                aria-label={t("menuSearch")}
+                className="shrink-0 rounded-full border border-border p-2 text-muted-foreground"
+              >
+                <Search className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Cuántas quedan. Con el carril a pantalla completa no asoma nada por el
-          borde, así que sin esto no hay forma de saber que hay más. */}
-      {groups.length > 1 && (
-        <div className="mt-3 flex justify-center gap-1.5">
-          {groups.map((group, i) => (
-            <span
-              key={group.id ?? "__none__"}
-              className={`h-1 rounded-full transition-all ${
-                i === index ? "w-4 bg-primary" : "w-1 bg-border"
-              }`}
-            />
-          ))}
-        </div>
+      {pdfLink && <div className="pt-4">{pdfLink}</div>}
+
+      {term && shown.length === 0 && (
+        <p className="px-5 pt-6 text-sm text-muted-foreground">
+          {t("menuSearchEmpty").replace("{term}", query.trim())}
+        </p>
       )}
+
+      {shown.map((group, i) => (
+        <section
+          key={group.id ?? "__none__"}
+          ref={(el) => {
+            anchors.current[i] = el;
+          }}
+          // Deja sitio a la cabecera fija cuando se salta a esta sección.
+          className="scroll-mt-16 pt-7 first:pt-5"
+        >
+          <h2 className="px-5 text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
+            {group.name ?? t("menuOther")}
+          </h2>
+          <ul className="mt-2">
+            {group.products.map((product) => (
+              <ProductRow key={product.id} product={product} />
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }
@@ -220,40 +275,41 @@ function SectionPager({ groups, otherLabel }: { groups: Section[]; otherLabel: s
  * empiezan sin fotos y algunas se quedan así, de modo que la versión sin foto
  * tiene que verse deliberada y no rota. Por eso no hay hueco reservado ni
  * imagen de relleno cuando no hay foto.
+ *
+ * La descripción se recorta a dos líneas. Sin recortar, un plato con una lista
+ * larga de ingredientes ocupa media pantalla y esconde los cuatro siguientes.
  */
-function ProductCard({ product }: { product: PublicProduct }) {
+function ProductRow({ product }: { product: PublicProduct }) {
   return (
-    <li className="flex gap-3 rounded-lg border border-border/60 bg-secondary/30 p-2.5">
-      {product.imageUrl && (
-        <img
-          // Tal cual viene del backend, con su sufijo `?v=`: ese sufijo cambia
-          // cuando cambia la foto, y es lo que impide que el móvil siga
-          // enseñando el plato de la temporada pasada.
-          src={`${API_BASE_URL}${product.imageUrl}`}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="h-20 w-20 shrink-0 rounded-md object-cover"
-        />
-      )}
-      <div className="flex min-w-0 flex-1 flex-col justify-center">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-sm font-medium">{product.name}</p>
-          <span className="shrink-0 text-sm tabular-nums">
+    <li className="border-b border-border/60 px-5 py-4 last:border-0">
+      <div className="flex items-start gap-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-semibold leading-snug">{product.name}</p>
+          {product.description && (
+            <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+              {product.description}
+            </p>
+          )}
+          <p className="mt-2 text-[15px] tabular-nums">
             {formatMoney(product.priceMinorUnits, product.currency)}
-          </span>
-        </div>
-        {product.description && (
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            {product.description}
           </p>
+        </div>
+        {product.imageUrl && (
+          <img
+            // Tal cual viene del backend, con su sufijo `?v=`: ese sufijo cambia
+            // cuando cambia la foto, y es lo que impide que el móvil siga
+            // enseñando el plato de la temporada pasada.
+            src={`${API_BASE_URL}${product.imageUrl}`}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-[104px] w-[104px] shrink-0 rounded-xl object-cover"
+          />
         )}
       </div>
     </li>
   );
 }
-
-type Section = { id: string | null; name: string | null; products: PublicProduct[] };
 
 /**
  * Agrupa los productos por sección respetando el orden de `categories`.

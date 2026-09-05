@@ -261,7 +261,7 @@ const dict = {
       "Tu cuenta vuelve a estar protegida sólo por la contraseña. Los códigos de recuperación que tengas apuntados dejan de servir.",
     confirmDisableMfaCta: "Desactivarla",
     qrEphemeralHost:
-      "Estás en una vista previa. Un código impreso desde aquí dejará de funcionar cuando la vista previa caduque: imprímelo desde la dirección definitiva.",
+      "Estás en una vista previa. Un código impreso desde aquí dejaría de funcionar al caducar la vista previa, así que imprimir está desactivado. Abre el panel en la dirección definitiva del restaurante para imprimirlo.",
     feedSettled: "Cobro",
     feedDeclared: "Aviso de pago",
     pdfOnlyPdf: "Sólo se aceptan archivos PDF",
@@ -711,7 +711,7 @@ const dict = {
       "Your account goes back to being protected by the password alone. Any recovery codes you wrote down stop working.",
     confirmDisableMfaCta: "Turn it off",
     qrEphemeralHost:
-      "You are on a preview deployment. A code printed from here will stop working when the preview expires: print it from the final address.",
+      "You are on a preview deployment. A code printed from here would stop working once the preview expires, so printing is disabled. Open the panel on the restaurant's final address to print it.",
     feedSettled: "Payment",
     feedDeclared: "Payment notice",
     pdfOnlyPdf: "Only PDF files are accepted",

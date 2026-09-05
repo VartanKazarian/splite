@@ -478,6 +478,8 @@ function Dashboard() {
   const guestUrl = qrQuery.data
     ? `${GUEST_BASE_URL}/t?qr=${encodeURIComponent(qrQuery.data.token)}`
     : "";
+  // Si el enlace que llevaría el código cuelga de un host que va a caducar.
+  const ephemeralHost = isEphemeralGuestHost();
 
   /**
    * La mesa abierta, tal y como se pinta debajo de su propia tarjeta.
@@ -1027,8 +1029,11 @@ function Dashboard() {
               <>
                 {/* Antes de imprimir nada: un código sacado de una vista
                     previa funciona hoy y deja de resolver cuando el host rota,
-                    semanas después y ya pegado a una mesa. */}
-                {isEphemeralGuestHost() && (
+                    semanas después y ya pegado a una mesa. Avisar no basta --
+                    el aviso se lee una vez y el papel dura meses -- así que
+                    desde aquí no se imprime. Copiar el enlace y abrir la mesa
+                    siguen disponibles: eso se usa y se tira en el momento. */}
+                {ephemeralHost && (
                   <p className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
                     {t("qrEphemeralHost")}
                   </p>
@@ -1096,7 +1101,9 @@ function Dashboard() {
 </div><script>window.onload=function(){window.focus();window.print();}<\/script></body></html>`);
                     win.document.close();
                   }}
-                  className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary"
+                  disabled={ephemeralHost}
+                  title={ephemeralHost ? t("qrEphemeralHost") : undefined}
+                  className="mt-4 w-full rounded-full border border-border px-5 py-3 text-sm transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   {t("printQr")}
                 </button>

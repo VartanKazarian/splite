@@ -66,6 +66,74 @@ function bpsFromInput(value: string): number | null {
  * el de siempre: lo que ve un cliente, el dinero, el equipo, y tu propia
  * cuenta al final.
  */
+/**
+ * El plan, siempre visible.
+ *
+ * El banner sólo aparece cuando queda poco; esto está siempre, para que
+ * «¿en qué plan estoy y hasta cuándo?» tenga una respuesta que no dependa de
+ * que salte un aviso. Va en Cobros porque es dinero, aunque sea el único
+ * dinero de esta pantalla que va en la otra dirección: lo que el restaurante
+ * le paga a Splite, no lo que le pagan a él.
+ */
+function PlanSection() {
+  const { t, lang } = useI18n();
+  const accountQuery = useQuery({
+    queryKey: ["account"],
+    queryFn: () => account.get(),
+    retry: false,
+  });
+
+  const plan = accountQuery.data?.plan;
+  const fmt = (iso: string | null | undefined) =>
+    iso
+      ? new Date(iso).toLocaleDateString(lang === "en" ? "en-GB" : "es-VE", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : null;
+
+  const endsOn = fmt(plan?.trialEndsAt);
+  const ended = (plan?.trialDaysRemaining ?? 1) <= 0;
+  const since = fmt(accountQuery.data?.createdAt);
+
+  return (
+    <section className="surface mt-4 p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-xl">{t("planTitle")}</h2>
+        {plan && (
+          <span className="rounded-full border border-border px-3 py-1 text-xs">
+            {t(`planTier${plan.tier}` as never)}
+          </span>
+        )}
+      </div>
+
+      {plan?.tier === "TRIAL" && endsOn && (
+        <p className="mt-3 text-sm">
+          {(ended ? t("planTrialEndedOn") : t("planTrialEndsOn")).replace("{date}", endsOn)}
+        </p>
+      )}
+
+      {/* Lo que de verdad quiere saber quien mira esto. Nada en el backend
+          corta el servicio al terminar la prueba, así que decirlo aquí evita
+          que alguien deje de usar Splite por miedo a quedarse a medias en
+          plena cena.
+
+          Sólo en prueba: a quien ya paga, una frase sobre lo que pasa cuando
+          la prueba termina no le dice nada y le hace preguntarse si le afecta. */}
+      {plan?.tier === "TRIAL" && (
+        <p className="mt-2 text-sm text-muted-foreground">{t("planNoCutoff")}</p>
+      )}
+
+      {since && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          {t("planSince").replace("{date}", since)}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function Group({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section id={id} className="scroll-mt-20 pt-8 first:pt-4">
@@ -264,6 +332,8 @@ function SettingsPage() {
                 cargos aquí, y los datos de cobro al final de la pantalla,
                 debajo del equipo. Son la misma decisión. */}
             <Group id="cobros" title={t("settingsGroupMoney")}>
+              <PlanSection />
+
               <section className="surface mt-4 p-6">
                 <h2 className="text-xl">{t("menuCurrency")}</h2>
                 {settings.isError && <ErrorBox error={settings.error} fallback={t("apiDown")} />}

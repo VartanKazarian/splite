@@ -12,6 +12,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { auth, payments } from "@/lib/api";
 import { LangToggle } from "@/components/LangToggle";
+import { PlanBanner } from "@/components/PlanBanner";
 
 /**
  * La misma barra en todas las pantallas del panel.
@@ -62,83 +63,90 @@ export function PanelHeader({
   ] as const;
 
   return (
-    <header className="border-b border-border">
-      <div className="mx-auto max-w-6xl px-5 py-4">
-        {/* Dos filas fijas, no un wrap: quién eres y salir arriba, los
-            destinos abajo. Dejándolo al wrap, en un móvil de 390px se partía
-            en tres filas -- 185px de cabecera de una pantalla de 844. */}
-        <div className="flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 items-baseline gap-3">
-            <Link to="/" className="shrink-0 font-display text-2xl">
-              {t("brand")}
-            </Link>
-            {/* Quién ha entrado, en una sola línea siempre. En el móvil se queda
-              el correo a secas: es lo que contesta "¿estoy yo o el turno de
-              antes?" cuando el teléfono se comparte, y era lo que hacía que la
-              cabecera ocupara tres filas de una pantalla de 844px. El rol se
-              lee entero en Configuración. */}
-            {me.data && (
-              <span className="truncate text-sm text-muted-foreground">
-                <span className="hidden sm:inline">
-                  {t("signedInAs")} {me.data.user.email} · {t(`role${me.data.user.role}` as never)}
-                </span>
-                <span className="sm:hidden">{me.data.user.email}</span>
-              </span>
-            )}
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <LangToggle />
-            <button
-              onClick={async () => {
-                await auth.logout();
-                queryClient.clear();
-                navigate({ to: "/" });
-              }}
-              className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
-            >
-              <LogOut className="h-4 w-4" /> {t("logout")}
-            </button>
-          </div>
-        </div>
-
-        {/* En el móvil se desliza en lugar de partirse: el panel se usa de pie
-            en el comedor, y una cabecera alta deja la pantalla para nada. */}
-        <nav className="-mx-5 mt-3 flex gap-2 overflow-x-auto px-5 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {items.map((item) => {
-            const active = item.key === current;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.key}
-                to={item.to}
-                aria-current={active ? "page" : undefined}
-                className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm transition-colors ${
-                  active
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border hover:bg-secondary"
-                }`}
-              >
-                <Icon className="h-4 w-4" /> {item.label}
-                {/* El contador de avisos por verificar viaja con la barra. Era
-                    lo único que decía "hay dinero esperando" y sólo se veía
-                    desde el panel de sala. */}
-                {"badge" in item && item.badge > 0 && (
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] ${
-                      active
-                        ? "bg-primary-foreground text-primary"
-                        : "bg-primary text-primary-foreground"
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
+    <>
+      <header className="border-b border-border">
+        <div className="mx-auto max-w-6xl px-5 py-4">
+          {/* Dos filas fijas, no un wrap: quién eres y salir arriba, los
+              destinos abajo. Dejándolo al wrap, en un móvil de 390px se partía
+              en tres filas -- 185px de cabecera de una pantalla de 844. */}
+          <div className="flex items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-baseline gap-3">
+              <Link to="/" className="shrink-0 font-display text-2xl">
+                {t("brand")}
               </Link>
-            );
-          })}
-        </nav>
-      </div>
-    </header>
+              {/* Quién ha entrado, en una sola línea siempre. En el móvil se queda
+                  el correo a secas: es lo que contesta "¿estoy yo o el turno de
+                  antes?" cuando el teléfono se comparte, y era lo que hacía que la
+                  cabecera ocupara tres filas de una pantalla de 844px. El rol se
+                  lee entero en Configuración. */}
+              {me.data && (
+                <span className="truncate text-sm text-muted-foreground">
+                  <span className="hidden sm:inline">
+                    {t("signedInAs")} {me.data.user.email} ·{" "}
+                    {t(`role${me.data.user.role}` as never)}
+                  </span>
+                  <span className="sm:hidden">{me.data.user.email}</span>
+                </span>
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <LangToggle />
+              <button
+                onClick={async () => {
+                  await auth.logout();
+                  queryClient.clear();
+                  navigate({ to: "/" });
+                }}
+                className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary"
+              >
+                <LogOut className="h-4 w-4" /> {t("logout")}
+              </button>
+            </div>
+          </div>
+
+          {/* En el móvil se desliza en lugar de partirse: el panel se usa de pie
+              en el comedor, y una cabecera alta deja la pantalla para nada. */}
+          <nav className="-mx-5 mt-3 flex gap-2 overflow-x-auto px-5 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {items.map((item) => {
+              const active = item.key === current;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.key}
+                  to={item.to}
+                  aria-current={active ? "page" : undefined}
+                  className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm transition-colors ${
+                    active
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border hover:bg-secondary"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" /> {item.label}
+                  {/* El contador de avisos por verificar viaja con la barra. Era
+                      lo único que decía "hay dinero esperando" y sólo se veía
+                      desde el panel de sala. */}
+                  {"badge" in item && item.badge > 0 && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] ${
+                        active
+                          ? "bg-primary-foreground text-primary"
+                          : "bg-primary text-primary-foreground"
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      </header>
+      {/* Debajo de la barra, no dentro: es un aviso, no un destino. Al vivir
+          aquí sale en las cinco pantallas del panel sin repetirlo en cinco
+          sitios. */}
+      <PlanBanner />
+    </>
   );
 }

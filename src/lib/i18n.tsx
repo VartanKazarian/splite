@@ -6,8 +6,7 @@ const dict = {
   es: {
     brand: "Mesa",
     tagline: "Pagar la cuenta del restaurante en 30 segundos",
-    heroSub:
-      "Un QR por mesa. El cliente ve la cuenta, la divide, deja propina y paga.",
+    heroSub: "Un QR por mesa. El cliente ve la cuenta, la divide, deja propina y paga.",
     ctaDemo: "Ver demo de cliente",
     demoBanner: "Modo demo · cuenta de ejemplo, no se cobra nada",
     ctaLogin: "Entrar al panel",
@@ -97,7 +96,7 @@ const dict = {
     payStatusFAILED: "Fallido",
     payStatusCANCELLED: "Cancelado",
     payStatusREFUNDED: "Reembolsado",
-    "payStatusPARTIALLY_REFUNDED": "Reembolso parcial",
+    payStatusPARTIALLY_REFUNDED: "Reembolso parcial",
     payerSTAFF: "Personal",
     payerGUEST: "Comensal",
     payerSYSTEM: "Sistema",
@@ -142,7 +141,8 @@ const dict = {
     qrToken: "Token del QR",
     refreshQr: "Rotar QR",
     currencyMismatch: "La cuenta se liquida en otra moneda",
-    currencyMismatchHint: "Sólo puedes añadir productos en la moneda de la cuenta. Ajusta la moneda del menú o el precio del producto.",
+    currencyMismatchHint:
+      "Sólo puedes añadir productos en la moneda de la cuenta. Ajusta la moneda del menú o el precio del producto.",
     copyLink: "Copiar enlace",
     qrScanHint: "Escanea para ver tu cuenta",
     printQr: "Imprimir QR",
@@ -176,6 +176,7 @@ const dict = {
     menuOther: "Otros",
     menuPdf: "Ver la carta completa",
     menuPdfHint: "Se abre el PDF del restaurante",
+    backToTable: "Volver a la mesa",
     restaurantName: "Nombre del restaurante",
     restaurantNameHint:
       "Es lo primero que lee un comensal al escanear el código de la mesa, encima del número de mesa.",
@@ -264,14 +265,12 @@ const dict = {
     permanentDeleteConfirm:
       "Los productos se eliminarán definitivamente. Las cuentas que los usaron conservan su nombre y precio. ¿Continuar?",
     productsUpdated: "Productos actualizados",
-
   },
 
   en: {
     brand: "Mesa",
     tagline: "Settle the restaurant bill in 30 seconds",
-    heroSub:
-      "One QR per table. Guests view the bill, split it, tip and pay.",
+    heroSub: "One QR per table. Guests view the bill, split it, tip and pay.",
     ctaDemo: "See guest demo",
     demoBanner: "Demo mode · sample bill, nothing is charged",
     ctaLogin: "Go to dashboard",
@@ -361,7 +360,7 @@ const dict = {
     payStatusFAILED: "Failed",
     payStatusCANCELLED: "Cancelled",
     payStatusREFUNDED: "Refunded",
-    "payStatusPARTIALLY_REFUNDED": "Partially refunded",
+    payStatusPARTIALLY_REFUNDED: "Partially refunded",
     payerSTAFF: "Staff",
     payerGUEST: "Guest",
     payerSYSTEM: "System",
@@ -405,7 +404,8 @@ const dict = {
     qrToken: "QR token",
     refreshQr: "Rotate QR",
     currencyMismatch: "This bill settles in a different currency",
-    currencyMismatchHint: "You can only add products priced in the bill currency. Change the menu currency or the product price.",
+    currencyMismatchHint:
+      "You can only add products priced in the bill currency. Change the menu currency or the product price.",
     copyLink: "Copy link",
     qrScanHint: "Scan to view your bill",
     printQr: "Print QR",
@@ -438,6 +438,7 @@ const dict = {
     menuOther: "Other",
     menuPdf: "See the full menu",
     menuPdfHint: "Opens the restaurant's PDF",
+    backToTable: "Back to the table",
     restaurantName: "Restaurant name",
     restaurantNameHint:
       "The first thing a diner reads after scanning the table code, above the table number.",
@@ -526,9 +527,7 @@ const dict = {
     permanentDeleteConfirm:
       "The products will be deleted permanently. Bills that used them keep their own name and price. Continue?",
     productsUpdated: "Products updated",
-
   },
-
 } as const;
 
 export type Key = keyof (typeof dict)["es"];

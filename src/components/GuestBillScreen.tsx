@@ -21,11 +21,9 @@ import {
   type SplitPreviewRequest,
 } from "@/lib/api";
 
-
 import { ErrorBox } from "@/routes/dashboard";
 import { GuestPaymentPanel } from "@/components/GuestPaymentPanel";
 import { demoBill, demoSplit } from "@/lib/demo-bill";
-
 
 /** Referencia visual en Bs de un importe cotizado, a la tasa congelada de la cuenta. */
 function toVes(minor: string, rate: string | null): string {
@@ -44,8 +42,22 @@ function myShare(preview: SplitPreview, mode: SplitMode): string {
   return mineAlloc?.amountVes ?? preview.allocations[0]?.amountVes ?? "0";
 }
 
-
-export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: boolean }) {
+export function GuestBillScreen({
+  qr,
+  demo = false,
+  onBack,
+}: {
+  qr?: string;
+  demo?: boolean;
+  /**
+   * Vuelve a la pantalla de la mesa.
+   *
+   * Antes esta cabecera era un `<Link to="/">`: desde la cuenta, "atrás" sacaba
+   * al comensal del restaurante y lo dejaba en la página de Splite, sin forma
+   * de volver a la carta salvo escaneando otra vez el código de la mesa.
+   */
+  onBack?: () => void;
+}) {
   const { t } = useI18n();
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState<unknown>(null);
@@ -78,7 +90,6 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
         clean();
         if (!cancelled) setSessionError(error);
       }
-
     })();
     return () => {
       cancelled = true;
@@ -100,7 +111,6 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
       }
     },
   });
-
 
   const [mode, setMode] = useState<SplitMode>("FULL");
   const [diners, setDiners] = useState(2);
@@ -189,8 +199,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
   const activeSplit = activeSplitQuery.data ?? null;
 
   const [myParticipantRef, setMyParticipantRef] = useState<string | null>(null);
-  const myParticipant =
-    activeSplit?.participants.find((p) => p.ref === myParticipantRef) ?? null;
+  const myParticipant = activeSplit?.participants.find((p) => p.ref === myParticipantRef) ?? null;
 
   const confirmSplit = useMutation({
     mutationFn: () => guest.createSplit(buildSplitBody()),
@@ -220,14 +229,12 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canSplit, mode, diners, JSON.stringify(mine), amount, bill?.totalDue, bill?.remainingVes]);
 
-
-
   const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : undefined);
 
   if (!demo && (sessionError || (!sessionReady && !qr))) {
     const code = codeOf(sessionError);
     return (
-      <Shell>
+      <Shell {...(onBack ? { onBack } : {})}>
         <h1 className="text-3xl">{t("yourBill")}</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           {code === "QR_INVALID" || code === "QR_TOKEN_INVALID"
@@ -243,7 +250,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
 
   if (!demo && (!sessionReady || billQuery.isLoading)) {
     return (
-      <Shell>
+      <Shell {...(onBack ? { onBack } : {})}>
         <p className="text-sm text-muted-foreground">{t("loading")}</p>
       </Shell>
     );
@@ -254,14 +261,14 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
     if (code === "GUEST_SESSION_INVALID") {
       guestSession.set(null);
       return (
-        <Shell>
+        <Shell {...(onBack ? { onBack } : {})}>
           <h1 className="text-3xl">{t("yourBill")}</h1>
           <p className="mt-3 text-sm text-muted-foreground">{t("sessionExpired")}</p>
         </Shell>
       );
     }
     return (
-      <Shell>
+      <Shell {...(onBack ? { onBack } : {})}>
         <h1 className="text-3xl">{t("errorTitle")}</h1>
         <ErrorBox error={billQuery.error} fallback={t("apiDown")} />
       </Shell>
@@ -270,7 +277,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
 
   if (!bill) {
     return (
-      <Shell>
+      <Shell {...(onBack ? { onBack } : {})}>
         <h1 className="text-3xl">{t("noOpenBill")}</h1>
         <p className="mt-3 text-sm text-muted-foreground">{t("oneOpenBill")}</p>
       </Shell>
@@ -288,7 +295,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
   const shareMinor = preview ? BigInt(myShare(preview, mode)) : 0n;
   const tipMinor =
     tipPct === null
-      ? (parseMinorInput(tipCustom) || "0")
+      ? parseMinorInput(tipCustom) || "0"
       : ((shareMinor * BigInt(tipPct)) / 100n).toString();
 
   const setMineQty = (itemId: string, qty: number, max: number) =>
@@ -300,13 +307,17 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
       return next;
     });
 
-
   return (
     <div className="mx-auto min-h-screen w-full max-w-md px-5 pb-16">
       <header className="flex items-center justify-between py-5">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-          <ArrowLeft className="h-4 w-4" /> {t("brand")}
-        </Link>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> {t("backToTable")}
+          </button>
+        )}
       </header>
 
       {demo && (
@@ -339,7 +350,6 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
           ))}
         </ul>
 
-
         <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
           <MoneyRow label={t("subtotal")} amount={bill.subtotalMinor} currency={bill.currency} />
           <MoneyRow
@@ -359,9 +369,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
           <div className="mt-4 space-y-1 border-t border-border pt-4">
             <div className="flex items-baseline justify-between text-foreground">
               <span className="text-xs uppercase tracking-widest">{t("totalPayable")}</span>
-              <span className="font-display text-3xl">
-                {formatMoney(bill.totalDueVes, "VES")}
-              </span>
+              <span className="font-display text-3xl">{formatMoney(bill.totalDueVes, "VES")}</span>
             </div>
             {(bill.fxRateVesPerUnit ?? bill.fxRate) && (
               <div className="flex justify-between text-xs text-muted-foreground">
@@ -377,14 +385,11 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
             <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
             <div className="flex items-baseline justify-between pt-2 text-foreground">
               <span>{t("outstanding")}</span>
-              <span className="font-display text-2xl">
-                {formatMoney(bill.remainingVes, "VES")}
-              </span>
+              <span className="font-display text-2xl">{formatMoney(bill.remainingVes, "VES")}</span>
             </div>
           </div>
         )}
       </div>
-
 
       <div className="surface mt-4 p-6">
         <div className="grid grid-cols-2 gap-2">
@@ -535,9 +540,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
           <p className="mt-5 text-xs text-muted-foreground">{t("calculating")}</p>
         )}
 
-        {splitMutation.isError && (
-          <ErrorBox error={splitMutation.error} fallback={t("apiDown")} />
-        )}
+        {splitMutation.isError && <ErrorBox error={splitMutation.error} fallback={t("apiDown")} />}
 
         {preview && !splitMutation.isPending && (
           <div className="mt-5 border-t border-border pt-4">
@@ -606,7 +609,10 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
               <div className="mt-1 flex items-baseline justify-between text-foreground">
                 <span className="text-xs uppercase tracking-widest">{t("yourTotalWithTip")}</span>
                 <span className="font-display text-2xl">
-                  {formatMoney((BigInt(myShare(preview, mode)) + BigInt(tipMinor)).toString(), "VES")}
+                  {formatMoney(
+                    (BigInt(myShare(preview, mode)) + BigInt(tipMinor)).toString(),
+                    "VES",
+                  )}
                 </span>
               </div>
             </div>
@@ -631,7 +637,6 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
             )}
           </div>
         )}
-
       </div>
 
       {activeSplit && (
@@ -650,10 +655,7 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
                     isMine ? "border-primary bg-primary/10" : "border-border"
                   }`}
                 >
-                  <button
-                    onClick={() => setMyParticipantRef(p.ref)}
-                    className="flex-1 text-left"
-                  >
+                  <button onClick={() => setMyParticipantRef(p.ref)} className="flex-1 text-left">
                     <span>{p.name ?? (isMine ? "Tu parte" : `Comensal ${i + 1}`)}</span>
                     <span className="ml-2 text-[11px] uppercase tracking-widest text-muted-foreground">
                       {p.settled ? "Pagado" : "Pendiente"}
@@ -687,8 +689,6 @@ export function GuestBillScreen({ qr, demo = false }: { qr?: string; demo?: bool
           : {})}
       />
     </div>
-
-
   );
 }
 
@@ -711,14 +711,19 @@ function MoneyRow({
   );
 }
 
-
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, onBack }: { children: React.ReactNode; onBack?: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="mx-auto min-h-screen w-full max-w-md px-5">
       <header className="flex items-center justify-between py-5">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-          <ArrowLeft className="h-4 w-4" /> Mesa
-        </Link>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> {t("backToTable")}
+          </button>
+        )}
       </header>
       <div className="surface p-6">{children}</div>
     </div>

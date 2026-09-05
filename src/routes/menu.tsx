@@ -293,6 +293,16 @@ function MenuPage() {
       <main className="mx-auto max-w-4xl px-5 py-8">
         <h1 className="text-3xl">{t("menuTitle")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("menuSub")}</p>
+        {/* Los cargos deciden el total de una cuenta, y se buscan aquí. Se
+            quedan en Configuración con el resto del dinero -- IVA, servicio y
+            datos de cobro juntos -- pero desde aquí se dice dónde están. */}
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("chargesInMenuHint")}{" "}
+          <Link to="/settings" hash="cobros" className="underline">
+            {t("chargesInMenuLink")}
+          </Link>
+          .
+        </p>
 
         {forbidden ? (
           <section className="surface mt-6 p-6">

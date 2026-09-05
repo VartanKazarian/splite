@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { SetupChecklist } from "@/components/SetupChecklist";
+import { usePayoutConfigured } from "@/lib/use-payout";
 import { QrCode } from "@/components/QrCode";
 import { AddProductsDialog } from "@/components/AddProductsDialog";
 import {
@@ -269,6 +271,10 @@ function Dashboard() {
 
   // Detrás de qué tarjeta va el detalle: la última de la fila de la mesa
   // elegida, no la suya. Ver `useRowEndIndex`.
+  // Si el Pago Móvil de esta mesa puede llegar a alguna parte. Ver el aviso
+  // junto al QR.
+  const payoutReady = usePayoutConfigured();
+
   const floorGrid = useRef<HTMLDivElement>(null);
   const selectedIndex = visibleTables.findIndex((tb) => tb.id === selected?.id);
   // La lista de mesas es lo que hay que volver a medir cuando cambia: filtrar
@@ -837,6 +843,10 @@ function Dashboard() {
           <ErrorBox error={(me.error ?? tablesQuery.error) as unknown} fallback={t("apiDown")} />
         )}
 
+        {/* Arriba de los recuentos, y sólo mientras falte algo: son las paredes
+            contra las que choca un comensal, no cifras del turno. */}
+        <SetupChecklist />
+
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
             label="Mesas ocupadas"
@@ -1034,6 +1044,20 @@ function Dashboard() {
               )}
             </div>
             <p className="mt-4 text-xs text-muted-foreground">{t("qrScanHint")}</p>
+
+            {/* Aquí y no en otro sitio: es el momento en que alguien está a
+                punto de imprimir un código y pegarlo en una mesa. Sin payee,
+                `guestPayee` devuelve null y el Pago Móvil de esa mesa no lleva
+                a ninguna parte -- y se descubre con el cliente ya sentado. */}
+            {payoutReady === false && (
+              <p className="mt-3 rounded-lg border border-amber-500/50 bg-amber-500/5 px-3 py-2 text-left text-[11px] text-muted-foreground">
+                {t("payoutMissingQr")}{" "}
+                <Link to="/settings" className="underline">
+                  {t("payoutConfigure")}
+                </Link>
+              </p>
+            )}
+
             {qrQuery.isError && <ErrorBox error={qrQuery.error} fallback={t("forbidden")} />}
             {guestUrl && (
               <>

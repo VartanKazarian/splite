@@ -57,6 +57,25 @@ function bpsFromInput(value: string): number | null {
   return bps;
 }
 
+/**
+ * Un grupo de la pantalla.
+ *
+ * La pantalla estaba ordenada por cuándo se construyó cada cosa: la contraseña
+ * y el segundo factor -- que son de la persona, no del negocio -- salían
+ * arriba del todo, y los datos de cobro, que deciden si el dinero llega,
+ * quedaban al final de un scroll largo. Ahora hay cuatro grupos y el orden es
+ * el de siempre: lo que ve un cliente, el dinero, el equipo, y tu propia
+ * cuenta al final.
+ */
+function Group({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  return (
+    <section id={id} className="scroll-mt-20 pt-8 first:pt-4">
+      <h2 className="text-xs uppercase tracking-[0.15em] text-muted-foreground">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
 function SettingsPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -174,6 +193,18 @@ function SettingsPage() {
       (settings.error.code === "FORBIDDEN_ROLE" || settings.error.status === 403));
   const loading = settings.isLoading;
 
+  // Los grupos que existen para quien está mirando. Mientras carga tampoco hay
+  // a dónde saltar todavía.
+  const jumps: Array<[string, string]> =
+    forbidden || loading
+      ? [["cuenta", t("settingsGroupAccount")]]
+      : [
+          ["restaurante", t("settingsGroupRestaurant")],
+          ["cobros", t("settingsGroupMoney")],
+          ["equipo", t("settingsGroupTeam")],
+          ["cuenta", t("settingsGroupAccount")],
+        ];
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-border">
@@ -189,15 +220,27 @@ function SettingsPage() {
         <h1 className="text-3xl">{t("settingsTitle")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("settingsSub")}</p>
 
-        {/* Fuera del gate de rol, a propósito: todo lo demás de esta pantalla es
-            de dueño o encargado, pero su propia contraseña la cambia cualquiera
-            que tenga cuenta -- y es justamente el mesero al que le dieron una
-            provisional quien más lo necesita. */}
-        <ChangePassword />
+        {/* La fila de saltos. Con cuatro grupos y una pantalla larga, encontrar
+            "dónde cobro" no debería ser cuestión de recorrerla entera.
 
-        {/* También fuera del gate de rol: el segundo factor es de la cuenta de
-            quien mira, no del restaurante. */}
-        <MfaPanel />
+            Se construye con los grupos que de verdad se pintan, no con los
+            cuatro siempre: a un mesero sólo le sale "Tu cuenta", y en el
+            navegador los otros tres enlaces no hacían nada -- el ancla no
+            existía en la página. Un control muerto es peor que uno ausente.
+            Con un solo grupo no hay a dónde saltar y la fila desaparece. */}
+        {jumps.length > 1 && (
+          <nav className="sticky top-0 z-10 -mx-5 mt-4 flex gap-1.5 overflow-x-auto border-b border-border bg-background/95 px-5 py-3 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {jumps.map(([id, label]) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className="whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary"
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+        )}
 
         {forbidden ? (
           <section className="surface mt-6 p-6">
@@ -215,114 +258,132 @@ function SettingsPage() {
           </div>
         ) : (
           <>
-            {/* Primero, y a propósito: es lo único de esta pantalla que ve un
-                cliente. Lo demás -- moneda, cargos, cobro -- lo ve el negocio. */}
-            <RestaurantName canEdit={role === "OWNER" || role === "MANAGER"} />
+            {/* Lo que ve un cliente. Va primero porque es lo único de esta
+                pantalla que sale de la puerta del local. */}
+            <Group id="restaurante" title={t("settingsGroupRestaurant")}>
+              <RestaurantName canEdit={role === "OWNER" || role === "MANAGER"} />
+              <RestaurantBranding
+                restaurantId={settings.data?.id}
+                canEdit={role === "OWNER" || role === "MANAGER"}
+              />
+            </Group>
 
-            {/* Junto al nombre: las tres cosas de esta pantalla que ve un
-                cliente van juntas, y el resto es del negocio. */}
-            <RestaurantBranding
-              restaurantId={settings.data?.id}
-              canEdit={role === "OWNER" || role === "MANAGER"}
-            />
-
-            <section className="surface mt-6 p-6">
-              <h2 className="text-xl">{t("menuCurrency")}</h2>
-              {settings.isError && <ErrorBox error={settings.error} fallback={t("apiDown")} />}
-              <div className="mt-3 flex flex-wrap gap-2">
-                {CURRENCIES.map((c) => (
-                  <button
-                    key={c}
-                    disabled={setCurrency.isPending}
-                    onClick={() => setCurrency.mutate(c)}
-                    className={`rounded-full border px-4 py-2 text-sm transition-colors disabled:opacity-40 ${
-                      settings.data?.menuCurrency === c
-                        ? "border-primary bg-primary/15 text-primary"
-                        : "border-border hover:bg-secondary"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-              {blocked !== null && (
-                <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm">
-                  <p>{t("currencyBlocked").replace("{n}", String(blocked))}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
+            {/* El dinero, junto y arriba. Estaba repartido: la moneda y los
+                cargos aquí, y los datos de cobro al final de la pantalla,
+                debajo del equipo. Son la misma decisión. */}
+            <Group id="cobros" title={t("settingsGroupMoney")}>
+              <section className="surface mt-4 p-6">
+                <h2 className="text-xl">{t("menuCurrency")}</h2>
+                {settings.isError && <ErrorBox error={settings.error} fallback={t("apiDown")} />}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {CURRENCIES.map((c) => (
                     <button
-                      disabled={cleanup.isPending}
-                      onClick={() => cleanup.mutate("deactivate")}
-                      className="rounded-full border border-border px-4 py-2 text-xs disabled:opacity-40"
+                      key={c}
+                      disabled={setCurrency.isPending}
+                      onClick={() => setCurrency.mutate(c)}
+                      className={`rounded-full border px-4 py-2 text-sm transition-colors disabled:opacity-40 ${
+                        settings.data?.menuCurrency === c
+                          ? "border-primary bg-primary/15 text-primary"
+                          : "border-border hover:bg-secondary"
+                      }`}
                     >
-                      {t("deactivateOthers")}
+                      {c}
                     </button>
-                    <button
-                      disabled={cleanup.isPending}
-                      onClick={() => {
-                        if (window.confirm(t("permanentDeleteConfirm"))) cleanup.mutate("delete");
-                      }}
-                      className="rounded-full border border-destructive px-4 py-2 text-xs text-destructive disabled:opacity-40"
-                    >
-                      {t("deleteOthersPermanently")}
-                    </button>
-                  </div>
+                  ))}
                 </div>
+                {blocked !== null && (
+                  <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm">
+                    <p>{t("currencyBlocked").replace("{n}", String(blocked))}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        disabled={cleanup.isPending}
+                        onClick={() => cleanup.mutate("deactivate")}
+                        className="rounded-full border border-border px-4 py-2 text-xs disabled:opacity-40"
+                      >
+                        {t("deactivateOthers")}
+                      </button>
+                      <button
+                        disabled={cleanup.isPending}
+                        onClick={() => {
+                          if (window.confirm(t("permanentDeleteConfirm"))) cleanup.mutate("delete");
+                        }}
+                        className="rounded-full border border-destructive px-4 py-2 text-xs text-destructive disabled:opacity-40"
+                      >
+                        {t("deleteOthersPermanently")}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <section className="surface mt-6 p-6">
+                <h2 className="text-xl">{t("charges")}</h2>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <label className="text-sm">
+                    <span className="text-muted-foreground">{t("vatLabel")}</span>
+                    <input
+                      value={vat}
+                      inputMode="decimal"
+                      onChange={(e) => setVat(e.target.value)}
+
+                      className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
+                    />
+                    <span className="mt-1 block text-[11px] tabular-nums text-muted-foreground">
+                      {formatBps(bpsFromInput(vat) ?? 0)} · {bpsFromInput(vat) ?? "—"} bps
+                    </span>
+                  </label>
+                  <label className="text-sm">
+                    <span className="text-muted-foreground">{t("serviceLabel")}</span>
+                    <input
+                      value={service}
+                      inputMode="decimal"
+                      onChange={(e) => setService(e.target.value)}
+
+                      className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
+                    />
+                    <span className="mt-1 block text-[11px] tabular-nums text-muted-foreground">
+                      {formatBps(bpsFromInput(service) ?? 0)} · {bpsFromInput(service) ?? "—"} bps
+                    </span>
+                  </label>
+                </div>
+                <p className="mt-3 text-[11px] text-muted-foreground">{t("ratesHint")}</p>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    disabled={
+                      saveCharges.isPending ||
+                      bpsFromInput(vat) === null ||
+                      bpsFromInput(service) === null
+                    }
+                    onClick={() => saveCharges.mutate()}
+                    className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                  >
+                    {t("saveRates")}
+                  </button>
+                </div>
+              </section>
+
+              {(role === "OWNER" || role === "MANAGER") && <PayoutSection />}
+              {role === "OWNER" && <ProvidersSection />}
+            </Group>
+
+            <Group id="equipo" title={t("settingsGroupTeam")}>
+              {(role === "OWNER" || role === "MANAGER") && meId && (
+                <StaffManager me={{ id: meId, role }} />
               )}
-            </section>
-
-            <section className="surface mt-6 p-6">
-              <h2 className="text-xl">{t("charges")}</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="text-sm">
-                  <span className="text-muted-foreground">{t("vatLabel")}</span>
-                  <input
-                    value={vat}
-                    inputMode="decimal"
-                    onChange={(e) => setVat(e.target.value)}
-
-                    className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
-                  />
-                  <span className="mt-1 block text-[11px] tabular-nums text-muted-foreground">
-                    {formatBps(bpsFromInput(vat) ?? 0)} · {bpsFromInput(vat) ?? "—"} bps
-                  </span>
-                </label>
-                <label className="text-sm">
-                  <span className="text-muted-foreground">{t("serviceLabel")}</span>
-                  <input
-                    value={service}
-                    inputMode="decimal"
-                    onChange={(e) => setService(e.target.value)}
-
-                    className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
-                  />
-                  <span className="mt-1 block text-[11px] tabular-nums text-muted-foreground">
-                    {formatBps(bpsFromInput(service) ?? 0)} · {bpsFromInput(service) ?? "—"} bps
-                  </span>
-                </label>
-              </div>
-              <p className="mt-3 text-[11px] text-muted-foreground">{t("ratesHint")}</p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                  disabled={
-                    saveCharges.isPending ||
-                    bpsFromInput(vat) === null ||
-                    bpsFromInput(service) === null
-                  }
-                  onClick={() => saveCharges.mutate()}
-                  className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
-                >
-                  {t("saveRates")}
-                </button>
-              </div>
-            </section>
-
-            {(role === "OWNER" || role === "MANAGER") && meId && (
-              <StaffManager me={{ id: meId, role }} />
-            )}
-            {(role === "OWNER" || role === "MANAGER") && <PayoutSection />}
-            {role === "OWNER" && <ProvidersSection />}
+            </Group>
           </>
         )}
+
+        {/* Fuera del gate de rol, y a propósito: la contraseña y el segundo
+            factor son de la persona que mira, no del restaurante. Un mesero no
+            ve nada de lo de arriba y aun así tiene que poder cambiar la
+            provisional que le dieron -- de hecho es quien más lo necesita.
+            Estaban los primeros de la pantalla por accidente; van al final
+            porque se usan una vez, no porque importen menos. */}
+        <Group id="cuenta" title={t("settingsGroupAccount")}>
+          <ChangePassword />
+          <MfaPanel />
+        </Group>
       </main>
     </div>
   );
@@ -404,11 +465,32 @@ function PayoutSection() {
 
   return (
     <section className="surface mt-6 p-6">
-      <h2 className="text-xl">Datos de cobro (Pago Móvil)</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl">Datos de cobro (Pago Móvil)</h2>
+        {/* Un estado, no un formulario. Sin esto sólo se podía saber si estaba
+            configurado leyendo si los cuatro campos tenían algo -- y el que
+            falta es justo el que nadie mira. */}
+        {accountQuery.data && (
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11px] ${
+              accountQuery.data.payout
+                ? "bg-primary/15 text-primary"
+                : "border border-amber-500/50 text-muted-foreground"
+            }`}
+          >
+            {accountQuery.data.payout ? t("payoutReady") : t("payoutMissing")}
+          </span>
+        )}
+      </div>
       <p className="mt-1 text-xs text-muted-foreground">
         Es lo que ve el comensal para pagarte. Splite nunca retiene el dinero: va de su banco al
         tuyo.
       </p>
+      {accountQuery.data && !accountQuery.data.payout && (
+        <p className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/5 px-3 py-2 text-[11px] text-muted-foreground">
+          {t("setupPayoutWhy")}
+        </p>
+      )}
       {accountQuery.isError && <ErrorBox error={accountQuery.error} fallback={t("apiDown")} />}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">

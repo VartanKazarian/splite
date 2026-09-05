@@ -675,6 +675,21 @@ export type Bill = {
   fxValueDate?: string | null;
   usdReference?: string | null;
   itemCount?: number;
+  /**
+   * Los tres de abajo sólo vienen en el resumen de `/tables/floor`, no en
+   * `/bills/{id}`. Estaban en el contrato desde el principio y este tipo no los
+   * declaraba, así que el panel se los perdía y calculaba la antigüedad
+   * restando fechas en el navegador -- justo lo que el contrato dice que no se
+   * haga, porque usa el reloj de quien mira.
+   */
+  /** Cuándo se abrió, según el servidor. */
+  openedAt?: string | null;
+  /** Cuánto lleva abierta, en minutos, calculado por el servidor. */
+  openMinutes?: number | null;
+  /** Avisos de pago de esta mesa que esperan a que alguien los verifique. */
+  pendingClaims?: number;
+  /** Propinas ya liquidadas en esta cuenta. */
+  tipVes?: Money;
   createdAt?: string;
   updatedAt?: string;
   items?: BillItem[];

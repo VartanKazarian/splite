@@ -81,7 +81,7 @@ export function BillServerPicker({
         disabled={assign.isPending || team.isLoading}
         onChange={(e) => assign.mutate(e.target.value || null)}
         aria-label="Quién atendió esta mesa"
-        className="rounded-lg border border-input bg-secondary px-2 py-1 text-xs text-foreground outline-none focus:border-ring disabled:opacity-50"
+        className="min-h-11 rounded-lg border border-input bg-secondary px-3 text-xs text-foreground outline-none focus:border-ring disabled:opacity-50"
       >
         <option value="">Sin asignar</option>
         {active.map((m) => (

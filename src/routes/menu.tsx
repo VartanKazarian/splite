@@ -771,20 +771,21 @@ function CategorySelect({
   onChange: (v: string) => void;
   categories: MenuCategory[];
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-2 rounded-lg border border-input bg-secondary px-4 py-3 focus-within:border-ring">
       <Tag className="h-4 w-4 shrink-0 text-muted-foreground" />
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        aria-label="Sección"
+        aria-label={t("sectionLabel")}
         className="w-full bg-transparent text-sm outline-none"
       >
-        <option value="">{UNCATEGORIZED}</option>
+        <option value="">{t("uncategorised")}</option>
         {categories.map((c) => (
           <option key={c.id} value={c.id}>
             {c.name}
-            {c.active ? "" : " (oculta)"}
+            {c.active ? "" : ` (${t("sectionHiddenSuffix")})`}
           </option>
         ))}
       </select>

@@ -87,7 +87,10 @@ export function demoSplit(
     allocations = [alloc("me", outstanding)];
   } else if (mode === "EQUAL") {
     const n = Math.max(2, opts.diners);
-    const parts = hare(outstanding, Array.from({ length: n }, () => 1n));
+    const parts = hare(
+      outstanding,
+      Array.from({ length: n }, () => 1n),
+    );
     allocations = parts.map((p, i) => alloc(`p${i + 1}`, p));
   } else if (mode === "ITEMS") {
     const mineMinor = (bill.items ?? []).reduce((a, i) => {

@@ -94,8 +94,8 @@ export function MenuPdfCard() {
   return (
     <section className="surface mt-4 p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl">Carta en PDF</h2>
-        <p className="text-xs text-muted-foreground">Opcional · la ve quien escanea el QR</p>
+        <h2 className="text-xl">{t("menuPdfTitle")}</h2>
+        <p className="text-xs text-muted-foreground">{t("menuPdfMeta")}</p>
       </div>
 
       <p className="mt-2 text-sm text-muted-foreground">
@@ -103,7 +103,7 @@ export function MenuPdfCard() {
         sustituye a los productos: la cuenta se sigue armando con los precios de arriba.
       </p>
 
-      {doc.isLoading && <p className="mt-4 text-sm text-muted-foreground">Cargando…</p>}
+      {doc.isLoading && <p className="mt-4 text-sm text-muted-foreground">{t("loading")}</p>}
 
       {!doc.isLoading && current && (
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-secondary p-3">

@@ -100,8 +100,17 @@ export const tables: TableInfo[] = [
       openedAt: "20:05",
       guests: 2,
       items: [
-        { id: "j1", name: { es: "Pabellón criollo", en: "Pabellón criollo" }, priceMinor: m(16), paid: true },
-        { id: "j2", name: { es: "Arepa reina pepiada", en: "Reina pepiada arepa" }, priceMinor: m(9) },
+        {
+          id: "j1",
+          name: { es: "Pabellón criollo", en: "Pabellón criollo" },
+          priceMinor: m(16),
+          paid: true,
+        },
+        {
+          id: "j2",
+          name: { es: "Arepa reina pepiada", en: "Reina pepiada arepa" },
+          priceMinor: m(9),
+        },
         { id: "j3", name: { es: "Papelón con limón", en: "Papelón lemonade" }, priceMinor: m(3) },
       ],
       payments: [

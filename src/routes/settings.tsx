@@ -552,7 +552,7 @@ function PayoutSection() {
       }),
     onSuccess: (data) => {
       queryClient.setQueryData(["account"], data);
-      toast.success("Datos de cobro guardados");
+      toast.success(t("payoutSaved"));
     },
     onError: (error) => {
       if (error instanceof ApiError) {
@@ -570,7 +570,7 @@ function PayoutSection() {
       setAccountNumber("");
       setPhone("");
       setHolderId("");
-      toast.success("Datos de cobro eliminados");
+      toast.success(t("payoutDeleted"));
     },
   });
 
@@ -586,7 +586,7 @@ function PayoutSection() {
   return (
     <section className="surface mt-6 p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl">Datos de cobro (Pago Móvil)</h2>
+        <h2 className="text-xl">{t("payoutTitle")}</h2>
         {/* Un estado, no un formulario. Sin esto sólo se podía saber si estaba
             configurado leyendo si los cuatro campos tenían algo -- y el que
             falta es justo el que nadie mira. */}
@@ -602,10 +602,7 @@ function PayoutSection() {
           </span>
         )}
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Es lo que ve el comensal para pagarte. Splite nunca retiene el dinero: va de su banco al
-        tuyo.
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{t("payoutWhat")}</p>
       {accountQuery.data && !accountQuery.data.payout && (
         <p className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/5 px-3 py-2 text-[11px] text-muted-foreground">
           {t("setupPayoutWhy")}
@@ -615,7 +612,7 @@ function PayoutSection() {
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className="text-sm">
-          <span className="text-muted-foreground">Banco</span>
+          <span className="text-muted-foreground">{t("payoutBank")}</span>
           <select value={bankCode} onChange={(e) => setBankCode(e.target.value)} className={field}>
             <option value="">—</option>
             {(banksQuery.data ?? []).map((b: BankRef) => (
@@ -626,7 +623,7 @@ function PayoutSection() {
           </select>
         </label>
         <label className="text-sm">
-          <span className="text-muted-foreground">Número de cuenta (20 dígitos)</span>
+          <span className="text-muted-foreground">{t("payoutAccount")}</span>
           <input
             inputMode="numeric"
             value={accountNumber}
@@ -635,7 +632,7 @@ function PayoutSection() {
           />
         </label>
         <label className="text-sm">
-          <span className="text-muted-foreground">Teléfono afiliado</span>
+          <span className="text-muted-foreground">{t("payoutPhone")}</span>
           <input
             inputMode="numeric"
             value={phone}
@@ -644,7 +641,7 @@ function PayoutSection() {
           />
         </label>
         <label className="text-sm">
-          <span className="text-muted-foreground">RIF o cédula del titular</span>
+          <span className="text-muted-foreground">{t("payoutHolderId")}</span>
           <input
             value={holderId}
             onChange={(e) => setHolderId(e.target.value.toUpperCase().slice(0, 10))}
@@ -736,22 +733,19 @@ function ProvidersSection() {
 
   return (
     <section className="surface mt-6 p-6">
-      <h2 className="text-xl">Cobro C2P (Mercantil)</h2>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Permite que el comensal pague desde su banco sin salir de la app. Las credenciales se
-        guardan cifradas y nunca se vuelven a mostrar.
-      </p>
+      <h2 className="text-xl">{t("c2pTitle")}</h2>
+      <p className="mt-1 text-xs text-muted-foreground">{t("c2pWhat")}</p>
 
       <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-widest">
         <span className="rounded-full border border-border px-2.5 py-1 text-muted-foreground">
-          {mercantil?.configured ? "Credenciales guardadas" : "Sin credenciales"}
+          {mercantil?.configured ? t("c2pStored") : t("c2pNoCreds")}
         </span>
         <span className="rounded-full border border-border px-2.5 py-1 text-muted-foreground">
-          {mercantil?.enabled ? "Rail activo" : "Rail inactivo"}
+          {mercantil?.enabled ? t("c2pOn") : t("c2pOff")}
         </span>
         {mercantil?.configured && !mercantil.credentialsValidatedAt && (
           <span className="rounded-full border border-amber-500/50 px-2.5 py-1 text-muted-foreground">
-            Sin validar con el banco
+            {t("c2pUnvalidated")}
           </span>
         )}
       </div>

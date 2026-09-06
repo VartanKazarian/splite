@@ -39,6 +39,7 @@ function CopyRow({
     return () => clearTimeout(id);
   }, [copied]);
 
+  const { t } = useI18n();
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(copyValue);
@@ -63,7 +64,7 @@ function CopyRow({
           className="inline-flex h-11 min-w-11 items-center justify-center gap-1 rounded-lg border border-border px-2 text-[11px] text-muted-foreground transition-colors hover:bg-secondary"
         >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          {copied && <span>Copiado</span>}
+          {copied && <span>{t("copied")}</span>}
         </button>
       </span>
     </div>
@@ -78,9 +79,11 @@ type ClaimError = {
   suggestVes?: string;
 };
 
-function toClaimError(error: unknown): ClaimError {
+/** El traductor va por parámetro: esto no es un componente y no puede usar el hook. */
+function toClaimError(error: unknown, t: (k: never) => string): ClaimError {
+  const say = (k: string) => t(k as never);
   if (!(error instanceof ApiError)) {
-    return { message: "Algo salió mal. Intenta de nuevo." };
+    return { message: say("guestErrRetry") };
   }
   const details = (error.details ?? {}) as Record<string, unknown>;
   const base = { code: error.code, requestId: error.requestId };
@@ -88,8 +91,7 @@ function toClaimError(error: unknown): ClaimError {
     case "PAYMENT_REFERENCE_ALREADY_USED":
       return {
         ...base,
-        message:
-          "Esa referencia ya fue usada. Revisa el número, y si estás seguro de que es correcto avísale al mesero.",
+        message: say("guestErrRefUsed"),
         fields: ["reference"],
       };
     case "PAYMENT_EXCEEDS_BALANCE": {
@@ -97,29 +99,32 @@ function toClaimError(error: unknown): ClaimError {
         typeof details["remainingVes"] === "string" ? details["remainingVes"] : undefined;
       return {
         ...base,
-        message: `Ese monto supera lo que falta por pagar (${remaining ? formatMinor(remaining) : "—"} Bs).`,
+        message: say("guestErrTooMuch").replace(
+          "{amount}",
+          `${remaining ? formatMinor(remaining) : "—"} Bs`,
+        ),
         fields: ["amount"],
         ...(remaining ? { suggestVes: remaining } : {}),
       };
     }
     case "BILL_NOT_OPEN":
     case "OPEN_BILL_NOT_FOUND":
-      return { ...base, message: "Esta cuenta ya fue cerrada. Habla con el mesero." };
+      return { ...base, message: say("c2pErrClosed") };
     case "VALIDATION_FAILED": {
       const raw = details["fields"];
       const fields = Array.isArray(raw) ? raw.map(String) : [];
-      return { ...base, message: "Revisa los datos.", fields };
+      return { ...base, message: say("guestErrFields"), fields };
     }
     case "GUEST_SESSION_INVALID":
     case "GUEST_SESSION_MISSING":
       return {
         ...base,
-        message: "Tu sesión venció. Vuelve a escanear el código QR de la mesa.",
+        message: say("c2pErrSession"),
       };
     case "RATE_LIMITED":
-      return { ...base, message: "Demasiados intentos. Espera un momento." };
+      return { ...base, message: say("c2pErrTooMany") };
     default:
-      return { ...base, message: "Algo salió mal. Intenta de nuevo." };
+      return { ...base, message: say("guestErrRetry") };
   }
 }
 
@@ -211,7 +216,7 @@ export function GuestPaymentPanel({
       setTimeout(() => successRef.current?.focus(), 0);
     },
     onError: (err) => {
-      const parsed = toClaimError(err);
+      const parsed = toClaimError(err, t);
       setError(parsed);
       if (parsed.fields?.includes("reference")) referenceRef.current?.focus();
       if (err instanceof ApiError && err.code === "RATE_LIMITED") {
@@ -286,18 +291,18 @@ export function GuestPaymentPanel({
           </p>
           <div className="mt-3 rounded-lg border border-border px-3">
             <CopyRow
-              label="Banco"
+              label={t("payoutBank")}
               display={`${payee.bankName} (${payee.bankCode})`}
               copyValue={payee.bankCode}
             />
             <CopyRow
-              label="Teléfono"
+              label={t("guestPhone")}
               display={formatPhone(payee.phone)}
               copyValue={payee.phone.replace(/\D/g, "")}
             />
             <CopyRow label="RIF/CI" display={payee.holderId} copyValue={payee.holderId} />
             <CopyRow
-              label={splitParticipantId ? "Tu parte" : "Monto"}
+              label={splitParticipantId ? t("yourShare") : t("guestAmount")}
               display={formatMoney(dueVes, "VES")}
               copyValue={formatMinor(dueVes).replace(/\./g, "")}
             />
@@ -315,10 +320,8 @@ export function GuestPaymentPanel({
         <div className="mt-5">
           {billPaid ? (
             <div className="rounded-lg border border-primary/50 bg-primary/10 p-4">
-              <p className="font-display text-2xl">Cuenta pagada</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                No queda nada por pagar en esta mesa.
-              </p>
+              <p className="font-display text-2xl">{t("billSettledTitle")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("guestNothingLeft")}</p>
             </div>
           ) : claim ? (
             <div
@@ -327,22 +330,23 @@ export function GuestPaymentPanel({
               role="status"
               className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 outline-none"
             >
-              <p className="font-display text-2xl">Aviso enviado</p>
+              <p className="font-display text-2xl">{t("guestClaimSent")}</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Le avisamos al restaurante que pagaste {formatMinor(claim.amountVes)} Bs con la
-                referencia {claim.declaredReference}. Un miembro del personal lo va a verificar.
+                {t("guestClaimSentBody")
+                  .replace("{amount}", `${formatMinor(claim.amountVes)} Bs`)
+                  .replace("{reference}", claim.declaredReference ?? "—")}
               </p>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                La cuenta se cierra cuando lo confirmen.
+                {t("guestClaimClosesOnConfirm")}
               </p>
               <div className="mt-3 flex items-center justify-between border-t border-amber-500/30 pt-3 text-xs text-muted-foreground">
-                <span>Estado del aviso</span>
+                <span>{t("guestClaimStatus")}</span>
                 <span className="rounded-full border border-amber-500/50 px-2 py-0.5 uppercase tracking-widest">
-                  {claim.status === "PENDING" ? "Por verificar" : claim.status}
+                  {claim.status === "PENDING" ? t("payToVerify") : claim.status}
                 </span>
               </div>
               <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                <span>Falta por pagar</span>
+                <span>{t("outstanding")}</span>
                 <span className="figure">{formatMoney(bill.remainingVes ?? "0", "VES")}</span>
               </div>
             </div>
@@ -468,17 +472,15 @@ export function GuestPaymentPanel({
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="mt-5 w-full rounded-lg border border-primary bg-primary/15 px-4 py-3 text-sm text-foreground transition-colors disabled:opacity-40"
+                className="mt-5 min-h-12 w-full rounded-lg border border-primary bg-primary/15 px-4 text-sm text-foreground transition-colors disabled:opacity-40"
               >
                 {mutation.isPending
-                  ? "Enviando…"
+                  ? t("loading")
                   : cooldown > 0
-                    ? `Espera ${cooldown}s`
-                    : "Confirmar que pagué"}
+                    ? t("guestWaitSeconds").replace("{n}", String(cooldown))
+                    : t("guestIPaid")}
               </button>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                Esto no cobra nada: solo avisa al restaurante para que verifique tu pago móvil.
-              </p>
+              <p className="mt-2 text-[11px] text-muted-foreground">{t("guestClaimNote")}</p>
             </form>
           )}
         </div>

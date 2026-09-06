@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
+import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, errorFields } from "@/lib/api";
 
 /** El mínimo del servidor. Decirlo antes ahorra un viaje y un 400. */
@@ -22,6 +23,7 @@ const MIN_PASSWORD = 12;
  * en la siguiente renovación.
  */
 export function ChangePassword() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -42,18 +44,17 @@ export function ChangePassword() {
       setOpen(false);
       toast.success(
         res.sessionsRevoked > 0
-          ? `Contraseña cambiada. Se cerraron ${res.sessionsRevoked} sesión(es) en otros dispositivos.`
-          : "Contraseña cambiada",
+          ? t("pwChangedWithSessions").replace("{count}", String(res.sessionsRevoked))
+          : t("pwChanged"),
       );
     },
     onError: (error: unknown) => {
-      if (!(error instanceof ApiError)) return toast.error("No se pudo conectar con el servidor");
+      if (!(error instanceof ApiError)) return toast.error(t("apiDown"));
       if (error.code === "INVALID_CREDENTIALS")
         // El servidor no distingue "contraseña actual mal" de otras causas en
         // este código; aquí sólo puede ser eso, porque la sesión ya vale.
-        return toast.error("La contraseña actual no es correcta");
-      if (error.code === "PASSWORD_UNCHANGED")
-        return toast.error("La nueva contraseña tiene que ser distinta de la actual");
+        return toast.error(t("pwCurrentWrong"));
+      if (error.code === "PASSWORD_UNCHANGED") return toast.error(t("pwUnchanged"));
       if (error.code === "VALIDATION_FAILED") {
         setFieldErrors(errorFields(error));
         return toast.error(error.message);
@@ -71,7 +72,7 @@ export function ChangePassword() {
     <section className="surface mt-4 p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="inline-flex items-center gap-2 text-xl">
-          <KeyRound className="h-5 w-5 text-muted-foreground" /> Tu contraseña
+          <KeyRound className="h-5 w-5 text-muted-foreground" /> {t("pwTitle")}
         </h2>
         <button
           onClick={() => {
@@ -80,16 +81,11 @@ export function ChangePassword() {
           }}
           className="min-h-11 rounded-lg border border-border px-4 text-sm transition-colors hover:bg-secondary"
         >
-          {open ? "Cancelar" : "Cambiarla"}
+          {open ? t("cancel") : t("pwChangeIt")}
         </button>
       </div>
 
-      {!open && (
-        <p className="mt-2 text-sm text-muted-foreground">
-          Si entraste con una contraseña que te dieron, cámbiala: hasta que lo hagas la sabéis dos
-          personas.
-        </p>
-      )}
+      {!open && <p className="mt-2 text-sm text-muted-foreground">{t("pwWhy")}</p>}
 
       {open && (
         <form
@@ -100,7 +96,7 @@ export function ChangePassword() {
           className="mt-4 grid gap-3"
         >
           <label className="grid gap-1">
-            <span className="text-xs text-muted-foreground">Contraseña actual</span>
+            <span className="text-xs text-muted-foreground">{t("pwCurrent")}</span>
             <input
               type="password"
               value={current}
@@ -118,7 +114,7 @@ export function ChangePassword() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1">
               <span className="text-xs text-muted-foreground">
-                Nueva (mínimo {MIN_PASSWORD} caracteres)
+                {t("pwNew").replace("{min}", String(MIN_PASSWORD))}
               </span>
               <input
                 type="password"
@@ -135,7 +131,7 @@ export function ChangePassword() {
               )}
             </label>
             <label className="grid gap-1">
-              <span className="text-xs text-muted-foreground">Repítela</span>
+              <span className="text-xs text-muted-foreground">{t("pwRepeat")}</span>
               <input
                 type="password"
                 value={repeat}
@@ -148,15 +144,11 @@ export function ChangePassword() {
                   mismatch ? "border-destructive" : "border-input"
                 }`}
               />
-              {mismatch && (
-                <span className="text-[11px] text-destructive">Las dos no coinciden</span>
-              )}
+              {mismatch && <span className="text-[11px] text-destructive">{t("pwMismatch")}</span>}
             </label>
           </div>
 
-          <p className="text-[11px] text-muted-foreground">
-            Al cambiarla se cierra tu sesión en los demás dispositivos. En este sigues dentro.
-          </p>
+          <p className="text-[11px] text-muted-foreground">{t("pwSessionsNote")}</p>
 
           <div>
             <button
@@ -164,7 +156,7 @@ export function ChangePassword() {
               disabled={!ready || change.isPending}
               className="min-h-11 rounded-lg bg-primary px-5 text-sm text-primary-foreground disabled:opacity-60"
             >
-              {change.isPending ? "Cambiando…" : "Cambiar contraseña"}
+              {change.isPending ? t("loading") : t("pwSubmit")}
             </button>
           </div>
         </form>

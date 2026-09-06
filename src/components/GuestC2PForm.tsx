@@ -11,6 +11,7 @@ import {
   type C2PBankClave,
   type C2PChargeResult,
 } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
 const ID_TYPES = ["V", "E", "J", "G", "P", "C"] as const;
 
@@ -24,6 +25,7 @@ const ID_TYPES = ["V", "E", "J", "G", "P", "C"] as const;
  *    el cargo siga sin resolverse. Generar otra puede cobrar dos veces.
  */
 export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }) {
+  const { t } = useI18n();
   const banksQuery = useQuery({
     queryKey: ["c2p-banks"],
     enabled: !demo,
@@ -100,21 +102,21 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
     onError: (err) => {
       setResult(null);
       if (!(err instanceof ApiError)) {
-        setError({ message: "No pudimos contactar al banco. Intenta de nuevo." });
+        setError({ message: t("c2pErrNoBank") });
         return;
       }
       const map: Record<string, string> = {
-        PAYMENT_EXCEEDS_BALANCE: "Ese monto supera lo que falta por pagar.",
-        BILL_NOT_OPEN: "Esta cuenta ya fue cerrada. Habla con el mesero.",
-        OPEN_BILL_NOT_FOUND: "Esta cuenta ya fue cerrada. Habla con el mesero.",
-        VALIDATION_FAILED: "Revisa los datos: banco, cédula, teléfono y clave.",
-        GUEST_SESSION_INVALID: "Tu sesión venció. Vuelve a escanear el QR de la mesa.",
-        RATE_LIMITED: "Demasiados intentos. Espera un momento.",
-        PAYMENT_PROVIDER_UNAVAILABLE: "El banco no responde ahora mismo. Intenta en un minuto.",
-        C2P_NOT_ENABLED: "Este restaurante todavía no acepta pago C2P en la app.",
+        PAYMENT_EXCEEDS_BALANCE: t("c2pErrTooMuch"),
+        BILL_NOT_OPEN: t("c2pErrClosed"),
+        OPEN_BILL_NOT_FOUND: t("c2pErrClosed"),
+        VALIDATION_FAILED: t("c2pErrFields"),
+        GUEST_SESSION_INVALID: t("c2pErrSession"),
+        RATE_LIMITED: t("c2pErrTooMany"),
+        PAYMENT_PROVIDER_UNAVAILABLE: t("c2pErrBankDown"),
+        C2P_NOT_ENABLED: t("c2pErrNotEnabled"),
       };
       setError({
-        message: map[err.code] ?? "El banco rechazó la operación. Intenta de nuevo.",
+        message: map[err.code] ?? t("c2pErrRejected"),
         requestId: err.requestId,
       });
     },
@@ -130,7 +132,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
     BigInt(amountMinor) > 0n;
 
   const field =
-    "mt-2 w-full rounded-lg border border-input bg-secondary px-3 py-2.5 text-base outline-none focus:border-ring";
+    "mt-2 min-h-11 w-full rounded-lg border border-input bg-secondary px-3 text-base outline-none focus:border-ring";
 
   if (result) {
     const tone =
@@ -143,21 +145,21 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
       <div className={`mt-5 rounded-lg border p-4 ${tone}`}>
         <p className="figure text-2xl">
           {result.status === "SUCCEEDED"
-            ? "Pago confirmado"
+            ? t("c2pOkTitle")
             : result.status === "FAILED"
-              ? "El banco rechazó el pago"
+              ? t("c2pFailedTitle")
               : result.status === "IN_DOUBT"
-                ? "Pago sin confirmar"
-                : "Pago en revisión"}
+                ? t("c2pDoubtTitle")
+                : t("c2pReviewTitle")}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
           {result.status === "SUCCEEDED"
-            ? "Tu parte quedó registrada en la cuenta."
+            ? t("c2pOkBody")
             : result.status === "FAILED"
-              ? "No se debitó nada de tu cuenta. Puedes intentarlo con una clave nueva."
+              ? t("c2pFailedBody")
               : result.status === "IN_DOUBT"
-                ? "El banco no dio una respuesta clara. Puede que el débito sí haya salido, así que no vuelvas a pagar: el personal lo va a verificar con el banco."
-                : "El débito se confirmó pero no se pudo acreditar a esta cuenta. El personal tiene que revisarlo."}
+                ? t("c2pDoubtBody")
+                : t("c2pReviewBody")}
         </p>
         {result.status === "FAILED" && (
           <button
@@ -167,15 +169,15 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
               idemRef.current = newIdempotencyKey();
               setResult(null);
             }}
-            className="mt-3 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground hover:bg-secondary"
+            className="mt-3 min-h-11 rounded-lg border border-border px-4 text-xs text-muted-foreground hover:bg-secondary"
           >
-            Intentar de nuevo
+            {t("retry")}
           </button>
         )}
         {result.reason && <p className="mt-2 text-[11px] text-muted-foreground">{result.reason}</p>}
         {result.bankReference && (
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Referencia del banco: {result.bankReference}
+            {t("c2pBankRef")}: {result.bankReference}
           </p>
         )}
       </div>
@@ -192,16 +194,14 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
         charge.mutate();
       }}
     >
-      <p className="text-xs text-muted-foreground">
-        Paga desde tu propio banco sin salir de aquí. Necesitas una clave C2P de un solo uso.
-      </p>
+      <p className="text-xs text-muted-foreground">{t("c2pIntro")}</p>
 
       <div className="mt-4">
         <label
           htmlFor="c2p-bank"
           className="text-xs uppercase tracking-widest text-muted-foreground"
         >
-          Tu banco
+          {t("c2pYourBank")}
         </label>
         <select
           id="c2p-bank"
@@ -217,25 +217,19 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
           ))}
         </select>
         {banksQuery.isError && (
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            No pudimos cargar la lista de bancos.
-          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{t("c2pBanksFailed")}</p>
         )}
       </div>
 
       {selected && (
         <div className="mt-3 rounded-lg border border-border p-3 text-[11px] text-muted-foreground">
-          <p>Tu clave dura {selected.ttlLabel}.</p>
+          <p>{t("c2pTtl").replace("{ttl}", selected.ttlLabel)}</p>
           {selected.channels.map((c) => (
             <p key={c.channel} className="mt-1">
               {c.channel}: {c.text}
             </p>
           ))}
-          {selected.amountBound && (
-            <p className="mt-1">
-              La clave va atada al monto: pídela justo antes de pagar y por este monto exacto.
-            </p>
-          )}
+          {selected.amountBound && <p className="mt-1">{t("c2pAmountBound")}</p>}
         </div>
       )}
 
@@ -245,7 +239,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
             htmlFor="c2p-idtype"
             className="text-xs uppercase tracking-widest text-muted-foreground"
           >
-            Tipo
+            {t("c2pIdType")}
           </label>
           <select
             id="c2p-idtype"
@@ -265,7 +259,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
             htmlFor="c2p-id"
             className="text-xs uppercase tracking-widest text-muted-foreground"
           >
-            Cédula o RIF
+            {t("c2pIdNumber")}
           </label>
           <input
             id="c2p-id"
@@ -282,7 +276,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
           htmlFor="c2p-phone"
           className="text-xs uppercase tracking-widest text-muted-foreground"
         >
-          Teléfono afiliado
+          {t("payoutPhone")}
         </label>
         <input
           id="c2p-phone"
@@ -299,7 +293,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
           htmlFor="c2p-amount"
           className="text-xs uppercase tracking-widest text-muted-foreground"
         >
-          Monto a pagar (Bs)
+          {t("c2pAmount")}
         </label>
         <input
           id="c2p-amount"
@@ -309,7 +303,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
           className={field}
         />
         <p className="mt-1 text-[11px] text-muted-foreground">
-          Máximo {formatMoney(maxVes || "0", "VES")}. Puedes pagar solo tu parte.
+          {t("c2pMax").replace("{amount}", formatMoney(maxVes || "0", "VES"))}
         </p>
       </div>
 
@@ -318,7 +312,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
           htmlFor="c2p-clave"
           className="text-xs uppercase tracking-widest text-muted-foreground"
         >
-          Clave C2P
+          {t("c2pClave")}
         </label>
         <input
           id="c2p-clave"
@@ -329,9 +323,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
           onChange={(e) => setClave(e.target.value.replace(/\D/g, "").slice(0, 16))}
           className={field}
         />
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          De un solo uso. No la guardamos ni queda registrada en ningún sitio.
-        </p>
+        <p className="mt-1 text-[11px] text-muted-foreground">{t("c2pClaveNote")}</p>
       </div>
 
       {error && (
@@ -339,7 +331,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
           <p>{error.message}</p>
           {error.requestId && (
             <p className="mt-2 font-mono text-[10px] text-muted-foreground">
-              Referencia: {error.requestId}
+              {t("c2pRef")}: {error.requestId}
             </p>
           )}
         </div>
@@ -348,13 +340,11 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
       <button
         type="submit"
         disabled={!canSubmit}
-        className="mt-5 w-full rounded-lg border border-primary bg-primary/15 px-4 py-3 text-sm text-foreground transition-colors disabled:opacity-40"
+        className="mt-5 min-h-12 w-full rounded-lg border border-primary bg-primary/15 px-4 text-sm text-foreground transition-colors disabled:opacity-40"
       >
-        {charge.isPending ? "Contactando al banco…" : "Pagar con C2P"}
+        {charge.isPending ? t("c2pContacting") : t("c2pPay")}
       </button>
-      <p className="mt-2 text-[11px] text-muted-foreground">
-        El débito sale de tu cuenta hacia la del restaurante. Splite no retiene el dinero.
-      </p>
+      <p className="mt-2 text-[11px] text-muted-foreground">{t("c2pMoneyNote")}</p>
     </form>
   );
 }

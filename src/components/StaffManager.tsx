@@ -145,7 +145,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
   if (forbidden) {
     return (
       <section className="surface mt-4 p-6">
-        <h2 className="text-xl">Personal</h2>
+        <h2 className="text-xl">{t("staffTitle")}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           Sólo el dueño y los encargados pueden gestionar al personal.
         </p>
@@ -183,7 +183,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1">
-              <span className="text-xs text-muted-foreground">Correo</span>
+              <span className="text-xs text-muted-foreground">{t("email")}</span>
               <input
                 type="email"
                 value={email}
@@ -246,7 +246,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
         </form>
       )}
 
-      {list.isLoading && <p className="mt-4 text-sm text-muted-foreground">Cargando…</p>}
+      {list.isLoading && <p className="mt-4 text-sm text-muted-foreground">{t("loading")}</p>}
       {list.isError && !forbidden && (
         <ErrorBox error={list.error} fallback="No se pudo cargar el personal" />
       )}

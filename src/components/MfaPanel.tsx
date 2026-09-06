@@ -44,16 +44,14 @@ export function MfaPanel() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["mfa-status"] });
 
   const fail = (error: unknown) => {
-    if (!(error instanceof ApiError)) return toast.error("No se pudo conectar con el servidor");
+    if (!(error instanceof ApiError)) return toast.error(t("apiDown"));
     const say: Record<string, string> = {
-      MFA_CODE_INVALID: "Ese código no vale. Prueba con el siguiente que salga.",
-      MFA_ALREADY_ENABLED: "Ya lo tienes activado",
-      MFA_NOT_ENABLED: "No lo tienes activado",
-      MFA_NOT_ENROLLED: "Empieza de nuevo: no hay ningún secreto pendiente",
-      MFA_KEY_MISSING:
-        "El servidor no tiene configurada la clave para guardar segundos factores. Es una variable de entorno que falta, no algo que puedas arreglar desde aquí.",
-      MFA_SECRET_UNREADABLE:
-        "El servidor no pudo leer tu secreto. Habla con quien lleva el sistema.",
+      MFA_CODE_INVALID: t("mfaErrCode"),
+      MFA_ALREADY_ENABLED: t("mfaErrAlreadyOn"),
+      MFA_NOT_ENABLED: t("mfaErrNotOn"),
+      MFA_NOT_ENROLLED: t("mfaErrNotEnrolled"),
+      MFA_KEY_MISSING: t("mfaErrKeyMissing"),
+      MFA_SECRET_UNREADABLE: t("mfaErrUnreadable"),
     };
     if (error.code === "MFA_KEY_MISSING") setKeyMissing(true);
     const known = say[error.code];
@@ -101,7 +99,7 @@ export function MfaPanel() {
     onSuccess: (r) => {
       setCode("");
       setCodes(r.recoveryCodes);
-      toast.success("Códigos nuevos. Los anteriores ya no sirven.");
+      toast.success(t("mfaCodesRegenerated"));
       refresh();
     },
     onError: fail,
@@ -142,7 +140,7 @@ export function MfaPanel() {
         )}
       </div>
 
-      {status.isLoading && <p className="mt-2 text-sm text-muted-foreground">Cargando…</p>}
+      {status.isLoading && <p className="mt-2 text-sm text-muted-foreground">{t("loading")}</p>}
 
       {unavailable && (
         <p className="mt-2 text-sm text-muted-foreground">
@@ -163,7 +161,10 @@ export function MfaPanel() {
           {enabled && !codes && (
             <div className="mt-4 space-y-3">
               <p className="text-xs text-muted-foreground">
-                Te quedan {status.data?.recoveryCodesRemaining ?? 0} código(s) de recuperación.
+                {t("mfaCodesLeft").replace(
+                  "{count}",
+                  String(status.data?.recoveryCodesRemaining ?? 0),
+                )}
               </p>
               {/* Dos acciones, un solo campo, y cada botón llama a la suya
                   directamente. La versión anterior ponía un estado en el onClick
@@ -171,7 +172,7 @@ export function MfaPanel() {
                   aplicado todavía en ese momento, así que «Desactivarla» podía
                   acabar generando códigos. */}
               <div className="grid gap-3 rounded-lg border border-border bg-secondary p-4 sm:max-w-sm">
-                {codeInput("Código de tu app (o uno de recuperación)")}
+                {codeInput(t("mfaCodeLabel"))}
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -179,7 +180,7 @@ export function MfaPanel() {
                     disabled={busy || code.trim().length === 0}
                     className="min-h-11 rounded-lg bg-primary px-4 text-xs text-primary-foreground disabled:opacity-60"
                   >
-                    {regenerate.isPending ? "Generando…" : "Códigos de recuperación nuevos"}
+                    {regenerate.isPending ? t("loading") : t("mfaRegenerate")}
                   </button>
                   <ConfirmButton
                     title={t("confirmDisableMfa")}
@@ -189,13 +190,10 @@ export function MfaPanel() {
                     disabled={busy || code.trim().length === 0}
                     className="min-h-11 rounded-lg border border-destructive/40 px-4 text-xs text-destructive disabled:opacity-60"
                   >
-                    {disable.isPending ? "Desactivando…" : "Desactivarla"}
+                    {disable.isPending ? t("loading") : t("mfaDisable")}
                   </ConfirmButton>
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Generar códigos nuevos invalida la hoja anterior, que es el objetivo si crees que
-                  alguien la tiene.
-                </p>
+                <p className="text-[11px] text-muted-foreground">{t("mfaRegenerateNote")}</p>
               </div>
             </div>
           )}
@@ -223,21 +221,18 @@ export function MfaPanel() {
                 }}
                 className="mt-2 grid gap-3 sm:max-w-xs"
               >
-                {codeInput("2. Escribe el código que te muestra")}
+                {codeInput(t("mfaStep2"))}
                 <div>
                   <button
                     type="submit"
                     disabled={busy || code.trim().length === 0}
                     className="min-h-11 rounded-lg bg-primary px-5 text-sm text-primary-foreground disabled:opacity-60"
                   >
-                    {confirm.isPending ? "Activando…" : "Activar"}
+                    {confirm.isPending ? t("loading") : t("mfaEnable")}
                   </button>
                 </div>
               </form>
-              <p className="text-[11px] text-muted-foreground">
-                Hasta que escribas un código válido no queda activada, así que puedes cerrar esto
-                sin bloquearte.
-              </p>
+              <p className="text-[11px] text-muted-foreground">{t("mfaNotYetOn")}</p>
             </div>
           )}
 
@@ -249,7 +244,7 @@ export function MfaPanel() {
                 disabled={busy}
                 className="min-h-11 rounded-lg bg-primary px-5 text-sm text-primary-foreground disabled:opacity-60"
               >
-                {begin.isPending ? "Preparando…" : "Activar"}
+                {begin.isPending ? t("loading") : t("mfaEnable")}
               </button>
             </div>
           )}
@@ -259,11 +254,8 @@ export function MfaPanel() {
       {/* Se enseñan una sola vez, pase lo que pase después. */}
       {codes && (
         <div className="mt-4 rounded-lg border border-primary/40 bg-primary/10 p-4">
-          <p className="text-sm">Guarda estos códigos de recuperación ahora.</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Son la única forma de entrar si pierdes el móvil. No se pueden volver a ver: el servidor
-            sólo guarda un resumen de cada uno. Cada código sirve una vez.
-          </p>
+          <p className="text-sm">{t("mfaSaveCodes")}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{t("mfaSaveCodesWhy")}</p>
           <ul className="mt-3 grid grid-cols-2 gap-1 font-mono text-xs sm:grid-cols-3">
             {codes.map((c) => (
               <li key={c} className="rounded bg-background px-2 py-1">
@@ -275,7 +267,7 @@ export function MfaPanel() {
             onClick={() => setCodes(null)}
             className="mt-3 min-h-11 rounded-lg border border-border px-4 text-xs"
           >
-            Ya los guardé
+            {t("mfaCodesSaved")}
           </button>
         </div>
       )}

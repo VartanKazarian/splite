@@ -78,7 +78,7 @@ export function ChangePassword() {
             setOpen((v) => !v);
             reset();
           }}
-          className="rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-secondary"
+          className="min-h-11 rounded-lg border border-border px-4 text-sm transition-colors hover:bg-secondary"
         >
           {open ? "Cancelar" : "Cambiarla"}
         </button>
@@ -108,7 +108,7 @@ export function ChangePassword() {
               required
               maxLength={128}
               autoComplete="current-password"
-              className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
+              className="min-h-11 rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
             />
             {fieldErrors["currentPassword"] && (
               <span className="text-[11px] text-destructive">{fieldErrors["currentPassword"]}</span>
@@ -128,7 +128,7 @@ export function ChangePassword() {
                 minLength={MIN_PASSWORD}
                 maxLength={128}
                 autoComplete="new-password"
-                className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
+                className="min-h-11 rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
               />
               {fieldErrors["newPassword"] && (
                 <span className="text-[11px] text-destructive">{fieldErrors["newPassword"]}</span>
@@ -144,7 +144,7 @@ export function ChangePassword() {
                 maxLength={128}
                 autoComplete="new-password"
                 aria-invalid={mismatch}
-                className={`rounded-lg border bg-secondary px-3 py-2 text-sm outline-none focus:border-ring ${
+                className={`min-h-11 rounded-lg border bg-secondary px-3 text-sm outline-none focus:border-ring ${
                   mismatch ? "border-destructive" : "border-input"
                 }`}
               />
@@ -162,7 +162,7 @@ export function ChangePassword() {
             <button
               type="submit"
               disabled={!ready || change.isPending}
-              className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60"
+              className="min-h-11 rounded-lg bg-primary px-5 text-sm text-primary-foreground disabled:opacity-60"
             >
               {change.isPending ? "Cambiando…" : "Cambiar contraseña"}
             </button>

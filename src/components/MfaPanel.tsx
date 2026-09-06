@@ -124,7 +124,7 @@ export function MfaPanel() {
         autoComplete="one-time-code"
         autoCapitalize="none"
         spellCheck={false}
-        className="rounded-lg border border-input bg-secondary px-3 py-2 text-center tracking-[0.3em] outline-none focus:border-ring"
+        className="min-h-11 rounded-lg border border-input bg-secondary px-3 text-center tracking-[0.3em] outline-none focus:border-ring"
       />
     </label>
   );
@@ -177,7 +177,7 @@ export function MfaPanel() {
                     type="button"
                     onClick={() => regenerate.mutate()}
                     disabled={busy || code.trim().length === 0}
-                    className="rounded-lg bg-primary px-3 py-2 text-xs text-primary-foreground disabled:opacity-60"
+                    className="min-h-11 rounded-lg bg-primary px-4 text-xs text-primary-foreground disabled:opacity-60"
                   >
                     {regenerate.isPending ? "Generando…" : "Códigos de recuperación nuevos"}
                   </button>
@@ -187,7 +187,7 @@ export function MfaPanel() {
                     confirmLabel={t("confirmDisableMfaCta")}
                     onConfirm={() => disable.mutate()}
                     disabled={busy || code.trim().length === 0}
-                    className="rounded-lg border border-destructive/40 px-3 py-2 text-xs text-destructive disabled:opacity-60"
+                    className="min-h-11 rounded-lg border border-destructive/40 px-4 text-xs text-destructive disabled:opacity-60"
                   >
                     {disable.isPending ? "Desactivando…" : "Desactivarla"}
                   </ConfirmButton>
@@ -228,7 +228,7 @@ export function MfaPanel() {
                   <button
                     type="submit"
                     disabled={busy || code.trim().length === 0}
-                    className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60"
+                    className="min-h-11 rounded-lg bg-primary px-5 text-sm text-primary-foreground disabled:opacity-60"
                   >
                     {confirm.isPending ? "Activando…" : "Activar"}
                   </button>
@@ -247,7 +247,7 @@ export function MfaPanel() {
               <button
                 onClick={() => begin.mutate()}
                 disabled={busy}
-                className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60"
+                className="min-h-11 rounded-lg bg-primary px-5 text-sm text-primary-foreground disabled:opacity-60"
               >
                 {begin.isPending ? "Preparando…" : "Activar"}
               </button>
@@ -273,7 +273,7 @@ export function MfaPanel() {
           </ul>
           <button
             onClick={() => setCodes(null)}
-            className="mt-3 rounded-lg border border-border px-3 py-1.5 text-xs"
+            className="mt-3 min-h-11 rounded-lg border border-border px-4 text-xs"
           >
             Ya los guardé
           </button>

@@ -181,7 +181,7 @@ function Slot({
           type="button"
           disabled={!canEdit || busy}
           onClick={() => fileInput.current?.click()}
-          className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs disabled:opacity-40"
+          className="inline-flex items-center gap-2 min-h-11 rounded-full border border-border px-4 text-xs disabled:opacity-40"
         >
           <ImagePlus className="h-3.5 w-3.5" />
           {url ? t("productPhotoReplace") : t("productPhotoAdd")}
@@ -193,7 +193,7 @@ function Slot({
             confirmLabel={t("confirmDeleteBrandingCta")}
             onConfirm={() => remove.mutate()}
             disabled={!canEdit || busy}
-            className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-destructive disabled:opacity-40"
+            className="inline-flex items-center gap-2 min-h-11 rounded-full border border-border px-4 text-xs text-destructive disabled:opacity-40"
           >
             <Trash2 className="h-3.5 w-3.5" /> {t("productPhotoRemove")}
           </ConfirmButton>

@@ -136,10 +136,32 @@ function PlanSection() {
   );
 }
 
-function Group({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+/**
+ * Uno de los cuatro grupos de Configuración, y sólo se pinta si está elegido.
+ *
+ * Los cuatro salían a la vez, uno detrás de otro: 4.690 px de una sola tirada
+ * en un teléfono. La fila de arriba ya existía, pero como anclas -- llevaba al
+ * sitio y dejaba los otros tres grupos debajo, así que seguía siendo una
+ * pantalla en la que se pasa de largo lo que se busca.
+ *
+ * Ahora es una pestaña de verdad. Se sigue pudiendo enlazar a una en concreto
+ * (`/settings#cobros`, que es como llega quien viene desde Menú), y ese enlace
+ * ahora abre esa pestaña en vez de desplazar por una lista.
+ */
+function Group({
+  id,
+  title,
+  active,
+  children,
+}: {
+  id: string;
+  title: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  if (!active) return null;
   return (
-    <section id={id} className="scroll-mt-20 pt-8 first:pt-4">
-      <h2 className="text-xs uppercase tracking-[0.15em] text-muted-foreground">{title}</h2>
+    <section id={id} aria-label={title} className="pt-4">
       {children}
     </section>
   );
@@ -253,6 +275,17 @@ function SettingsPage() {
     onError: fail,
   });
 
+  // Qué pestaña. El hash manda -- `/settings#cobros` es el enlace que trae a
+  // alguien desde Menú -- y si no lo hay, la primera que exista para su rol.
+  const [tab, setTab] = useState<string>(() =>
+    typeof window === "undefined" ? "" : window.location.hash.replace("#", ""),
+  );
+  useEffect(() => {
+    const sync = () => setTab(window.location.hash.replace("#", ""));
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+
   if (!ready) return null;
 
   const canManageMenu = role === "OWNER" || role === "MANAGER";
@@ -274,6 +307,8 @@ function SettingsPage() {
           ["cuenta", t("settingsGroupAccount")],
         ];
 
+  const current = jumps.some(([id]) => id === tab) ? tab : (jumps[0]?.[0] ?? "cuenta");
+
   return (
     <div className="min-h-screen">
       <PanelHeader current="settings" />
@@ -291,15 +326,30 @@ function SettingsPage() {
             existía en la página. Un control muerto es peor que uno ausente.
             Con un solo grupo no hay a dónde saltar y la fila desaparece. */}
         {jumps.length > 1 && (
-          <nav className="sticky top-0 z-10 -mx-5 mt-4 flex gap-1.5 overflow-x-auto border-b border-border bg-background/95 px-5 py-3 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <nav
+            aria-label={t("settingsTitle")}
+            className="sticky top-0 z-10 -mx-5 mt-4 flex gap-1.5 overflow-x-auto border-b border-border bg-background/95 px-5 py-3 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             {jumps.map(([id, label]) => (
-              <a
+              <button
                 key={id}
-                href={`#${id}`}
-                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full border border-border px-4 text-xs text-muted-foreground transition-colors hover:border-primary"
+                type="button"
+                aria-current={current === id ? "page" : undefined}
+                onClick={() => {
+                  setTab(id);
+                  // Se reemplaza y no se apila: volver atrás sale de
+                  // Configuración, no recorre las cuatro pestañas.
+                  window.history.replaceState(null, "", `#${id}`);
+                  window.scrollTo({ top: 0 });
+                }}
+                className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs transition-colors ${
+                  current === id
+                    ? "border-primary bg-primary/10 font-medium text-primary"
+                    : "border-border text-muted-foreground hover:border-primary"
+                }`}
               >
                 {label}
-              </a>
+              </button>
             ))}
           </nav>
         )}
@@ -322,7 +372,11 @@ function SettingsPage() {
           <>
             {/* Lo que ve un cliente. Va primero porque es lo único de esta
                 pantalla que sale de la puerta del local. */}
-            <Group id="restaurante" title={t("settingsGroupRestaurant")}>
+            <Group
+              id="restaurante"
+              title={t("settingsGroupRestaurant")}
+              active={current === "restaurante"}
+            >
               <RestaurantName canEdit={role === "OWNER" || role === "MANAGER"} />
               <RestaurantBranding
                 restaurantId={settings.data?.id}
@@ -333,7 +387,7 @@ function SettingsPage() {
             {/* El dinero, junto y arriba. Estaba repartido: la moneda y los
                 cargos aquí, y los datos de cobro al final de la pantalla,
                 debajo del equipo. Son la misma decisión. */}
-            <Group id="cobros" title={t("settingsGroupMoney")}>
+            <Group id="cobros" title={t("settingsGroupMoney")} active={current === "cobros"}>
               <PlanSection />
 
               <section className="surface mt-4 p-6">
@@ -431,7 +485,7 @@ function SettingsPage() {
               {role === "OWNER" && <ProvidersSection />}
             </Group>
 
-            <Group id="equipo" title={t("settingsGroupTeam")}>
+            <Group id="equipo" title={t("settingsGroupTeam")} active={current === "equipo"}>
               {(role === "OWNER" || role === "MANAGER") && meId && (
                 <StaffManager me={{ id: meId, role }} />
               )}
@@ -445,7 +499,7 @@ function SettingsPage() {
             provisional que le dieron -- de hecho es quien más lo necesita.
             Estaban los primeros de la pantalla por accidente; van al final
             porque se usan una vez, no porque importen menos. */}
-        <Group id="cuenta" title={t("settingsGroupAccount")}>
+        <Group id="cuenta" title={t("settingsGroupAccount")} active={current === "cuenta"}>
           <DisplayNameField />
           <ChangePassword />
           <MfaPanel />

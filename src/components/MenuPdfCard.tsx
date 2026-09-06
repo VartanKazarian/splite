@@ -128,7 +128,7 @@ export function MenuPdfCard() {
             confirmLabel={t("confirmDeletePdfCta")}
             onConfirm={() => remove.mutate()}
             disabled={busy}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-destructive/40 px-3 py-1.5 text-xs text-destructive disabled:opacity-60"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border border-destructive/40 px-4 text-xs text-destructive disabled:opacity-60"
           >
             <Trash2 className="h-3.5 w-3.5" /> {t("deleteForever")}
           </ConfirmButton>
@@ -165,7 +165,7 @@ export function MenuPdfCard() {
           <button
             onClick={() => fileInput.current?.click()}
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm text-primary-foreground disabled:opacity-60"
           >
             <Upload className="h-4 w-4" />
             {upload.isPending ? t("pdfUploading") : current ? t("pdfReplace") : t("pdfUpload")}

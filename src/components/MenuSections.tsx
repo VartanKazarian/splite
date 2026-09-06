@@ -146,23 +146,21 @@ export function MenuSections({
   return (
     <section className="surface mt-4 p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl">Secciones de la carta</h2>
-        <p className="text-xs text-muted-foreground">
-          El orden de aquí es el orden que ve el comensal
-        </p>
+        <h2 className="text-xl">{t("sectionsTitle")}</h2>
+        <p className="text-xs text-muted-foreground">{t("sectionsOrderHint")}</p>
       </div>
 
       {legacy && legacy.names.length > 0 && (
         <div className="mt-4 rounded-lg border border-primary/40 bg-primary/10 p-3 text-xs">
           <p>
-            Hay {legacy.names.length} sección(es) guardada(s) sólo en este navegador:{" "}
-            {legacy.names.join(", ")}. Antes no se enviaban al servidor, así que ni tu equipo ni los
-            comensales las veían.
+            {t("sectionsLegacy")
+              .replace("{count}", String(legacy.names.length))
+              .replace("{names}", legacy.names.join(", "))}
           </p>
           <button
             onClick={() => importLegacy.mutate(legacy.names)}
             disabled={busy}
-            className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground disabled:opacity-60"
+            className="mt-2 min-h-11 rounded-lg bg-primary px-4 text-xs text-primary-foreground disabled:opacity-60"
           >
             {importLegacy.isPending ? t("importing") : t("importThem")}
           </button>
@@ -181,118 +179,139 @@ export function MenuSections({
           onChange={(e) => setNewName(e.target.value)}
           placeholder={t("sectionPlaceholder")}
           maxLength={80}
-          className="min-w-0 flex-1 rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
+          className="min-h-11 min-w-0 flex-1 rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
         />
         <button
           type="submit"
           disabled={busy || !newName.trim()}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-60"
+          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm text-primary-foreground disabled:opacity-60"
         >
-          <Plus className="h-4 w-4" /> Añadir sección
+          <Plus className="h-4 w-4" /> {t("sectionAdd")}
         </button>
       </form>
 
-      {categories.isLoading && <p className="mt-4 text-sm text-muted-foreground">Cargando…</p>}
+      {categories.isLoading && <p className="mt-4 text-sm text-muted-foreground">{t("loading")}</p>}
 
       {!categories.isLoading && rows.length === 0 && (
-        <p className="mt-4 text-sm text-muted-foreground">
-          Todavía no hay secciones. Sin ellas la carta es una sola lista alfabética.
-        </p>
+        <p className="mt-4 text-sm text-muted-foreground">{t("sectionsEmpty")}</p>
       )}
 
+      {/* Dos líneas por sección, y no seis controles apretados en una.
+          Iban todos en la misma fila: dos flechas de 32x24, y renombrar,
+          ocultar y borrar de 32x32 -- con el nombre y el recuento
+          disputándoles el ancho en un teléfono de 393 px. Nada de eso se
+          acierta con el pulgar, y el que está pegado a los otros es el que
+          borra.
+          Arriba el nombre y cuántos platos lleva; debajo, los cinco gestos a
+          44x44, que es lo que se toca sin apuntar. Cinco por 44 más los
+          huecos son 236 px de los 361 que hay. */}
       <ul className="mt-4 divide-y divide-border">
         {rows.map((c: MenuCategory, i: number) => (
-          <li key={c.id} className="flex items-center gap-2 py-2.5">
-            {/* El icono es pequeño, la zona pulsable no: esto se usa con el
-                pulgar, y una diana de 14 px no se acierta. */}
-            <div className="flex shrink-0 flex-col">
-              <button
-                type="button"
-                onClick={() => move(i, -1)}
-                disabled={busy || i === 0}
-                aria-label={`Subir ${c.name}`}
-                className="flex h-6 w-8 items-center justify-center text-muted-foreground disabled:opacity-30"
-              >
-                <ArrowUp className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => move(i, 1)}
-                disabled={busy || i === rows.length - 1}
-                aria-label={`Bajar ${c.name}`}
-                className="flex h-6 w-8 items-center justify-center text-muted-foreground disabled:opacity-30"
-              >
-                <ArrowDown className="h-4 w-4" />
-              </button>
-            </div>
-
+          <li key={c.id} className="py-2">
             {editingId === c.id ? (
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (editingName.trim()) rename.mutate({ id: c.id, name: editingName.trim() });
                 }}
-                className="flex min-w-0 flex-1 gap-2"
+                className="flex min-w-0 items-center gap-2"
               >
                 <input
                   value={editingName}
                   onChange={(e) => setEditingName(e.target.value)}
                   maxLength={80}
                   autoFocus
-                  className="min-w-0 flex-1 rounded-lg border border-input bg-secondary px-2 py-1 text-sm outline-none focus:border-ring"
+                  className="min-h-11 min-w-0 flex-1 rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
                 />
-                <button type="submit" disabled={busy} aria-label="Guardar">
+                <button
+                  type="submit"
+                  disabled={busy}
+                  aria-label={t("save")}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border text-primary disabled:opacity-40"
+                >
                   <Check className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => setEditingId(null)} aria-label="Cancelar">
-                  <X className="h-4 w-4 text-muted-foreground" />
+                <button
+                  type="button"
+                  onClick={() => setEditingId(null)}
+                  aria-label={t("cancel")}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground"
+                >
+                  <X className="h-4 w-4" />
                 </button>
               </form>
             ) : (
               <>
-                <span
-                  className={`min-w-0 flex-1 truncate text-sm ${c.active ? "" : "text-muted-foreground line-through"}`}
-                >
-                  {c.name}
-                </span>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {c.productCount ?? 0}
-                </span>
-                <button
-                  onClick={() => {
-                    setEditingId(c.id);
-                    setEditingName(c.name);
-                  }}
-                  disabled={busy}
-                  aria-label={`Renombrar ${c.name}`}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => toggle.mutate({ id: c.id, active: !c.active })}
-                  disabled={busy}
-                  aria-label={c.active ? `Ocultar ${c.name}` : `Mostrar ${c.name}`}
-                  title={c.active ? t("sectionHide") : t("sectionShow")}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground"
-                >
-                  {c.active ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                </button>
-                {/* Borrar la cabecera no borra la comida, y conviene decirlo
-                    antes y no después. Con el `confirm()` del navegador el
-                    aviso iba escrito a mano en español: el selector de idioma
-                    no lo tocaba. */}
-                <ConfirmButton
-                  title={t("confirmDeleteSection")}
-                  description={t("confirmDeleteSectionBody")}
-                  confirmLabel={t("confirmDeleteSectionCta")}
-                  onConfirm={() => remove.mutate(c.id)}
-                  disabled={busy}
-                  aria-label={`${t("deleteForever")} ${c.name}`}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center text-destructive"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </ConfirmButton>
+                <div className="flex min-w-0 items-baseline gap-3">
+                  <span
+                    className={`min-w-0 flex-1 truncate text-sm ${c.active ? "" : "text-muted-foreground line-through"}`}
+                  >
+                    {c.name}
+                  </span>
+                  <span className="figure shrink-0 text-xs text-muted-foreground">
+                    {c.productCount ?? 0}
+                  </span>
+                </div>
+
+                <div className="mt-1 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => move(i, -1)}
+                    disabled={busy || i === 0}
+                    aria-label={`${t("sectionMoveUp")} ${c.name}`}
+                    className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary disabled:opacity-30 disabled:hover:bg-transparent"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => move(i, 1)}
+                    disabled={busy || i === rows.length - 1}
+                    aria-label={`${t("sectionMoveDown")} ${c.name}`}
+                    className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary disabled:opacity-30 disabled:hover:bg-transparent"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingId(c.id);
+                      setEditingName(c.name);
+                    }}
+                    disabled={busy}
+                    aria-label={`${t("sectionRename")} ${c.name}`}
+                    className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary disabled:opacity-40"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => toggle.mutate({ id: c.id, active: !c.active })}
+                    disabled={busy}
+                    // El nombre accesible es un verbo y el nombre de la
+                    // sección; la frase entera se queda de `title`, que es
+                    // donde explicar sin que un lector de pantalla la lea
+                    // completa en cada fila.
+                    aria-label={`${c.active ? t("sectionHideShort") : t("sectionShowShort")} ${c.name}`}
+                    title={c.active ? t("sectionHide") : t("sectionShow")}
+                    className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary disabled:opacity-40"
+                  >
+                    {c.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </button>
+                  {/* Borrar la cabecera no borra la comida, y conviene decirlo
+                      antes y no después. Con el `confirm()` del navegador el
+                      aviso iba escrito a mano en español: el selector de idioma
+                      no lo tocaba. */}
+                  <ConfirmButton
+                    title={t("confirmDeleteSection")}
+                    description={t("confirmDeleteSectionBody")}
+                    confirmLabel={t("confirmDeleteSectionCta")}
+                    onConfirm={() => remove.mutate(c.id)}
+                    disabled={busy}
+                    aria-label={`${t("deleteForever")} ${c.name}`}
+                    className="flex h-11 w-11 items-center justify-center rounded-lg text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </ConfirmButton>
+                </div>
               </>
             )}
           </li>
@@ -301,7 +320,7 @@ export function MenuSections({
 
       {loose > 0 && (
         <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
-          {loose} producto(s) sin sección. Aparecen al final de la carta, bajo «Otros».
+          {t("sectionsLoose").replace("{count}", String(loose))}
         </p>
       )}
     </section>

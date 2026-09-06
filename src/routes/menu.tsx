@@ -351,157 +351,100 @@ function MenuPage() {
           </section>
         ) : (
           <>
-            {/* Resumen operativo del menú */}
-            <section className="surface mt-6 p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                    {settings.data?.name ?? t("menuTitle")}
-                  </p>
-                  <p className="mt-1 font-display text-3xl">
-                    {settings.data?.menuCurrency
-                      ? t(`currency${settings.data.menuCurrency}` as never)
-                      : "—"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{t("menuCurrency")}</p>
+            <section className="surface mt-6 p-4">
+              {/* Añadir un producto es lo que se viene a hacer aquí, así que
+                  va junto a la lista y no dentro del pliegue de montaje. */}
+              <div className="flex flex-wrap items-center justify-between gap-3 px-2">
+                <div className="flex items-baseline gap-3">
+                  <h2 className="text-xl">{t("items")}</h2>
+                  <span className="figure text-xs text-muted-foreground">
+                    {visible.length} / {all.length}
+                  </span>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-right">
-                  <div>
-                    <p className="figure text-2xl">{activeCount}</p>
-                    <p className="text-xs text-muted-foreground">Activos</p>
-                  </div>
-                  <div>
-                    <p className="figure text-2xl">{inactiveCount}</p>
-                    <p className="text-xs text-muted-foreground">Inactivos</p>
-                  </div>
-                </div>
-              </div>
-
-              {settings.isError && <ErrorBox error={settings.error} fallback={t("apiDown")} />}
-
-              {updatedAt && (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {t("lastUpdated")}: {formatDateTime(updatedAt, lang)}
-                </p>
-              )}
-
-              <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setAdding((v) => !v)}
-                  className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground sm:flex-none"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
                 >
-                  <Plus className="h-4 w-4" /> {t("addProduct")}
+                  <Plus className="h-4 w-4" /> {adding ? t("cancel") : t("addProduct")}
                 </button>
-                <Link
-                  to="/settings"
-                  className="inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 py-2.5 text-sm transition-colors hover:bg-secondary sm:flex-none"
-                >
-                  Cambiar moneda del menú
-                </Link>
               </div>
-              <p className="mt-3 text-[11px] text-muted-foreground">
-                Los cambios aplican a nuevos pedidos. Los precios de cuentas ya abiertas no se
-                modifican.
-              </p>
-            </section>
 
-            {adding && (
-              <section className="surface mt-6 p-6">
-                <h2 className="text-xl">{t("addProduct")}</h2>
-                <div className="mt-3 grid gap-3 sm:grid-cols-[1.2fr_0.8fr]">
-                  <div>
+              {adding && (
+                <section className="surface mt-6 p-6">
+                  <h2 className="text-xl">{t("addProduct")}</h2>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-[1.2fr_0.8fr]">
+                    <div>
+                      <input
+                        value={name}
+                        maxLength={160}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder={t("productName")}
+                        className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
+                      />
+                      {createErrors["name"] && (
+                        <p className="mt-1 text-[11px] text-destructive">{createErrors["name"]}</p>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={price}
+                          inputMode="decimal"
+                          onChange={(e) => setPrice(e.target.value)}
+                          placeholder="1.250,50"
+                          className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm figure outline-none focus:border-ring"
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {settings.data?.menuCurrency ?? ""}
+                        </span>
+                      </div>
+                      {createErrors["priceMinorUnits"] && (
+                        <p className="mt-1 text-[11px] text-destructive">
+                          {createErrors["priceMinorUnits"]}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <input
-                      value={name}
-                      maxLength={160}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={t("productName")}
+                      value={description}
+                      maxLength={500}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder={t("productDescription")}
                       className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
                     />
-                    {createErrors["name"] && (
-                      <p className="mt-1 text-[11px] text-destructive">{createErrors["name"]}</p>
-                    )}
+                    <CategorySelect
+                      value={categoryId}
+                      onChange={setCategoryId}
+                      categories={categoryRows}
+                    />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        value={price}
-                        inputMode="decimal"
-                        onChange={(e) => setPrice(e.target.value)}
-                        placeholder="1.250,50"
-                        className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm figure outline-none focus:border-ring"
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        {settings.data?.menuCurrency ?? ""}
-                      </span>
+                  {createErrors["description"] && (
+                    <p className="mt-1 text-[11px] text-destructive">
+                      {createErrors["description"]}
+                    </p>
+                  )}
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-[11px] text-muted-foreground">{t("priceInputHint")}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setAdding(false)}
+                        className="inline-flex items-center justify-center gap-2 rounded-full border border-border px-5 py-3 text-sm"
+                      >
+                        {t("cancel")}
+                      </button>
+                      <button
+                        disabled={!name.trim() || !price.trim() || create.isPending}
+                        onClick={() => create.mutate()}
+                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                      >
+                        <Plus className="h-4 w-4" /> {t("addProduct")}
+                      </button>
                     </div>
-                    {createErrors["priceMinorUnits"] && (
-                      <p className="mt-1 text-[11px] text-destructive">
-                        {createErrors["priceMinorUnits"]}
-                      </p>
-                    )}
                   </div>
-                </div>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <input
-                    value={description}
-                    maxLength={500}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder={t("productDescription")}
-                    className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
-                  />
-                  <CategorySelect
-                    value={categoryId}
-                    onChange={setCategoryId}
-                    categories={categoryRows}
-                  />
-                </div>
-                {createErrors["description"] && (
-                  <p className="mt-1 text-[11px] text-destructive">{createErrors["description"]}</p>
-                )}
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-[11px] text-muted-foreground">{t("priceInputHint")}</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setAdding(false)}
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-border px-5 py-3 text-sm"
-                    >
-                      {t("cancel")}
-                    </button>
-                    <button
-                      disabled={!name.trim() || !price.trim() || create.isPending}
-                      onClick={() => create.mutate()}
-                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
-                    >
-                      <Plus className="h-4 w-4" /> {t("addProduct")}
-                    </button>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            <MenuOcrImport onImported={refreshAll} />
-
-            <MenuSections
-              onChanged={refresh}
-              legacy={{
-                names: legacyNames,
-                onImported: () => {
-                  forgetLegacyCategories();
-                  setLegacyNames([]);
-                },
-              }}
-            />
-
-            <MenuPdfCard />
-
-            <section className="surface mt-6 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 px-2">
-                <h2 className="text-xl">{t("items")}</h2>
-                <span className="text-xs text-muted-foreground figure">
-                  {visible.length} / {all.length}
-                </span>
-              </div>
+                </section>
+              )}
 
               {/* Filters */}
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -510,23 +453,23 @@ function MenuPage() {
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Buscar producto"
-                    aria-label="Buscar producto"
-                    className="w-full rounded-lg border border-input bg-secondary py-2 pl-9 pr-3 text-sm outline-none focus:border-ring"
+                    placeholder={t("searchProduct")}
+                    aria-label={t("searchProduct")}
+                    className="min-h-11 w-full rounded-lg border border-input bg-secondary pl-9 pr-3 text-sm outline-none focus:border-ring"
                   />
                 </div>
                 <div className="flex gap-2">
                   {(
                     [
-                      ["ALL", "Todos"],
-                      ["ACTIVE", "Activos"],
-                      ["INACTIVE", "Inactivos"],
+                      ["ALL", t("filterAll")],
+                      ["ACTIVE", t("filterActive")],
+                      ["INACTIVE", t("filterInactive")],
                     ] as [StatusFilter, string][]
                   ).map(([value, label]) => (
                     <button
                       key={value}
                       onClick={() => setStatus(value)}
-                      className={`flex-1 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs transition-colors sm:flex-none ${
+                      className={`min-h-11 flex-1 whitespace-nowrap rounded-full border px-4 text-xs transition-colors sm:flex-none ${
                         status === value
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border text-muted-foreground hover:bg-secondary"
@@ -543,19 +486,19 @@ function MenuPage() {
                 <div className="mt-2 flex flex-wrap gap-1.5 px-0.5">
                   <button
                     onClick={() => setCategoryFilter("ALL")}
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
+                    className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors ${
                       categoryFilter === "ALL"
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border text-muted-foreground hover:bg-secondary"
                     }`}
                   >
-                    Todas las secciones
+                    {t("filterAllSections")}
                   </button>
                   {categoryRows.map((cat) => (
                     <button
                       key={cat.id}
                       onClick={() => setCategoryFilter(cat.id === categoryFilter ? "ALL" : cat.id)}
-                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
+                      className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors ${
                         categoryFilter === cat.id
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border text-muted-foreground hover:bg-secondary"
@@ -588,9 +531,7 @@ function MenuPage() {
                 <p className="mt-3 px-2 text-sm text-muted-foreground">{t("noProducts")}</p>
               )}
               {products.isSuccess && all.length > 0 && visible.length === 0 && (
-                <p className="mt-3 px-2 text-sm text-muted-foreground">
-                  Ningún producto coincide con la búsqueda.
-                </p>
+                <p className="mt-3 px-2 text-sm text-muted-foreground">{t("noProductMatch")}</p>
               )}
 
               {/* Grouped product list */}
@@ -675,22 +616,27 @@ function MenuPage() {
                                 </p>
                               </div>
                             </div>
-                            <span className="flex items-center gap-2 sm:justify-end">
+                            {/* Editar, cambiar disponibilidad y borrar medían
+                                22, 24 y 22 px de alto, pegados unos a otros y
+                                con el que borra en el extremo. En el móvil esta
+                                fila cae en su propia línea, así que hay sitio
+                                de sobra para las tres a 44. */}
+                            <span className="mt-1 flex items-center gap-2 sm:mt-0 sm:justify-end">
                               <span className="hidden figure text-sm sm:inline">
                                 {formatMoney(p.priceMinorUnits, p.currency)}
                               </span>
                               <button
                                 onClick={() => setEditing(p)}
-                                aria-label={t("edit")}
-                                className="rounded-full border border-border p-1 text-muted-foreground hover:text-foreground"
+                                aria-label={`${t("edit")} ${p.name}`}
+                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                               >
-                                <Pencil className="h-3 w-3" />
+                                <Pencil className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() =>
                                   update.mutate({ id: p.id, body: { active: !p.active } })
                                 }
-                                className="rounded-full border border-border px-2.5 py-0.5 text-[11px] hover:bg-secondary"
+                                className="min-h-11 whitespace-nowrap rounded-full border border-border px-4 text-xs transition-colors hover:bg-secondary"
                               >
                                 {p.active ? t("deactivate") : t("activate")}
                               </button>
@@ -704,10 +650,10 @@ function MenuPage() {
                                 description={t("confirmDeleteProductBody")}
                                 confirmLabel={t("confirmDeleteProductCta")}
                                 onConfirm={() => remove.mutate(p.id)}
-                                className="rounded-full border border-border p-1 text-destructive"
-                                aria-label={t("remove")}
+                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-destructive transition-colors hover:bg-destructive/10"
+                                aria-label={`${t("remove")} ${p.name}`}
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-4 w-4" />
                               </ConfirmButton>
                             </span>
                           </li>
@@ -718,6 +664,83 @@ function MenuPage() {
                 ))}
               </div>
             </section>
+
+            {/* Montar la carta -- la moneda, las secciones, importar de una
+                foto, el PDF -- son cuatro tarjetas que se usan al empezar y
+                casi nunca después, y ocupaban los primeros 1.800 px de la
+                pantalla. Los productos, que es a lo que se entra, quedaban
+                debajo de todas ellas. Ahora van detrás de un pliegue y la
+                lista sale primero. */}
+            <details className="surface group mt-6 p-4">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm">
+                <span>{t("menuSetup")}</span>
+                <ChevronDown
+                  aria-hidden
+                  className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                />
+              </summary>
+              <div className="[&>*:first-child]:mt-4">
+                {/* Resumen operativo del menú */}
+                <section className="surface mt-6 p-6">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                        {settings.data?.name ?? t("menuTitle")}
+                      </p>
+                      <p className="mt-1 font-display text-3xl">
+                        {settings.data?.menuCurrency
+                          ? t(`currency${settings.data.menuCurrency}` as never)
+                          : "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{t("menuCurrency")}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-right">
+                      <div>
+                        <p className="figure text-2xl">{activeCount}</p>
+                        <p className="text-xs text-muted-foreground">{t("filterActive")}</p>
+                      </div>
+                      <div>
+                        <p className="figure text-2xl">{inactiveCount}</p>
+                        <p className="text-xs text-muted-foreground">{t("filterInactive")}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {settings.isError && <ErrorBox error={settings.error} fallback={t("apiDown")} />}
+
+                  {updatedAt && (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      {t("lastUpdated")}: {formatDateTime(updatedAt, lang)}
+                    </p>
+                  )}
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link
+                      to="/settings"
+                      className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary sm:flex-none"
+                    >
+                      {t("changeMenuCurrency")}
+                    </Link>
+                  </div>
+                  <p className="mt-3 text-[11px] text-muted-foreground">{t("menuPriceScope")}</p>
+                </section>
+
+                <MenuOcrImport onImported={refreshAll} />
+
+                <MenuSections
+                  onChanged={refresh}
+                  legacy={{
+                    names: legacyNames,
+                    onImported: () => {
+                      forgetLegacyCategories();
+                      setLegacyNames([]);
+                    },
+                  }}
+                />
+
+                <MenuPdfCard />
+              </div>
+            </details>
           </>
         )}
       </main>

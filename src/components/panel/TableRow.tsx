@@ -2,7 +2,7 @@ import { ChevronRight } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { formatMoney, type FloorTable } from "@/lib/api";
-import { formatAge, openMinutesOf, paidPercent, toneOf } from "./tableStatus";
+import { badgeOf, formatAge, openMinutesOf, paidPercent, useTableBadge } from "./tableStatus";
 
 /**
  * Una mesa, en una fila.
@@ -24,16 +24,24 @@ export function TableRow({
   onSelect: () => void;
   fallbackOpenedAt?: string | undefined;
 }) {
-  const { t } = useI18n();
+  const { t, plural } = useI18n();
   const bill = table.openBill;
-  const tone = toneOf(table);
 
-  const pill =
-    tone === "free"
-      ? { text: t("tableFreeShort"), className: "bg-secondary text-muted-foreground" }
-      : tone === "attention"
-        ? { text: t("needsAttention"), className: "bg-amber-500/15 text-amber-700" }
-        : { text: t("tableOpenShort"), className: "bg-primary/15 text-primary" };
+  // La píldora dice por qué, no sólo que sí. "Atención" servía para las dos
+  // únicas cosas que la encienden -- un pago sin verificar y una cuenta que
+  // lleva demasiado abierta -- y esas dos piden reacciones distintas. Ver
+  // `badgeOf`.
+  const badge = badgeOf(table, fallbackOpenedAt);
+  const { text: pillText } = useTableBadge(table, fallbackOpenedAt);
+  const pill = {
+    text: pillText,
+    className:
+      badge.tone === "free"
+        ? "bg-secondary text-muted-foreground"
+        : badge.tone === "attention"
+          ? "bg-amber-500/15 text-amber-700"
+          : "bg-primary/15 text-primary",
+  };
 
   if (!bill) {
     return (
@@ -104,7 +112,7 @@ export function TableRow({
 
       <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
         <span>
-          {bill.itemCount ?? 0} {t("lineCount")}
+          {bill.itemCount ?? 0} {plural(bill.itemCount ?? 0, "line")}
         </span>
         {/* Sin nada que cobrar todavía, "0,00 Bs de 0,00 Bs cobrado" no
             informa de nada y ocupa media línea. */}
@@ -118,13 +126,18 @@ export function TableRow({
             </span>
           </>
         )}
-        <span aria-hidden>·</span>
-        {/* El tiempo abierto se enseña siempre; en ámbar sólo cuando la fila ya
-            está marcada como "Atención", y nunca sólo por color -- la píldora
-            de arriba lo dice con palabras. */}
-        <span className={`figure ${tone === "attention" ? "text-amber-700" : ""}`}>
-          {formatAge(minutes)}
-        </span>
+        {/* El tiempo abierto, salvo cuando la píldora ya lo está diciendo:
+            "68 h abierta" arriba y "68 h 30 min" dos líneas más abajo es el
+            mismo dato dos veces, y justo en las filas más cargadas. En ámbar
+            sólo cuando la antigüedad *es* el motivo -- una mesa con un pago
+            sin verificar y veinte minutos abiertos no tiene nada de malo en su
+            reloj -- y nunca sólo por color: la píldora lo dice con palabras. */}
+        {badge.kind !== "stale" && (
+          <>
+            <span aria-hidden>·</span>
+            <span className="figure">{formatAge(minutes)}</span>
+          </>
+        )}
         {(bill.pendingClaims ?? 0) > 0 && (
           <>
             <span aria-hidden>·</span>

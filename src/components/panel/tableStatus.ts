@@ -1,3 +1,4 @@
+import { useI18n } from "@/lib/i18n";
 import type { FloorTable } from "@/lib/api";
 
 /**
@@ -66,6 +67,85 @@ export function toneOf(table: FloorTable): TableTone {
   const minutes = openMinutesOf(bill);
   if (minutes !== null && minutes >= AGE_ATTENTION_MINUTES) return "attention";
   return "open";
+}
+
+/**
+ * Por qué hay que mirar esta mesa, dicho en la píldora.
+ *
+ * `toneOf` decide **si** hay que mirarla; esto decide **qué** se dice. La
+ * píldora ponía "Atención" para las dos únicas cosas que la encienden, que
+ * piden reacciones distintas: alguien dice que ha pagado y hay que abrir la
+ * app del banco, o la cuenta lleva abierta desde el turno anterior. Con diez
+ * filas en la pantalla, la píldora es lo que se lee de un vistazo y la línea
+ * de abajo lo que se lee al pararse en una; repetir el dato en las dos no
+ * sobra, decir "Atención" en la primera sí.
+ *
+ * Devuelve la forma y no el texto: aquí no hay traductor, y meterlo obligaría
+ * a pasar `t` por una función que sólo mira datos.
+ *
+ * No hay estado "pagada del todo" porque no existe: una cuenta que se salda se
+ * cierra sola, así que nunca aparece en el plano. Si el importe cuadra y sigue
+ * abierta es que el pago está sin verificar, y eso ya es `claims`.
+ */
+export type TableBadge =
+  | { kind: "free"; tone: TableTone }
+  | { kind: "claims"; tone: TableTone; count: number }
+  | { kind: "stale"; tone: TableTone; hours: number }
+  | { kind: "partly"; tone: TableTone }
+  | { kind: "open"; tone: TableTone };
+
+export function badgeOf(table: FloorTable, fallbackOpenedAt?: string): TableBadge {
+  const bill = table.openBill;
+  if (!bill) return { kind: "free", tone: "free" };
+
+  const claims = bill.pendingClaims ?? 0;
+  if (claims > 0) return { kind: "claims", tone: "attention", count: claims };
+
+  const minutes = openMinutesOf(bill, fallbackOpenedAt);
+  if (minutes !== null && minutes >= AGE_ATTENTION_MINUTES) {
+    return { kind: "stale", tone: "attention", hours: Math.floor(minutes / 60) };
+  }
+
+  // Que el comensal haya empezado a pagar cambia lo que hace el mesero en esa
+  // mesa, así que se dice; no enciende el ámbar porque no hay nada que atender.
+  try {
+    const paid = BigInt(bill.amountPaidVes || "0");
+    if (paid > 0n) return { kind: "partly", tone: "open" };
+  } catch {
+    /* un importe ilegible no es media cuenta pagada */
+  }
+  return { kind: "open", tone: "open" };
+}
+
+/**
+ * El texto y el tono de la píldora, en un sitio y no en dos.
+ *
+ * La fila de la lista y la cabecera de la hoja tienen que decir exactamente lo
+ * mismo -- se tocan una detrás de otra --, así que la traducción de `badgeOf`
+ * vive aquí. Escritas por separado, la primera vez que se añada un estado se
+ * añadirá en una de las dos.
+ */
+export function useTableBadge(
+  // Admite `null` para que quien la use pueda llamarla antes de su propio
+  // "si no hay mesa, no pinto nada": un hook detrás de un return temprano se
+  // salta en algunos renders y React deja de saber en qué orden van.
+  table: FloorTable | null,
+  fallbackOpenedAt?: string,
+): { text: string; tone: TableTone } {
+  const { t } = useI18n();
+  if (!table) return { text: "", tone: "free" };
+  const badge = badgeOf(table, fallbackOpenedAt);
+  const text =
+    badge.kind === "free"
+      ? t("tableFreeShort")
+      : badge.kind === "claims"
+        ? `${badge.count} ${t("badgeClaims")}`
+        : badge.kind === "stale"
+          ? t("badgeStale").replace("{n}", String(badge.hours))
+          : badge.kind === "partly"
+            ? t("badgePartly")
+            : t("tableOpenShort");
+  return { text, tone: badge.tone };
 }
 
 /**

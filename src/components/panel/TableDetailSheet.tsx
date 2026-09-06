@@ -5,7 +5,7 @@ import { type FloorTable } from "@/lib/api";
 import { TableDetail } from "@/components/panel/TableDetail";
 import { TableQrDialog } from "@/components/panel/TableQrDialog";
 import { StatusPill } from "@/components/shell/StatusPill";
-import { toneOf } from "@/components/panel/tableStatus";
+import { useTableBadge } from "@/components/panel/tableStatus";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /**
@@ -45,17 +45,21 @@ export function TableDetailSheet({
   const { t } = useI18n();
   const [qrOpen, setQrOpen] = useState(false);
 
-  if (!table) return null;
+  // La misma píldora que la fila de la lista, palabra por palabra: quien abre
+  // una mesa acaba de leer "1 sin verificar" y tiene que encontrarse eso mismo
+  // dentro, no un "Atención" que ya no dice cuál de los dos motivos era.
+  const badge = useTableBadge(table);
 
-  // Los mismos tres estados que la fila de la lista, dichos igual: quien abre
-  // una mesa acaba de leer su píldora y tiene que reconocerla dentro.
-  const tone = toneOf(table);
-  const pill =
-    tone === "free"
-      ? { tone: "neutral" as const, text: t("tableFreeShort") }
-      : tone === "attention"
-        ? { tone: "attention" as const, text: t("needsAttention") }
-        : { tone: "good" as const, text: t("tableOpenShort") };
+  if (!table) return null;
+  const pill = {
+    tone:
+      badge.tone === "free"
+        ? ("neutral" as const)
+        : badge.tone === "attention"
+          ? ("attention" as const)
+          : ("good" as const),
+    text: badge.text,
+  };
 
   return (
     <>

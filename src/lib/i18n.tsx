@@ -90,7 +90,8 @@ const dict = {
     payTabC2P: "C2P",
     payTabPaid: "Ya pagué",
     available: "Disponible",
-    lineCount: "líneas",
+    line_one: "línea",
+    line_other: "líneas",
     unavailable: "No disponible",
     updatedFem: "actualizada",
     reference: "Referencia",
@@ -363,6 +364,9 @@ const dict = {
     salesSplit: "App {app} · caja {till}",
     salesSplitUnclassified: "App {app} · caja {till} · sin clasificar {rest}",
     manageOldest: "Gestionar",
+    badgeClaims: "sin verificar",
+    badgeStale: "{n} h abierta",
+    badgePartly: "Pagando",
     seeFreeTables: "Ver mesas libres",
     goToBill: "Ir a la cuenta",
     kpiAlerts: "Avisos",
@@ -829,7 +833,8 @@ const dict = {
     payTabC2P: "C2P",
     payTabPaid: "I already paid",
     available: "Available",
-    lineCount: "lines",
+    line_one: "line",
+    line_other: "lines",
     unavailable: "Unavailable",
     updatedFem: "updated",
     reference: "Reference",
@@ -1094,6 +1099,9 @@ const dict = {
     salesSplit: "App {app} · till {till}",
     salesSplitUnclassified: "App {app} · till {till} · unclassified {rest}",
     manageOldest: "Manage",
+    badgeClaims: "unverified",
+    badgeStale: "{n} h open",
+    badgePartly: "Paying",
     seeFreeTables: "See free tables",
     goToBill: "Go to the bill",
     kpiAlerts: "Alerts",
@@ -1490,7 +1498,7 @@ export type Key = keyof (typeof dict)["es"];
  * inglés queda igual de mal. Las dos formas están en el diccionario, así que
  * cada idioma elige la suya.
  */
-export type CountKey = "payment" | "bill" | "payStateClaims";
+export type CountKey = "payment" | "bill" | "line" | "payStateClaims";
 
 const Ctx = createContext<{
   lang: Lang;

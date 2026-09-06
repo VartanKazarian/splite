@@ -679,7 +679,11 @@ export function GuestBillScreen({
                     "Sin propina" era la única etiqueta de dos palabras y se
                     partía en dos líneas, así que la fila de propina salía más
                     alta por su lado izquierdo. Los porcentajes siguen midiendo
-                    lo mismo entre ellos. */}
+                    lo mismo entre ellos.
+                    Y 44 px de alto: medían 34 y son lo que toca un comensal de
+                    pie, con el teléfono en una mano, para decidir cuánto deja.
+                    Es la pantalla que usa quien paga; no es donde se ahorra
+                    altura. */}
                 <div className="mt-3 grid grid-cols-6 gap-2">
                   {[0, 10, 15, 20].map((p) => (
                     <button
@@ -688,7 +692,7 @@ export function GuestBillScreen({
                         setTipPct(p);
                         setTipCustom("");
                       }}
-                      className={`rounded-lg border px-2 py-2 text-xs transition-colors ${
+                      className={`min-h-11 rounded-lg border px-2 text-xs transition-colors ${
                         p === 0 ? "col-span-2" : ""
                       } ${
                         tipPct === p
@@ -701,7 +705,7 @@ export function GuestBillScreen({
                   ))}
                   <button
                     onClick={() => setTipPct(null)}
-                    className={`rounded-lg border px-2 py-2 text-xs transition-colors ${
+                    className={`min-h-11 rounded-lg border px-2 text-xs transition-colors ${
                       tipPct === null
                         ? "border-primary bg-primary/15 text-foreground"
                         : "border-border text-muted-foreground hover:bg-secondary"
@@ -716,7 +720,7 @@ export function GuestBillScreen({
                     placeholder="0,00"
                     value={tipCustom}
                     onChange={(e) => setTipCustom(e.target.value)}
-                    className="mt-3 w-full rounded-lg border border-input bg-secondary px-3 py-2.5 text-sm outline-none focus:border-ring"
+                    className="mt-3 min-h-11 w-full rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
                   />
                 )}
                 <div className="mt-3 flex justify-between text-xs text-muted-foreground">

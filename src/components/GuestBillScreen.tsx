@@ -315,6 +315,9 @@ export function GuestBillScreen({
   // Vacía de verdad: ni productos ni cobros. Sólo aquí tiene sentido decir que
   // aparecerá en cuanto el restaurante lo añada.
   const billIsEmpty = nothingToPay && !settled && !hasItems;
+  // Hay cobros y todavía queda algo: lo que se paga ahora es el saldo, no el
+  // total, así que es el saldo quien se lleva la cifra grande.
+  const partlyPaid = paidSoFar > 0n && outstanding > 0n;
 
   // "Pagar todo" ya no es una opción entre cuatro: es lo que pasa si no tocas
   // nada. Vuelve a la lista sólo para poder deshacer una división empezada.
@@ -376,10 +379,14 @@ export function GuestBillScreen({
                 <span>
                   {item.quantity} × {item.name}
                 </span>
-                <span className="flex shrink-0 items-baseline gap-3">
-                  <span className="figure">{formatMoney(item.subtotalMinor, bill.currency)}</span>
+                {/* El bolívar debajo del dólar y no al lado. Al lado tenía un
+                    ancho fijo de 96 px, que un importe de siete dígitos
+                    desborda, y era el único número de la fila que no llevaba
+                    la cara de cifras -- salía en DM Sans, sin tabular. */}
+                <span className="flex shrink-0 flex-col items-end">
+                  <span className="money-md">{formatMoney(item.subtotalMinor, bill.currency)}</span>
                   {showVes && (
-                    <span className="w-24 text-right text-xs text-muted-foreground">
+                    <span className="money-sm text-muted-foreground">
                       {formatMoney(toVes(item.subtotalMinor, rateStr), "VES")}
                     </span>
                   )}
@@ -409,44 +416,53 @@ export function GuestBillScreen({
           />
         </div>
 
-        {/* El número por el que alguien abre esto. Estaba con el mismo tamaño y
-            el mismo gris que "IVA 0%": cuatro filas iguales donde sólo una
-            contesta la pregunta que trae al comensal. */}
+        {/* Un total, no dos, y la cifra grande es la que se paga ahora.
+            Había dos: "Total" en la moneda de la carta a 36 px y, debajo,
+            "Total a pagar" en bolívares a 30. El mismo importe dos veces,
+            compitiendo -- y el grande era el que nadie paga. Quien mira esto
+            va a transferir bolívares desde su banco.
+            Con cobros parciales, lo que se paga ya no es el total sino lo que
+            queda, así que la cifra grande es esa y el total baja a fila de
+            apoyo. Una sola de 32 px por tarjeta: si el total y el pendiente
+            fueran los dos grandes, volveríamos a tener dos importes
+            disputándose la mirada.
+            El rótulo va encima y no al lado, así el importe dispone de los
+            305 px de la tarjeta enteros y no se parte. Con la carta en
+            bolívares no hay conversión: ni subtítulo ni tasa -- enseñaba una
+            tasa de 1, que no significa nada. */}
         <div
-          className={`mt-3 flex items-baseline justify-between border-t border-border pt-3 ${
+          className={`mt-4 flex flex-col gap-0.5 border-t border-border pt-4 ${
             billIsEmpty ? "hidden" : ""
           }`}
         >
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">
-            {t("total")}
+          {partlyPaid && (
+            <div className="mb-3 flex flex-col gap-1 text-sm text-muted-foreground">
+              <MoneyRow label={t("total")} amount={bill.totalDueVes} currency="VES" />
+              <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
+            </div>
+          )}
+
+          <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+            {partlyPaid ? t("outstanding") : t("totalPayable")}
           </span>
-          <span className="figure text-4xl">{formatMoney(bill.totalDue, bill.currency)}</span>
+          <span className="money-lg">
+            {formatMoney(partlyPaid ? bill.remainingVes : bill.totalDueVes, "VES")}
+          </span>
+
+          {/* El equivalente en la moneda de la carta acompaña al total, no al
+              pendiente: convertir un saldo parcial a dólares es un número que
+              no aparece en ninguna parte y que nadie va a comprobar. */}
+          {bill.currency !== "VES" && !partlyPaid && (
+            <span className="money-md text-muted-foreground">
+              {formatMoney(bill.totalDue, bill.currency)}
+            </span>
+          )}
+          {bill.currency !== "VES" && (bill.fxRateVesPerUnit ?? bill.fxRate) && (
+            <span className="money-sm mt-1 text-muted-foreground">
+              {t("bcvRate")} {formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)}
+            </span>
+          )}
         </div>
-
-        {bill.currency !== "VES" && (
-          <div className="mt-4 space-y-1 border-t border-border pt-4">
-            <div className="flex items-baseline justify-between text-foreground">
-              <span className="text-xs uppercase tracking-widest">{t("totalPayable")}</span>
-              <span className="figure text-3xl">{formatMoney(bill.totalDueVes, "VES")}</span>
-            </div>
-            {(bill.fxRateVesPerUnit ?? bill.fxRate) && (
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{t("bcvRate")}</span>
-                <span>{formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {BigInt(bill.amountPaidVes ?? "0") > 0n && (
-          <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
-            <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
-            <div className="flex items-baseline justify-between pt-2 text-foreground">
-              <span>{t("outstanding")}</span>
-              <span className="figure text-2xl">{formatMoney(bill.remainingVes, "VES")}</span>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Una cuenta recién abierta no tiene nada, y es justo cuando más gente
@@ -644,14 +660,26 @@ export function GuestBillScreen({
 
           {preview && !splitMutation.isPending && (
             <div className="mt-5 border-t border-border pt-4">
-              <div className="flex items-baseline justify-between">
-                <span className="text-xs uppercase tracking-widest text-muted-foreground">
-                  {mode === "EQUAL" ? t("perPerson") : t("yourShare")}
-                </span>
-                <span className="figure text-3xl">
-                  {formatMoney(myShare(preview, mode), "VES")}
-                </span>
-              </div>
+              {/* Una cifra grande por tarjeta, y es la que se puede pagar
+                  desde ella. Sin propina puesta, eso es tu parte; en cuanto
+                  hay propina, el importe con propina toma el sitio y esto baja
+                  a fila normal. Había tres cifras de 30, 30 y 24 px, y la
+                  pequeña era la única que se transfiere de verdad. */}
+              {tipMinor === "0" ? (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                    {mode === "EQUAL" ? t("perPerson") : t("yourShare")}
+                  </span>
+                  <span className="money-lg">{formatMoney(myShare(preview, mode), "VES")}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    {mode === "EQUAL" ? t("perPerson") : t("yourShare")}
+                  </span>
+                  <span className="money-md">{formatMoney(myShare(preview, mode), "VES")}</span>
+                </div>
+              )}
               {/* Las dos filas de apoyo sólo dicen algo cuando el reparto es de
                   verdad. Pagando la cuenta entera valen lo mismo que el titular,
                   y la tarjeta enseñaba el mismo importe tres veces seguidas -- en
@@ -660,13 +688,15 @@ export function GuestBillScreen({
               {(preview.outstandingVes !== myShare(preview, mode) ||
                 preview.totalAllocatedVes !== myShare(preview, mode)) && (
                 <>
-                  <div className="mt-3 flex justify-between text-xs text-muted-foreground">
+                  <div className="mt-3 flex justify-between gap-3 text-xs text-muted-foreground">
                     <span>{t("outstanding")}</span>
-                    <span className="figure">{formatMoney(preview.outstandingVes, "VES")}</span>
+                    <span className="money-sm">{formatMoney(preview.outstandingVes, "VES")}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex justify-between gap-3 text-xs text-muted-foreground">
                     <span>{t("allocated")}</span>
-                    <span className="figure">{formatMoney(preview.totalAllocatedVes, "VES")}</span>
+                    <span className="money-sm">
+                      {formatMoney(preview.totalAllocatedVes, "VES")}
+                    </span>
                   </div>
                 </>
               )}
@@ -723,19 +753,23 @@ export function GuestBillScreen({
                     className="mt-3 min-h-11 w-full rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
                   />
                 )}
-                <div className="mt-3 flex justify-between text-xs text-muted-foreground">
+                <div className="mt-3 flex justify-between gap-3 text-sm text-muted-foreground">
                   <span>{t("tipAmount")}</span>
-                  <span className="figure">{formatMoney(tipMinor, "VES")}</span>
+                  <span className="money-md">{formatMoney(tipMinor, "VES")}</span>
                 </div>
-                <div className="mt-1 flex items-baseline justify-between text-foreground">
-                  <span className="text-xs uppercase tracking-widest">{t("yourTotalWithTip")}</span>
-                  <span className="figure text-2xl">
-                    {formatMoney(
-                      (BigInt(myShare(preview, mode)) + BigInt(tipMinor)).toString(),
-                      "VES",
-                    )}
-                  </span>
-                </div>
+                {tipMinor !== "0" && (
+                  <div className="mt-3 flex flex-col gap-0.5 border-t border-border pt-3 text-foreground">
+                    <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                      {t("yourTotalWithTip")}
+                    </span>
+                    <span className="money-lg">
+                      {formatMoney(
+                        (BigInt(myShare(preview, mode)) + BigInt(tipMinor)).toString(),
+                        "VES",
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
               <p className="mt-3 text-[11px] text-muted-foreground">{t("guestNoPay")}</p>
 
@@ -837,9 +871,9 @@ function MoneyRow({
   highlight?: boolean;
 }) {
   return (
-    <div className={`flex justify-between ${highlight ? "text-foreground" : ""}`}>
+    <div className={`flex justify-between gap-3 ${highlight ? "text-foreground" : ""}`}>
       <span>{label}</span>
-      <span className="figure">{formatMoney(amount, currency)}</span>
+      <span className="money-md">{formatMoney(amount, currency)}</span>
     </div>
   );
 }

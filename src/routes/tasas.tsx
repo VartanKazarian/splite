@@ -129,7 +129,6 @@ function RatesPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-muted-foreground">{t("settlementNote")}</p>
         </section>
       </main>
     </div>

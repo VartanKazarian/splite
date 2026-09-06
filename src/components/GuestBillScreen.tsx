@@ -290,9 +290,31 @@ export function GuestBillScreen({
     );
   }
 
-  // Nada que pagar: ni productos ni importe. `demo` siempre tiene cuenta.
-  const nothingToPay =
-    !demo && BigInt(bill.remainingVes ?? bill.totalDueVes ?? "0") === 0n && !activeSplit;
+  /**
+   * Tres formas de no deber nada, y no son la misma.
+   *
+   * Esto era una sola condición -- «no queda nada por pagar» -- y con ella se
+   * escondían el subtotal, el IVA, el servicio y el total, y se ponía en su
+   * lugar «Todavía no hay nada en tu cuenta. En cuanto el restaurante añada lo
+   * que has pedido...». Para una cuenta recién abierta es exactamente lo que
+   * hay que decir. Para una que se acaba de pagar es mentira: los productos
+   * siguen listados justo encima, y quien refresca después de pagar deja de
+   * ver por cuánto le cobraron y encima lee que no ha pedido nada.
+   *
+   * Así que se separan. Lo que comparten -- que ni se puede dividir ni se
+   * puede cobrar -- sigue siendo una sola condición; lo que se enseña, no.
+   */
+  const outstanding = BigInt(bill.remainingVes ?? bill.totalDueVes ?? "0");
+  const paidSoFar = BigInt(bill.amountPaidVes ?? "0");
+  const hasItems = (bill.items ?? []).length > 0;
+
+  // `demo` siempre tiene cuenta, así que nunca cae en ninguna de las tres.
+  const nothingToPay = !demo && outstanding === 0n && !activeSplit;
+  // Pagada: hubo cobros y no queda nada.
+  const settled = nothingToPay && paidSoFar > 0n;
+  // Vacía de verdad: ni productos ni cobros. Sólo aquí tiene sentido decir que
+  // aparecerá en cuanto el restaurante lo añada.
+  const billIsEmpty = nothingToPay && !settled && !hasItems;
 
   // "Pagar todo" ya no es una opción entre cuatro: es lo que pasa si no tocas
   // nada. Vuelve a la lista sólo para poder deshacer una división empezada.
@@ -371,7 +393,7 @@ export function GuestBillScreen({
             el mensaje de abajo ya dice lo que pasa. */}
         <div
           className={`mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground ${
-            nothingToPay ? "hidden" : ""
+            billIsEmpty ? "hidden" : ""
           }`}
         >
           <MoneyRow label={t("subtotal")} amount={bill.subtotalMinor} currency={bill.currency} />
@@ -392,7 +414,7 @@ export function GuestBillScreen({
             contesta la pregunta que trae al comensal. */}
         <div
           className={`mt-3 flex items-baseline justify-between border-t border-border pt-3 ${
-            nothingToPay ? "hidden" : ""
+            billIsEmpty ? "hidden" : ""
           }`}
         >
           <span className="text-xs uppercase tracking-widest text-muted-foreground">
@@ -435,11 +457,23 @@ export function GuestBillScreen({
           estaba pagada. No lo estaba: estaba vacía. */}
       {nothingToPay ? (
         <div className="surface mt-4 p-6">
-          <h2 className="text-xl">{t("billEmptyTitle")}</h2>
-          <p className="mt-2 text-sm text-muted-foreground">{t("billEmptyBody")}</p>
+          {/* Pagada, vacía, o con productos que no suman nada. Las tres se
+              quedan sin división y sin cobro, y las tres decían lo mismo. */}
+          <h2 className="text-xl">
+            {settled ? t("billSettledTitle") : billIsEmpty ? t("billEmptyTitle") : t("nothingDue")}
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {settled
+              ? `${t("billSettledBody")} ${formatMoney(bill.amountPaidVes ?? "0", "VES")}.`
+              : billIsEmpty
+                ? t("billEmptyBody")
+                : t("nothingDueBody")}
+          </p>
+          {/* "Mientras tanto, mira la carta" sólo tiene sentido mientras se
+              espera algo. Para una cuenta pagada no hay mientras tanto. */}
           {onBack && (
             <button onClick={onBack} className="mt-4 text-sm underline underline-offset-2">
-              {t("billEmptyMenu")}
+              {billIsEmpty ? t("billEmptyMenu") : t("theMenu")}
             </button>
           )}
         </div>

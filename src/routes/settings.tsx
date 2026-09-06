@@ -20,6 +20,7 @@ import {
 import { ErrorBox } from "@/routes/dashboard";
 import { StaffManager } from "@/components/StaffManager";
 import { ChangePassword } from "@/components/ChangePassword";
+import { DisplayNameField } from "@/components/DisplayNameField";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { MfaPanel } from "@/components/MfaPanel";
 import { RestaurantName } from "@/components/RestaurantName";
@@ -295,7 +296,7 @@ function SettingsPage() {
               <a
                 key={id}
                 href={`#${id}`}
-                className="whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary"
+                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full border border-border px-4 text-xs text-muted-foreground transition-colors hover:border-primary"
               >
                 {label}
               </a>
@@ -344,7 +345,7 @@ function SettingsPage() {
                       key={c}
                       disabled={setCurrency.isPending}
                       onClick={() => setCurrency.mutate(c)}
-                      className={`rounded-full border px-4 py-2 text-sm transition-colors disabled:opacity-40 ${
+                      className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm transition-colors disabled:opacity-40 ${
                         settings.data?.menuCurrency === c
                           ? "border-primary bg-primary/15 text-primary"
                           : "border-border hover:bg-secondary"
@@ -445,6 +446,7 @@ function SettingsPage() {
             Estaban los primeros de la pantalla por accidente; van al final
             porque se usan una vez, no porque importen menos. */}
         <Group id="cuenta" title={t("settingsGroupAccount")}>
+          <DisplayNameField />
           <ChangePassword />
           <MfaPanel />
         </Group>

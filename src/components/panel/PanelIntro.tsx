@@ -10,13 +10,16 @@ import { account, auth } from "@/lib/api";
  * en la barra de navegación justo encima: dos centímetros de pantalla para
  * repetir dónde estás. Aquí va lo que sí cambia entre un turno y otro.
  *
- * **El nombre.** El backend no guarda un nombre de persona: `/auth/me` da
- * `{ id, email, role, restaurantId }` y nada más. Así que el saludo usa la
- * parte del correo anterior a la arroba, que es dato real y no inventado. En
- * cuanto exista un campo de nombre, esta función es el único sitio que cambia.
+ * **El nombre.** Si la persona lo ha puesto en Configuración, ese. Si no, la
+ * parte del correo anterior a la arroba, que es lo que había antes de que
+ * existiera el campo: dato real, aunque tosco -- "gerencia@casa72.com" saluda a
+ * "Gerencia". Nadie está obligado a rellenarlo, así que el respaldo se queda.
  */
-function displayName(email: string | undefined): string {
-  const local = (email ?? "").split("@")[0] ?? "";
+function greetingName(user: { email: string; displayName?: string | null } | undefined): string {
+  const chosen = user?.displayName?.trim();
+  if (chosen) return chosen;
+
+  const local = (user?.email ?? "").split("@")[0] ?? "";
   if (!local) return "";
   const cleaned = local.replace(/[._-]+/g, " ").trim();
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
@@ -48,7 +51,7 @@ export function PanelIntro({ live }: { live: boolean }) {
     retry: false,
   });
 
-  const name = displayName(me.data?.user.email);
+  const name = greetingName(me.data?.user);
   const restaurant = accountQuery.data?.name;
 
   return (

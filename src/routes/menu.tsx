@@ -36,6 +36,7 @@ import {
 } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
 import { PanelHeader } from "@/components/PanelHeader";
+import { PageHeader } from "@/components/shell/PageHeader";
 import { formatDateTime } from "../lib/dates";
 
 export const Route = createFileRoute("/menu")({
@@ -312,19 +313,27 @@ function MenuPage() {
       <PanelHeader current="menu" />
 
       <main className="mx-auto max-w-4xl px-5 py-8">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="text-3xl">{t("menuTitle")}</h1>
-          {/* Comprobar la carta no debería costar imprimir un código, ir a una
-              mesa y escanearlo con el móvil -- que es por lo que no la
-              comprobaba nadie. */}
-          <Link
-            to="/preview"
-            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary"
-          >
-            <Smartphone className="h-4 w-4" /> {t("previewFromMenu")}
-          </Link>
-        </div>
-        <p className="mt-1 text-sm text-muted-foreground">{t("menuSub")}</p>
+        <PageHeader
+          title={t("menuTitle")}
+          meta={
+            products.isSuccess
+              ? t("menuMeta")
+                  .replace("{products}", String(all.length))
+                  .replace("{sections}", String(categories.data?.data.length ?? 0))
+              : t("menuSub")
+          }
+          actions={
+            /* Comprobar la carta no debería costar imprimir un código, ir a una
+               mesa y escanearlo con el móvil -- que es por lo que no la
+               comprobaba nadie. */
+            <Link
+              to="/preview"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm hover:bg-secondary"
+            >
+              <Smartphone className="h-4 w-4" /> {t("previewFromMenu")}
+            </Link>
+          }
+        />
         {/* Los cargos deciden el total de una cuenta, y se buscan aquí. Se
             quedan en Configuración con el resto del dinero -- IVA, servicio y
             datos de cobro juntos -- pero desde aquí se dice dónde están. */}

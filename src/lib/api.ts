@@ -162,7 +162,14 @@ export type StaffSession = {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
-  user: { id: string; email: string; role: StaffRole; restaurantId: string };
+  user: {
+    id: string;
+    email: string;
+    role: StaffRole;
+    restaurantId: string;
+    /** Cómo se llama, cuando lo ha dicho. Null mientras no. */
+    displayName?: string | null;
+  };
 };
 
 export type StaffRole = "OWNER" | "MANAGER" | "CASHIER" | "WAITER";
@@ -472,6 +479,18 @@ export const auth = {
 
   /** En cada arranque: /auth/me, nunca /auth/refresh para saber quién es. */
   me: () => apiRequest<{ user: StaffSession["user"] }>("/api/v1/auth/me", { auth: "staff" }),
+
+  /**
+   * El propio nombre. La cadena vacía lo borra: es lo que espera quien vacía la
+   * casilla, y el servidor lo guarda como NULL en vez de como texto de cero
+   * caracteres.
+   */
+  setDisplayName: (displayName: string) =>
+    apiRequest<{ user: StaffSession["user"] }>("/api/v1/auth/me", {
+      method: "PATCH",
+      auth: "staff",
+      body: { displayName },
+    }),
 
   /**
    * Cambiar la propia contraseña.

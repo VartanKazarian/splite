@@ -305,7 +305,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
                 disabled={busy || !editable}
                 title={t("staffNewPassword")}
                 aria-label={`Cambiar la contraseña de ${m.email}`}
-                className="flex h-8 w-8 items-center justify-center text-muted-foreground disabled:opacity-30"
+                className="flex h-11 w-11 items-center justify-center text-muted-foreground disabled:opacity-30"
               >
                 <KeyRound className="h-4 w-4" />
               </button>
@@ -321,7 +321,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
                   onConfirm={() => update.mutate({ id: m.id, body: { active: false } })}
                   disabled={busy || !editable}
                   aria-label={`${t("confirmRemoveStaffCta")} ${m.email}`}
-                  className="flex h-8 w-8 items-center justify-center text-destructive disabled:opacity-30"
+                  className="flex h-11 w-11 items-center justify-center text-destructive disabled:opacity-30"
                 >
                   <ShieldOff className="h-4 w-4" />
                 </ConfirmButton>
@@ -331,7 +331,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
                   disabled={busy || !editable}
                   title="Reactivar"
                   aria-label={`Reactivar a ${m.email}`}
-                  className="flex h-8 w-8 items-center justify-center text-muted-foreground disabled:opacity-30"
+                  className="flex h-11 w-11 items-center justify-center text-muted-foreground disabled:opacity-30"
                 >
                   <ShieldOff className="h-4 w-4" />
                 </button>

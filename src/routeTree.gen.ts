@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MenuRouteImport } from './routes/menu'
+import { Route as MesasRouteImport } from './routes/mesas'
 import { Route as PagosRouteImport } from './routes/pagos'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as RegistroRouteImport } from './routes/registro'
@@ -42,6 +43,11 @@ const LoginRoute = LoginRouteImport.update({
 const MenuRoute = MenuRouteImport.update({
   id: '/menu',
   path: '/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MesasRoute = MesasRouteImport.update({
+  id: '/mesas',
+  path: '/mesas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PagosRoute = PagosRouteImport.update({
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/mesas': typeof MesasRoute
   '/pagos': typeof PagosRoute
   '/preview': typeof PreviewRoute
   '/registro': typeof RegistroRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/mesas': typeof MesasRoute
   '/pagos': typeof PagosRoute
   '/preview': typeof PreviewRoute
   '/registro': typeof RegistroRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/mesas': typeof MesasRoute
   '/pagos': typeof PagosRoute
   '/preview': typeof PreviewRoute
   '/registro': typeof RegistroRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/menu'
+    | '/mesas'
     | '/pagos'
     | '/preview'
     | '/registro'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/menu'
+    | '/mesas'
     | '/pagos'
     | '/preview'
     | '/registro'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/menu'
+    | '/mesas'
     | '/pagos'
     | '/preview'
     | '/registro'
@@ -200,6 +212,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   MenuRoute: typeof MenuRoute
+  MesasRoute: typeof MesasRoute
   PagosRoute: typeof PagosRoute
   PreviewRoute: typeof PreviewRoute
   RegistroRoute: typeof RegistroRoute
@@ -240,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/menu'
       fullPath: '/menu'
       preLoaderRoute: typeof MenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mesas': {
+      id: '/mesas'
+      path: '/mesas'
+      fullPath: '/mesas'
+      preLoaderRoute: typeof MesasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pagos': {
@@ -320,6 +340,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   MenuRoute: MenuRoute,
+  MesasRoute: MesasRoute,
   PagosRoute: PagosRoute,
   PreviewRoute: PreviewRoute,
   RegistroRoute: RegistroRoute,

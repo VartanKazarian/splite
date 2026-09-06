@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Check, QrCode as QrIcon, Users, Wifi } from "lucide-react";
 
 /** Marco de teléfono realista para los mockups de producto. */
-export function Phone({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+export function Phone({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <div
       className={`relative w-[264px] shrink-0 rounded-[2.2rem] border border-border bg-card p-2 shadow-[0_30px_70px_-40px_rgba(20,20,20,0.55)] ${className}`}
@@ -185,24 +191,35 @@ export function QrCardMockup() {
 }
 
 /** Pequeña animación de conteo para dar vida sin decorar de más. */
-export function CountUp({ to, prefix = "", decimals = 2 }: { to: number; prefix?: string; decimals?: number }) {
+export function CountUp({
+  to,
+  prefix = "",
+  decimals = 2,
+}: {
+  to: number;
+  prefix?: string;
+  decimals?: number;
+}) {
   const [v, setV] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver((entries) => {
-      if (!entries[0]?.isIntersecting) return;
-      io.disconnect();
-      const start = performance.now();
-      const tick = (now: number) => {
-        const p = Math.min(1, (now - start) / 900);
-        setV(to * (1 - Math.pow(1 - p, 3)));
-        if (p < 1) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    }, { threshold: 0.4 });
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        io.disconnect();
+        const start = performance.now();
+        const tick = (now: number) => {
+          const p = Math.min(1, (now - start) / 900);
+          setV(to * (1 - Math.pow(1 - p, 3)));
+          if (p < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      },
+      { threshold: 0.4 },
+    );
     io.observe(el);
     return () => io.disconnect();
   }, [to]);

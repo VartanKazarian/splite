@@ -102,18 +102,30 @@ function RatesPage() {
                 {rates.isLoading ? "…" : t("fxHistoryEmpty")}
               </li>
             )}
+            {/* La moneda y su tasa arriba, la procedencia debajo.
+                Iban en la misma línea y encadenados con puntos -- "USD · Fecha
+                valor 5 de septiembre de 2026 · última publicada por el BCV" --
+                así que en un teléfono la frase ocupaba tres líneas y empujaba
+                la tasa hasta partirla: "757,5406" en una y "Bs" en la
+                siguiente. Lo que se viene a mirar aquí es el número. */}
             {today.map(([code, r]) => (
-              <li key={code} className="flex justify-between border-b border-border pb-2">
+              <li
+                key={code}
+                className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 border-b border-border pb-2 last:border-0"
+              >
+                <span className="font-medium">{code}</span>
+                <span className="figure justify-self-end whitespace-nowrap text-base">
+                  {formatFxRate(r.rate)} Bs
+                </span>
                 {/* Ni la constante del backend ni la fecha en crudo. Esto
-                    enseñaba "USD · Fecha valor Sat Sep 05 · BCV_LAST_IN_FORCE"
-                    a un restaurante venezolano: un nombre de enum y una fecha
-                    en inglés. La fecha llega en ISO desde el servidor, así que
-                    se puede escribir en el idioma de quien mira. */}
-                <span className="text-muted-foreground">
-                  {code} · {t("valueDate")} {formatDay(r.valueDate, lang) ?? "—"} ·{" "}
+                    enseñaba "Fecha valor Sat Sep 05 · BCV_LAST_IN_FORCE" a un
+                    restaurante venezolano: un nombre de enum y una fecha en
+                    inglés. La fecha llega en ISO desde el servidor, así que se
+                    puede escribir en el idioma de quien mira. */}
+                <span className="col-span-2 mt-0.5 text-xs text-muted-foreground">
+                  {t("valueDate")} {formatDay(r.valueDate, lang) ?? "—"} ·{" "}
                   {sourceLabel(r.source, t)}
                 </span>
-                <span className="figure">{formatFxRate(r.rate)} Bs</span>
               </li>
             ))}
           </ul>
@@ -122,18 +134,6 @@ function RatesPage() {
       </main>
     </div>
   );
-}
-
-/** La fecha valor en el idioma de quien mira. El servidor la manda en ISO. */
-function fxDate(iso: string | null, lang: string): string {
-  if (!iso) return "—";
-  const d = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(lang === "en" ? "en-GB" : "es-VE", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 }
 
 /** De dónde sale la tasa, dicho en palabras. `source` es una constante del backend. */

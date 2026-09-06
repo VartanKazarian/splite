@@ -64,36 +64,41 @@ export function ActivityFeed() {
         <p className="mt-3 text-sm text-muted-foreground">{t("feedEmpty")}</p>
       )}
 
+      {/* Dos líneas por entrada, no una frase.
+          Iban en una sola: fecha en gris, tipo, mesa y método encadenados con
+          puntos, y el importe al final. En un teléfono esa frase ocupaba dos o
+          tres líneas, el importe se quedaba pegado a la primera y lo que se
+          leía era prosa con un número metido en medio. Arriba va lo que pasó y
+          cuánto -- el importe siempre en la misma columna, a la derecha, con
+          cifras tabulares, que es lo que permite compararlos de arriba abajo --
+          y debajo, en gris, cuándo y por qué vía. La propina baja con ellos:
+          al lado del importe eran dos números discutiendo por la misma
+          columna. */}
       <ul className="mt-3 space-y-2 text-sm">
         {rows.map((r, i) => (
           <li
             // El servidor no promete un id por entrada -- hay tipos que no
             // vienen de un pago -- así que la clave incluye la posición.
             key={`${r.at}-${r.paymentId ?? r.billId ?? i}`}
-            className="flex items-baseline justify-between gap-3 border-b border-border pb-2 last:border-0"
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 border-b border-border pb-2 last:border-0"
           >
-            <span className="min-w-0">
-              <span className="text-xs text-muted-foreground">{formatWhen(r.at, lang) ?? ""}</span>{" "}
+            <span className="min-w-0 truncate">
               {t(KIND_KEY[r.kind] ?? "feedOther")}
               {r.tableName && <span className="text-muted-foreground"> · {r.tableName}</span>}
-              {r.paymentMethod && (
-                <span className="text-muted-foreground">
-                  {" "}
-                  · {t(`method${r.paymentMethod}` as never)}
-                </span>
-              )}
             </span>
             {r.amountVes && (
-              <span className="shrink-0 figure">
-                {formatMoney(r.amountVes, "VES")}
-                {r.tipVes && BigInt(r.tipVes) > 0n && (
-                  <span className="text-xs text-muted-foreground">
-                    {" "}
-                    +{formatMoney(r.tipVes, "VES")}
-                  </span>
-                )}
-              </span>
+              <span className="figure shrink-0">{formatMoney(r.amountVes, "VES")}</span>
             )}
+            <span className="col-span-2 mt-0.5 text-xs text-muted-foreground">
+              {formatWhen(r.at, lang) ?? ""}
+              {r.paymentMethod && <> · {t(`method${r.paymentMethod}` as never)}</>}
+              {r.tipVes && BigInt(r.tipVes) > 0n && (
+                <>
+                  {" "}
+                  · {t("tip")} <span className="figure">+{formatMoney(r.tipVes, "VES")}</span>
+                </>
+              )}
+            </span>
           </li>
         ))}
       </ul>

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { ChevronDown, ExternalLink, Plus } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { ConfigurationCard } from "@/components/panel/ConfigurationCard";
@@ -13,7 +13,6 @@ import { TableDetail } from "@/components/panel/TableDetail";
 import { AttentionList } from "@/components/panel/AttentionList";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { usePayoutConfigured } from "@/lib/use-payout";
 import { QrCode } from "@/components/QrCode";
 import {
@@ -159,30 +158,6 @@ function Dashboard() {
     refetchInterval: 30000,
   });
 
-  /**
-   * Dar de alta la sala entera de una vez.
-   *
-   * Montarla mesa a mesa es el primer trabajo de cualquier restaurante nuevo y
-   * el endpoint para hacerlo de golpe llevaba tiempo sin que nadie lo llamara.
-   * Es idempotente y no borra: repetirlo con un número mayor añade sólo las que
-   * faltan, así que no hay forma de perder una mesa con cuentas desde aquí.
-   */
-  const createTablesBulk = useMutation({
-    mutationFn: () => tablesApi.createMany(Number(bulkCount)),
-    onSuccess: (r) => {
-      setBulkOpen(false);
-      toast.success(
-        r.alreadyExisted > 0
-          ? `${r.created} mesa(s) creada(s). ${r.alreadyExisted} ya existían.`
-          : `${r.created} mesa(s) creada(s).`,
-      );
-      void tablesQuery.refetch();
-      void snapshot.refetch();
-    },
-    onError: (error) =>
-      toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown")),
-  });
-
   const [floorFilter, setFloorFilter] = useState<"ALL" | "BUSY" | "FREE">("ALL");
 
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
@@ -271,21 +246,6 @@ function Dashboard() {
     const fields = errorFieldsText(error);
     return toast.error(`${error.code} · ${fields || error.message}`);
   };
-
-  const [newTableName, setNewTableName] = useState("");
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkCount, setBulkCount] = useState("10");
-
-  const createTable = useMutation({
-    mutationFn: () => tablesApi.create(newTableName.trim()),
-    onSuccess: (table) => {
-      setNewTableName("");
-      setSelectedId(table.id);
-      toast.success(t("tableCreated"));
-      queryClient.invalidateQueries({ queryKey: ["floor"] });
-    },
-    onError: fail,
-  });
 
   // Abrir con total 0 es lo que permite luego itemizar la cuenta con el menú.
   const openBill = useMutation({
@@ -471,7 +431,10 @@ function Dashboard() {
                 permanente para un cero: ahora los avisos y los C2P sin
                 resolver se suman en una sola, y sin nada pendiente dice que
                 está todo al día en vez de subrayar el cero. */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* Las tres filas -- rótulo, cifra, apostilla -- se definen aquí y
+                no dentro de cada tarjeta: así una cifra no se hunde porque su
+                rótulo ocupe dos líneas. Ver `MetricCard`. */}
+            <div className="grid gap-3 sm:grid-cols-3 sm:grid-rows-[auto_auto_auto]">
               <MetricCard
                 label={t("kpiOpenTables")}
                 value={
@@ -582,8 +545,10 @@ function Dashboard() {
             </section>
           </div>
 
-          {/* Lo que no es del turno: avisos, el QR de la mesa elegida y el alta
-              de mesas, que es trabajo de montaje y no de servicio. */}
+          {/* Lo que no es del turno: avisos y el QR de la mesa elegida. Dar de
+              alta la sala se hacía también aquí, plegado al final; ahora hay
+              una sección de Mesas y tenerlo en dos sitios sólo servía para que
+              se desviaran. */}
           <div className="min-w-0 space-y-6">
             <AttentionList
               tables={tableList}
@@ -736,66 +701,6 @@ function Dashboard() {
                 </>
               )}
             </aside>
-
-            {/* Montar la sala es trabajo de una vez, no del turno: sigue aquí y
-                sigue funcionando igual, pero plegado y al final. */}
-            <Collapsible className="surface p-4">
-              <CollapsibleTrigger className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-sm">
-                {t("manageTables")}
-                <ChevronDown aria-hidden className="h-4 w-4 text-muted-foreground" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-3">
-                <div className="flex flex-wrap gap-2">
-                  <input
-                    value={newTableName}
-                    onChange={(e) => setNewTableName(e.target.value)}
-                    placeholder={t("tableName")}
-                    aria-label={t("tableName")}
-                    className="min-h-11 min-w-0 flex-1 rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
-                  />
-                  <button
-                    disabled={!newTableName.trim() || createTable.isPending}
-                    onClick={() => createTable.mutate()}
-                    className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-40"
-                  >
-                    <Plus className="h-4 w-4" /> {t("createTable")}
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => setBulkOpen((v) => !v)}
-                  className="mt-2 min-h-11 whitespace-nowrap rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary"
-                >
-                  {bulkOpen ? t("cancel") : t("bulkCreate")}
-                </button>
-
-                {bulkOpen && (
-                  <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-border bg-secondary p-3">
-                    <label className="grid gap-1">
-                      <span className="text-xs text-muted-foreground">{t("bulkHowMany")}</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={200}
-                        value={bulkCount}
-                        onChange={(e) => setBulkCount(e.target.value)}
-                        className="min-h-11 w-28 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring"
-                      />
-                    </label>
-                    <button
-                      disabled={
-                        createTablesBulk.isPending ||
-                        !(Number(bulkCount) >= 1 && Number(bulkCount) <= 200)
-                      }
-                      onClick={() => createTablesBulk.mutate()}
-                      className="min-h-11 rounded-full bg-primary px-4 text-sm text-primary-foreground disabled:opacity-40"
-                    >
-                      {createTablesBulk.isPending ? t("creating") : t("create")}
-                    </button>
-                  </div>
-                )}
-              </CollapsibleContent>
-            </Collapsible>
           </div>
         </div>
       </main>

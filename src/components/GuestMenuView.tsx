@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { PublicMenuScreen } from "@/components/PublicMenuScreen";
+import { PublicMenuScreen, type Cart } from "@/components/PublicMenuScreen";
 import { RestaurantHero } from "@/components/RestaurantHero";
 import type { Branding } from "@/lib/api";
 
@@ -23,12 +23,22 @@ export function GuestMenuView({
   above,
   /** Lo que va arriba a la izquierda. En la mesa, volver; en la vista previa, nada. */
   back,
+  /**
+   * Lo que el comensal lleva elegido, cuando puede pedir.
+   *
+   * Ausente en la vista previa del panel, y a propósito: ahí no hay sesión de
+   * invitado con la que pedir, así que unos botones de "añadir" que no pueden
+   * hacer nada serían una promesa falsa dentro de la pantalla cuyo trabajo es
+   * enseñar la verdad.
+   */
+  cart,
 }: {
   restaurantId: string;
   branding: Branding;
   name: string;
   above: string;
   back?: ReactNode;
+  cart?: Cart | undefined;
 }) {
   return (
     <div className={`mx-auto min-h-screen w-full max-w-md ${back ? "" : "pt-5"}`}>
@@ -39,7 +49,7 @@ export function GuestMenuView({
       <div className="px-5 pb-3">
         <RestaurantHero branding={branding} name={name} above={above} />
       </div>
-      <PublicMenuScreen restaurantId={restaurantId} />
+      <PublicMenuScreen restaurantId={restaurantId} cart={cart ?? null} />
     </div>
   );
 }

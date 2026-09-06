@@ -640,6 +640,19 @@ export const guest = {
       headers: { "Idempotency-Key": body.idempotencyKey },
     }),
 
+  /**
+   * Pedir desde la mesa.
+   *
+   * Las líneas entran en la cuenta en el acto: no hay estado que seguir
+   * después, y por eso la respuesta sólo confirma. La mesa no se manda -- la
+   * pone la sesión de invitado, creada verificando la firma del QR.
+   */
+  order: (items: { productId: string; quantity: number }[]) =>
+    apiRequest<{ orderId: string; createdAt: string; lineCount: number }>(
+      "/api/v1/guest/bill/orders",
+      { method: "POST", body: { items }, auth: "guest" },
+    ),
+
   /** Aviso de pago: crea un claim PENDING, nunca cierra ni paga la cuenta. */
   paymentClaim: (body: PaymentClaimInput) =>
     apiRequest<PaymentClaim>("/api/v1/guest/bill/payment-claims", {
@@ -777,6 +790,25 @@ export type TipsByServer = {
  * contar mesas pero no decir cuánto se debe en total.
  */
 export type TakingsChannel = { paymentsVes: Money; payments: number };
+
+/**
+ * Un pedido que mandó un comensal, como lo lee el panel.
+ *
+ * `lineCount` es lo que se pidió y `items` lo que queda: si un mesero quitó una
+ * línea, ya no se debe y nadie tiene que prepararla, pero el pedido siguió
+ * teniendo tres. Las dos cifras dicen cosas distintas.
+ */
+export type GuestOrder = {
+  id: string;
+  tableId: string;
+  tableName: string;
+  billId: string | null;
+  lineCount: number;
+  items: { name: string; quantity: number; subtotalMinor: Money }[];
+  createdAt: string;
+  /** Lo calcula el servidor: un reloj mal puesto no puede envejecer un pedido. */
+  ageSeconds: number | null;
+};
 
 export type ServiceSnapshot = {
   asOf: string;
@@ -1594,6 +1626,31 @@ export const bills = {
           : {}),
         ...(options.splitParticipantId ? { splitParticipantId: options.splitParticipantId } : {}),
       },
+    }),
+};
+
+/**
+ * Los pedidos que la sala no ha mirado.
+ *
+ * `summary` es el número para el distintivo y `list` la bandeja con lo que se
+ * pidió. Dos llamadas y no una porque el panel pinta el número en todas las
+ * pantallas y la lista sólo en una: traerse las comandas enteras para dibujar
+ * un contador es lo que ya se evitó con los avisos de pago.
+ */
+export const orders = {
+  list: () =>
+    apiRequest<{ data: GuestOrder[] }>("/api/v1/orders", { auth: "staff" }).then((r) => r.data),
+  summary: () =>
+    apiRequest<{
+      pending: number;
+      oldestPendingAt: string | null;
+      oldestPendingAgeSeconds: number | null;
+    }>("/api/v1/orders/summary", { auth: "staff" }),
+  /** Sacarlo de la bandeja. No toca la cuenta: el dinero ya estaba dentro. */
+  ack: (id: string) =>
+    apiRequest<{ id: string; acknowledgedAt: string }>(`/api/v1/orders/${id}/ack`, {
+      method: "POST",
+      auth: "staff",
     }),
 };
 

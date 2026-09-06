@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { ChevronDown, FileText, List, Search, X } from "lucide-react";
+import { ChevronDown, FileText, List, Minus, Plus, Search, X } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { API_BASE_URL, formatMoney, menu, type PublicMenu, type PublicProduct } from "@/lib/api";
@@ -23,7 +23,33 @@ import { GuestError } from "@/components/GuestError";
  * la foto a la derecha cuando la hay. Las filas sin foto se leen igual -- la
  * mayoría de las cartas empiezan sin ninguna.
  */
-export function PublicMenuScreen({ restaurantId }: { restaurantId: string }) {
+/**
+ * Lo que el comensal lleva elegido, si es que puede pedir.
+ *
+ * Un contexto y no una prop porque entre la pantalla y la fila de un plato hay
+ * cuatro componentes que no tienen nada que ver con pedir, y hacerles llevar el
+ * carrito de la mano los ata a algo que no es asunto suyo.
+ *
+ * `null` cuando no se puede pedir, que es el caso de la vista previa del panel:
+ * ahí no hay sesión de invitado con la que pedir, y una carta con botones de
+ * "añadir" que no hacen nada es peor que una carta sin ellos.
+ */
+type Cart = {
+  quantities: Record<string, number>;
+  bump: (productId: string, delta: number) => void;
+};
+
+const CartContext = createContext<Cart | null>(null);
+
+export type { Cart };
+
+export function PublicMenuScreen({
+  restaurantId,
+  cart = null,
+}: {
+  restaurantId: string;
+  cart?: Cart | null;
+}) {
   const { t } = useI18n();
 
   const menuQuery = useQuery({
@@ -47,7 +73,11 @@ export function PublicMenuScreen({ restaurantId }: { restaurantId: string }) {
   const data = menuQuery.data as PublicMenu;
   const groups = groupBySection(data);
 
-  return <MenuList groups={groups} pdf={data.menuPdf} />;
+  return (
+    <CartContext.Provider value={cart}>
+      <MenuList groups={groups} pdf={data.menuPdf} />
+    </CartContext.Provider>
+  );
 }
 
 type Section = { id: string | null; name: string | null; products: PublicProduct[] };
@@ -308,6 +338,10 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
  * larga de ingredientes ocupa media pantalla y esconde los cuatro siguientes.
  */
 function ProductRow({ product }: { product: PublicProduct }) {
+  const { t } = useI18n();
+  const cart = useContext(CartContext);
+  const chosen = cart?.quantities[product.id] ?? 0;
+
   return (
     <li className="border-b border-border/60 px-5 py-4 last:border-0">
       <div className="flex items-start gap-4">
@@ -335,6 +369,45 @@ function ProductRow({ product }: { product: PublicProduct }) {
           />
         )}
       </div>
+
+      {/* Sólo donde se puede pedir de verdad. Y el paso fino aparece cuando ya
+          hay algo elegido: hasta entonces "Añadir" dice lo único que hace falta
+          saber, y dos flechas junto a un cero no. */}
+      {cart && (
+        <div className="mt-3">
+          {chosen === 0 ? (
+            <button
+              type="button"
+              onClick={() => cart.bump(product.id, 1)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-primary px-4 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+            >
+              <Plus aria-hidden className="h-4 w-4" /> {t("guestAdd")}
+            </button>
+          ) : (
+            <div className="inline-flex items-center gap-1 rounded-full border border-primary bg-primary/10">
+              <button
+                type="button"
+                onClick={() => cart.bump(product.id, -1)}
+                aria-label={`${t("oneLessOf")} ${product.name}`}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-primary"
+              >
+                <Minus aria-hidden className="h-4 w-4" />
+              </button>
+              <span className="figure w-6 text-center text-sm font-medium text-primary">
+                {chosen}
+              </span>
+              <button
+                type="button"
+                onClick={() => cart.bump(product.id, 1)}
+                aria-label={`${t("oneMoreOf")} ${product.name}`}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-primary"
+              >
+                <Plus aria-hidden className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </li>
   );
 }

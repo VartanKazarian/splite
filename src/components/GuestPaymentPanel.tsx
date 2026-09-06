@@ -322,7 +322,23 @@ export function GuestPaymentPanel({
         </div>
       )}
 
-      {tab === "c2p" && <GuestC2PForm maxVes={dueVes} demo={demo} />}
+      {tab === "c2p" && (
+        <>
+          {/*
+            El cargo C2P no admite propina: el contrato sólo tiene amountVes y
+            el backend la cuenta contra el saldo. Prefijar share+propina hacía
+            que el banco rechazara el pago por exceder lo pendiente. Se pasa
+            sólo la parte de la cuenta y se avisa de que la propina va aparte.
+          */}
+          {BigInt(tipVes || "0") > 0n && (
+            <p className="mt-4 rounded-lg border border-border bg-secondary/50 p-3 text-[11px] text-muted-foreground">
+              El pago con tarjeta no incluye la propina de {formatMoney(tipVes, "VES")}; puedes
+              dejarla aparte con pago móvil.
+            </p>
+          )}
+          <GuestC2PForm maxVes={billShareVes} demo={demo} />
+        </>
+      )}
 
       {tab === "claim" && (
         <div className="mt-5">

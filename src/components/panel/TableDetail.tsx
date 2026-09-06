@@ -11,7 +11,6 @@ import {
   bills,
   errorFieldsText,
   formatBps,
-  formatFxRate,
   formatMoney,
   menu as menuApi,
   newIdempotencyKey,
@@ -22,7 +21,6 @@ import {
   type MenuCurrency,
   type TillPaymentMethod,
 } from "@/lib/api";
-import { formatDay } from "@/lib/dates";
 import { AddProductsDialog } from "@/components/AddProductsDialog";
 import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
@@ -58,7 +56,7 @@ export function TableDetail({
   /** El panel deselecciona la mesa borrada; Mesas cierra su detalle. */
   onDeleted?: () => void;
 }) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const me = useQuery({ queryKey: ["me"], queryFn: () => auth.me(), retry: false });
@@ -324,10 +322,11 @@ export function TableDetail({
 
       {bill && (
         <>
-          <p className="mt-4 border-t border-border pt-4 text-xs uppercase tracking-widest text-muted-foreground">
-            {t("itemsOnBill")}
-          </p>
-          <div className="mt-2 border-b border-border pb-2">
+          {/* Sin rótulo. "LÍNEAS DE LA CUENTA" encabezaba una lista de líneas
+              que ya se reconoce a simple vista, y encima lo primero que había
+              debajo no era una línea sino quién atendió la mesa. La regla
+              separa igual. */}
+          <div className="mt-4 border-t border-border pt-4">
             <BillServerPicker
               billId={bill.id}
               servedBy={bill.servedBy ?? null}
@@ -404,16 +403,6 @@ export function TableDetail({
               <span>{t("outstanding")}</span>
               <span className="figure text-3xl">{formatMoney(bill.remainingVes, "VES")}</span>
             </div>
-            {/* Sólo cuando hay conversión de verdad: una cuenta en bolívares no
-                tiene tasa, y enseñaba un 1 que no significa nada. */}
-            {bill.currency !== "VES" && (bill.fxRateVesPerUnit ?? bill.fxRate) && (
-              <p className="pt-2 text-[11px] text-muted-foreground">
-                {t("frozenRate")}: {formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)}
-                {formatDay(bill.fxValueDate, lang)
-                  ? ` · ${t("valueDate")} ${formatDay(bill.fxValueDate, lang)}`
-                  : ""}
-              </p>
-            )}
           </div>
 
           {/* Cobrar es el gesto fuerte; añadir productos lo acompaña. */}

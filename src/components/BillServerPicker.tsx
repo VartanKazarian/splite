@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserRound } from "lucide-react";
 import { toast } from "sonner";
 
-import { ApiError, bills, staff, type StaffRole } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
+import { ApiError, bills, staff, type StaffMember, type StaffRole } from "@/lib/api";
 
 /**
  * Quién atendió la mesa, y cómo corregirlo.
@@ -15,7 +16,20 @@ import { ApiError, bills, staff, type StaffRole } from "@/lib/api";
  * OWNER y MANAGER, como en el servidor. Un mesero no se asigna sus propias
  * mesas: esto mueve dinero entre personas, porque la atribución se lee en el
  * momento de consultar y corregirla mueve también las propinas de ayer.
+ *
+ * **Cómo se llama cada quien.** Esto enseñaba la dirección de correo, así que
+ * una mesa la había atendido "varto23@gmail.com". Cada persona puede ponerse un
+ * nombre desde su cuenta; si lo ha puesto, es el que se usa. El correo queda de
+ * reserva -- y no como sustituto en el servidor, que devuelve `null` a
+ * propósito: qué enseñar mientras tanto se decide aquí.
  */
+/** El nombre que se ha puesto, y si no, el correo. Nunca los dos. */
+function nameOf(member: StaffMember | undefined, fallback: string) {
+  const chosen = member?.displayName?.trim();
+  if (chosen) return chosen;
+  return member?.email ?? fallback;
+}
+
 export function BillServerPicker({
   billId,
   servedBy,
@@ -27,6 +41,7 @@ export function BillServerPicker({
   canAssign: boolean;
   onChanged: () => void;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const team = useQuery({
@@ -41,19 +56,17 @@ export function BillServerPicker({
   const assign = useMutation({
     mutationFn: (userId: string | null) => bills.setServer(billId, userId),
     onSuccess: () => {
-      toast.success("Guardado");
+      toast.success(t("saved"));
       queryClient.invalidateQueries({ queryKey: ["bill", billId] });
       onChanged();
     },
     onError: (error: unknown) => {
       if (error instanceof ApiError) {
-        if (error.code === "STAFF_NOT_FOUND")
-          return toast.error("Esa persona ya no trabaja aquí o está dada de baja");
-        if (error.code === "FORBIDDEN_ROLE")
-          return toast.error("Sólo el dueño o un encargado puede cambiar quién atendió");
+        if (error.code === "STAFF_NOT_FOUND") return toast.error(t("serverGone"));
+        if (error.code === "FORBIDDEN_ROLE") return toast.error(t("serverForbidden"));
         return toast.error(`${error.code} · ${error.message}`);
       }
-      return toast.error("No se pudo conectar con el servidor");
+      return toast.error(t("apiDown"));
     },
   });
 
@@ -67,7 +80,7 @@ export function BillServerPicker({
     return (
       <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
         <UserRound className="h-3.5 w-3.5" />
-        {servedBy ? (current?.email ?? "Atendida") : "Sin mesero asignado"}
+        {servedBy ? nameOf(current, t("servedByUnknown")) : t("servedByNobody")}
       </p>
     );
   }
@@ -75,23 +88,23 @@ export function BillServerPicker({
   return (
     <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
       <UserRound className="h-3.5 w-3.5" />
-      <span>Atendida por</span>
+      <span>{t("servedBy")}</span>
       <select
         value={servedBy ?? ""}
         disabled={assign.isPending || team.isLoading}
         onChange={(e) => assign.mutate(e.target.value || null)}
-        aria-label="Quién atendió esta mesa"
+        aria-label={t("servedByAria")}
         className="min-h-11 rounded-lg border border-input bg-secondary px-3 text-xs text-foreground outline-none focus:border-ring disabled:opacity-50"
       >
-        <option value="">Sin asignar</option>
+        <option value="">{t("servedByNone")}</option>
         {active.map((m) => (
           <option key={m.id} value={m.id}>
-            {m.email}
+            {nameOf(m, m.email)}
           </option>
         ))}
         {/* Quien atendió pero ya no está activo: se conserva para no perder la
             atribución al abrir el desplegable. */}
-        {servedBy && !current && <option value={servedBy}>Quien la atendió (ya no activo)</option>}
+        {servedBy && !current && <option value={servedBy}>{t("servedByUnknown")}</option>}
       </select>
     </label>
   );

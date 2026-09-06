@@ -185,6 +185,14 @@ export const STAFF_RANK: Record<StaffRole, number> = {
 export type StaffMember = {
   id: string;
   email: string;
+  /**
+   * Cómo quiere que le llamen, si se lo ha puesto.
+   *
+   * `null` a propósito y no el correo: el servidor no sustituye, así que quien
+   * enseña esto decide qué poner mientras tanto. Opcional además de anulable
+   * porque un backend anterior a este campo simplemente no lo manda.
+   */
+  displayName?: string | null;
   role: StaffRole;
   active: boolean;
   restaurantId: string;

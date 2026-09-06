@@ -157,7 +157,9 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
         recorrer: el nombre de la sección y la búsqueda siguen ahí después de
         veinte platos, que es justo cuando hacen falta.
       */}
-      <div className="sticky top-0 z-10 -mx-px border-b border-border bg-background/95 backdrop-blur">
+      {/* Sin `-mx-px`: ese píxel a cada lado hacía la barra 2 px más ancha que
+          la ventana, y la carta del comensal se deslizaba en horizontal. */}
+      <div className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur">
         <div className="flex items-center gap-2 px-5 py-3">
           {searching ? (
             <div className="flex flex-1 items-center gap-2 rounded-full border border-input bg-secondary px-4 py-2">

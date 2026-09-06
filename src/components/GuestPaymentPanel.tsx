@@ -57,7 +57,10 @@ function CopyRow({
           type="button"
           onClick={copy}
           aria-label={`Copiar ${label}`}
-          className="inline-flex h-8 min-w-8 items-center gap-1 rounded-lg border border-border px-2 text-[11px] text-muted-foreground transition-colors hover:bg-secondary"
+          // 44 px. Copiar el banco, el teléfono y el RIF es literalmente el
+          // trámite del Pago Móvil: se hace tres veces seguidas, de pie y con
+          // el banco abierto al lado. Fallar el toque cuesta volver a empezar.
+          className="inline-flex h-11 min-w-11 items-center justify-center gap-1 rounded-lg border border-border px-2 text-[11px] text-muted-foreground transition-colors hover:bg-secondary"
         >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           {copied && <span>Copiado</span>}
@@ -244,7 +247,7 @@ export function GuestPaymentPanel({
   const invalid = (name: string) => Boolean(error?.fields?.includes(name));
 
   const field =
-    "mt-2 w-full rounded-lg border border-input bg-secondary px-3 py-2.5 text-base outline-none focus:border-ring aria-[invalid=true]:border-destructive";
+    "mt-2 min-h-11 w-full rounded-lg border border-input bg-secondary px-3 text-base outline-none focus:border-ring aria-[invalid=true]:border-destructive";
 
   return (
     <div className="surface mt-4 p-6">
@@ -265,7 +268,7 @@ export function GuestPaymentPanel({
             type="button"
             onClick={() => setTab(x.id)}
             aria-pressed={tab === x.id}
-            className={`rounded-lg border px-3 py-2.5 text-xs transition-colors ${
+            className={`min-h-11 rounded-lg border px-3 text-xs transition-colors ${
               tab === x.id
                 ? "border-primary bg-primary/15 text-foreground"
                 : "border-border text-muted-foreground hover:bg-secondary"

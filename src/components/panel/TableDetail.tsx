@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, CreditCard, MoreVertical, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
@@ -25,6 +25,12 @@ import { AddProductsDialog } from "@/components/AddProductsDialog";
 import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
 import { LoadFailed } from "@/components/shell/LoadFailed";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,6 +77,44 @@ export function TableDetail({
     retry: false,
   });
   const bill = billQuery.data ?? floorBill;
+
+  /**
+   * Cómo va el cobro de esta mesa.
+   *
+   * Los avisos por verificar salen de `floorBill` y no de `bill`: los trae el
+   * resumen de `/tables/floor` y `/bills/{id}` no los incluye, así que leerlos
+   * del segundo los perdería en cuanto carga el detalle.
+   *
+   * El que importa es el ámbar. Los otros tres dicen en qué punto está; ése
+   * dice que hay algo que hacer -- alguien declaró un Pago Móvil y nadie lo ha
+   * comprobado todavía -- y es la única razón por la que un mesero tiene que
+   * volver a esta mesa si el comensal paga desde el móvil.
+   *
+   * Lo que no se puede decir todavía es si lo pagado entró por la app o por
+   * caja: la cuenta no trae el desglose por método. Así que se dice el importe
+   * y no de dónde vino, en vez de afirmar algo que no se sabe.
+   */
+  const pendingClaims = floorBill?.pendingClaims ?? 0;
+  const paidVes = (() => {
+    try {
+      return BigInt(bill?.amountPaidVes ?? "0");
+    } catch {
+      return 0n;
+    }
+  })();
+  const remainingVes = (() => {
+    try {
+      return BigInt(bill?.remainingVes ?? "0");
+    } catch {
+      return 0n;
+    }
+  })();
+
+  // Anular no es cerrar: el servidor lo rechaza en cuanto ha entrado dinero
+  // ("reversing it is a refund, not a status change") y sólo lo admite de un
+  // dueño o un encargado. Se enseña cuando puede funcionar, y si no, no está.
+  const canVoid =
+    paidVes === 0n && (me.data?.user.role === "OWNER" || me.data?.user.role === "MANAGER");
 
   // Las líneas no vienen dentro de la cuenta: se piden aparte.
   const itemsQuery = useQuery({
@@ -244,35 +288,50 @@ export function TableDetail({
           </h3>
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          {!renaming && (
-            <button
-              onClick={() => {
-                setRenameValue(table.name);
-                setRenaming(true);
-              }}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs transition-colors hover:bg-secondary"
+        {/* Renombrar, anular y borrar bajan a un menú.
+            Estaban los tres en fila junto al título, con el mismo peso que el
+            cobro, y anular una cuenta es destructivo -- no es un vecino de
+            "Renombrar mesa". Anular sólo aparece cuando puede funcionar: el
+            servidor lo rechaza en cuanto ha entrado dinero y sólo lo admite de
+            un dueño o un encargado, así que ofrecerlo el resto del tiempo es
+            ofrecer un error. Una cuenta pagada del todo se cierra sola. */}
+        {!renaming && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={t("tableActions")}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <Pencil className="h-3.5 w-3.5" /> {t("renameTable")}
-            </button>
-          )}
-          {bill && (
-            <button
-              onClick={() => setCloseOpen(true)}
-              className="inline-flex min-h-11 items-center rounded-full border border-border px-4 text-xs transition-colors hover:bg-secondary"
-            >
-              {t("closeBill")}
-            </button>
-          )}
-          {!bill && (
-            <button
-              onClick={() => setDeleteOpen(true)}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs text-destructive transition-colors hover:bg-secondary"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> {t("deleteTable")}
-            </button>
-          )}
-        </div>
+              <MoreVertical className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onSelect={() => {
+                  setRenameValue(table.name);
+                  setRenaming(true);
+                }}
+              >
+                <Pencil className="h-4 w-4" /> {t("renameTable")}
+              </DropdownMenuItem>
+              {bill && canVoid && (
+                <DropdownMenuItem
+                  className="cursor-pointer text-destructive"
+                  onSelect={() => setCloseOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" /> {t("closeBill")}
+                </DropdownMenuItem>
+              )}
+              {!bill && (
+                <DropdownMenuItem
+                  className="cursor-pointer text-destructive"
+                  onSelect={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" /> {t("deleteTable")}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <AlertDialog open={closeOpen} onOpenChange={setCloseOpen}>
@@ -405,29 +464,66 @@ export function TableDetail({
             </div>
           </div>
 
-          {/* Cobrar es el gesto fuerte; añadir productos lo acompaña. */}
-          <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
-            <button
-              onClick={() => setTillOpen(true)}
-              className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 sm:flex-none"
-            >
-              {t("registerPayment")}
-            </button>
+          {/* En qué punto está el cobro, debajo del importe.
+              Cuatro estados y sólo uno pide algo: los avisos por verificar. */}
+          <div
+            className={`mt-4 flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${
+              pendingClaims > 0
+                ? "bg-amber-500/10 text-amber-800"
+                : remainingVes === 0n && paidVes > 0n
+                  ? "bg-primary/10 text-primary"
+                  : "bg-secondary text-muted-foreground"
+            }`}
+          >
+            <span>
+              {pendingClaims > 0
+                ? t("payStateClaims").replace("{n}", String(pendingClaims))
+                : remainingVes === 0n && paidVes > 0n
+                  ? t("payStateSettled")
+                  : paidVes > 0n
+                    ? t("payStatePartial").replace(
+                        "{amount}",
+                        formatMoney(bill.remainingVes, "VES"),
+                      )
+                    : t("payStateWaiting")}
+            </span>
+            {pendingClaims > 0 && (
+              <Link to="/pagos" className="ml-auto shrink-0 whitespace-nowrap underline">
+                {t("payStateVerify")}
+              </Link>
+            )}
+          </div>
+
+          {/* Añadir productos es lo que se hace en la mesa; cobrar es la
+              excepción desde que el comensal paga con el QR. Estaban al revés:
+              el verde sólido era el cobro. Se cambian de sitio y de peso, y el
+              cobro dice cuándo hace falta en vez de dejarlo a la intuición. */}
+          <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
             {productsQuery.isSuccess && productsQuery.data.length === 0 ? (
               <Link
                 to="/menu"
-                className="inline-flex min-h-12 items-center gap-2 rounded-full border border-border px-5 text-sm transition-colors hover:bg-secondary"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
                 <Plus className="h-4 w-4" /> {t("manageMenu")}
               </Link>
             ) : (
               <button
                 onClick={() => setPickerOpen(true)}
-                className="inline-flex min-h-12 items-center gap-2 rounded-full border border-border px-5 text-sm transition-colors hover:bg-secondary"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
                 <Plus className="h-4 w-4" /> {t("addProducts")}
               </button>
             )}
+
+            <div>
+              <button
+                onClick={() => setTillOpen(true)}
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-6 text-sm transition-colors hover:bg-secondary"
+              >
+                <CreditCard className="h-4 w-4" /> {t("registerPayment")}
+              </button>
+              <p className="mt-1.5 text-center text-[11px] text-muted-foreground">{t("payHint")}</p>
+            </div>
           </div>
 
           <PaymentDrawer

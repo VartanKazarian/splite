@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,8 +9,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { LoadFailed } from "@/components/shell/LoadFailed";
 import { TableRow } from "@/components/panel/TableRow";
-import { TableDetail } from "@/components/panel/TableDetail";
-import { TableQrDialog } from "@/components/panel/TableQrDialog";
+import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -87,7 +86,6 @@ function Mesas() {
   const [filter, setFilter] = useState<"ALL" | "BUSY" | "FREE">("ALL");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [qrTableId, setQrTableId] = useState<string | null>(null);
 
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -97,7 +95,6 @@ function Mesas() {
   }, [tableList, filter, search]);
 
   const selected = tableList.find((tb) => tb.id === selectedId) ?? null;
-  const qrTable = tableList.find((tb) => tb.id === qrTableId) ?? null;
 
   const fail = (error: unknown) =>
     toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
@@ -244,31 +241,29 @@ function Mesas() {
           ) : (
             <div className="surface divide-y divide-border overflow-hidden">
               {visible.map((tb) => (
-                <Fragment key={tb.id}>
-                  <TableRow
-                    table={tb}
-                    selected={selected?.id === tb.id}
-                    onSelect={() => setSelectedId(selected?.id === tb.id ? null : tb.id)}
-                    fallbackOpenedAt={tb.openBill ? openedAtByBill.get(tb.openBill.id) : undefined}
-                  />
-                  {selected?.id === tb.id && (
-                    <div className="bg-secondary/30 px-4 py-4">
-                      <TableDetail table={tb} onDeleted={() => setSelectedId(null)} />
-                      <button
-                        onClick={() => setQrTableId(tb.id)}
-                        className="mt-4 inline-flex min-h-11 items-center rounded-full border border-border px-4 text-xs transition-colors hover:bg-secondary"
-                      >
-                        {t("qrOfTable")}
-                      </button>
-                    </div>
-                  )}
-                </Fragment>
+                <TableRow
+                  key={tb.id}
+                  table={tb}
+                  selected={selected?.id === tb.id}
+                  onSelect={() => setSelectedId(selected?.id === tb.id ? null : tb.id)}
+                  fallbackOpenedAt={tb.openBill ? openedAtByBill.get(tb.openBill.id) : undefined}
+                />
               ))}
               {visible.length === 0 && <EmptyState title={t("noTablesMatch")} />}
             </div>
           )}
         </div>
       </main>
+
+      {/* El detalle, encima de la lista. Abriéndose dentro de ella empezaba en
+          y=857 de una página de 1.797 en un teléfono: por debajo del pliegue y
+          detrás de todo lo que ya habías pasado. Ver `TableDetailSheet`. */}
+      <TableDetailSheet
+        table={selected}
+        open={Boolean(selected)}
+        onOpenChange={(v) => !v && setSelectedId(null)}
+        onDeleted={() => setSelectedId(null)}
+      />
 
       {/* Crear una mesa */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -345,14 +340,6 @@ function Mesas() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {qrTable && (
-        <TableQrDialog
-          table={qrTable}
-          open={Boolean(qrTableId)}
-          onOpenChange={(open) => !open && setQrTableId(null)}
-        />
-      )}
     </div>
   );
 }

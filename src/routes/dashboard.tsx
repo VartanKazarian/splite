@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { ConfigurationCard } from "@/components/panel/ConfigurationCard";
@@ -9,12 +8,10 @@ import { PanelIntro } from "@/components/panel/PanelIntro";
 import { PendingCollection } from "@/components/panel/PendingCollection";
 import { MetricCard } from "@/components/panel/MetricCard";
 import { TableRow } from "@/components/panel/TableRow";
-import { TableDetail } from "@/components/panel/TableDetail";
+import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
 import { AttentionList } from "@/components/panel/AttentionList";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePayoutConfigured } from "@/lib/use-payout";
-import { QrCode } from "@/components/QrCode";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,8 +29,6 @@ import {
   bills,
   errorFields,
   errorFieldsText,
-  GUEST_BASE_URL,
-  isEphemeralGuestHost,
   formatMinor,
   parseMinorInput,
   formatMoney,
@@ -169,27 +164,15 @@ function Dashboard() {
     [tableList, floorFilter],
   );
   const busyCount = tableList.filter((tb) => tb.openBill).length;
-  const selected = tableList.find((tb) => tb.id === selectedId) ?? tableList[0] ?? null;
-
-  // Si el Pago Móvil de esta mesa puede llegar a alguna parte. Ver el aviso
-  // junto al QR.
-  const payoutReady = usePayoutConfigured();
-
-  // El token QR es permanente por mesa: se pide una sola vez y sólo se
-  // vuelve a pedir tras rotar el nonce.
-  const qrQuery = useQuery({
-    queryKey: ["qr", selected?.id],
-    enabled: Boolean(selected),
-    retry: false,
-    queryFn: () => tablesApi.qrToken(selected!.id),
-    staleTime: Infinity,
-    gcTime: Infinity,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchInterval: false,
-  });
-  const [rotateOpen, setRotateOpen] = useState(false);
+  /*
+   * La mesa elegida, y sólo si de verdad la han elegido.
+   *
+   * Caía a `tableList[0]` cuando no había ninguna, que servía mientras el
+   * detalle se pintaba en línea -- había que enseñar algo en ese hueco. Ahora
+   * abre una hoja encima, y con el respaldo la hoja salía sola al cargar el
+   * panel, sobre la primera mesa de la lista.
+   */
+  const selected = selectedId ? (tableList.find((tb) => tb.id === selectedId) ?? null) : null;
 
   const [amount, setAmount] = useState("");
   // Cómo entró el dinero. Se manda siempre: omitirlo dejaba que el servidor
@@ -359,27 +342,6 @@ function Dashboard() {
 
   if (!ready) return null;
 
-  // El token ya contiene mesa y restaurante: la ruta no lleva el id (QR más corto).
-  // El token puede contener caracteres no seguros en URL (+, /, =): hay que escaparlo.
-  const guestUrl = qrQuery.data
-    ? `${GUEST_BASE_URL}/t?qr=${encodeURIComponent(qrQuery.data.token)}`
-    : "";
-  // Si el enlace que llevaría el código cuelga de un host que va a caducar.
-  const ephemeralHost = isEphemeralGuestHost();
-
-  /**
-   * La mesa abierta, tal y como se pinta debajo de su propia tarjeta.
-   *
-   * Extraída a una variable en vez de quedarse dentro del `return` porque
-   * ahora se inserta *dentro* de la rejilla de mesas, detrás de la fila de
-   * la mesa elegida, y no al final de la lista.
-   */
-  // Extraído a un componente para que la pantalla de Mesas use exactamente
-  // este cobro y este cierre de cuenta, y no una segunda copia.
-  const tableDetail = selected ? (
-    <TableDetail table={selected} onDeleted={() => setSelectedId(null)} />
-  ) : null;
-
   // El plano se vuelve a pedir cada ocho segundos; "En vivo" dice eso y no
   // otra cosa. Si esa consulta falla, se dice, en vez de dejar el punto verde
   // encendido sobre cifras congeladas.
@@ -530,9 +492,6 @@ function Dashboard() {
                       {/* El detalle, dentro de la misma tarjeta que la lista.
                           Con su propio `surface` eran tres tarjetas anidadas:
                           la lista, la banda del detalle y el detalle. */}
-                      {selected?.id === tb.id && (
-                        <div className="bg-secondary/30 px-4 py-4">{tableDetail}</div>
-                      )}
                     </Fragment>
                   ))}
                   {visibleTables.length === 0 && (
@@ -557,153 +516,22 @@ function Dashboard() {
               }
               openedAtByBill={openedAtByBill}
             />
-
-            <aside className="surface p-5 text-center">
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                {t("qrFor")}
-              </p>
-              <p className="mt-1 font-display text-2xl">{selected?.name ?? "—"}</p>
-              <div id="qr-print-source" className="mt-4 flex justify-center">
-                {guestUrl ? (
-                  <QrCode value={guestUrl} size={200} />
-                ) : (
-                  <div className="h-[224px] w-[224px] rounded-lg bg-secondary" />
-                )}
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">{t("qrScanHint")}</p>
-
-              {/* Aquí y no en otro sitio: es el momento en que alguien está a
-                  punto de imprimir un código y pegarlo en una mesa. Sin payee,
-                  `guestPayee` devuelve null y el Pago Móvil de esa mesa no lleva
-                  a ninguna parte -- y se descubre con el cliente ya sentado. */}
-              {payoutReady === false && (
-                <p className="mt-3 rounded-lg border border-amber-500/50 bg-amber-500/5 px-3 py-2 text-left text-[11px] text-muted-foreground">
-                  {t("payoutMissingQr")}{" "}
-                  <Link to="/settings" className="underline">
-                    {t("payoutConfigure")}
-                  </Link>
-                </p>
-              )}
-
-              {qrQuery.isError && <ErrorBox error={qrQuery.error} fallback={t("forbidden")} />}
-              {guestUrl && (
-                <>
-                  {/* Antes de imprimir nada: un código sacado de una vista
-                      previa funciona hoy y deja de resolver cuando el host rota,
-                      semanas después y ya pegado a una mesa. Avisar no basta --
-                      el aviso se lee una vez y el papel dura meses -- así que
-                      desde aquí no se imprime. */}
-                  {ephemeralHost && (
-                    <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left text-xs">
-                      {t("qrEphemeralHost")}
-                    </p>
-                  )}
-
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => {
-                        const svg = document
-                          .getElementById("qr-print-source")
-                          ?.querySelector("svg")?.outerHTML;
-                        if (!svg) {
-                          toast.error(t("apiDown"));
-                          return;
-                        }
-                        const win = window.open("", "_blank", "width=720,height=900");
-                        if (!win) {
-                          toast.error(t("apiDown"));
-                          return;
-                        }
-                        const name = (selected?.name ?? "").replace(/[<>&]/g, "");
-                        win.document.write(`<!doctype html><html><head><meta charset="utf-8">
-<title>QR ${name}</title>
-<style>
-  @page { margin: 16mm; }
-  body { margin:0; font-family: Georgia, serif; color:#111;
-         display:flex; align-items:center; justify-content:center; min-height:100vh; }
-  .card { text-align:center; border:2px solid #2C7A5C; border-radius:24px; padding:32px 40px; }
-  .name { font-size:34px; margin:0 0 4px; }
-  .kicker { font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:#8a8a8a; margin:0 0 18px; }
-  .qr svg { width:320px; height:320px; }
-  .hint { margin-top:18px; font-size:14px; color:#444; }
-</style></head><body><div class="card">
-  <p class="kicker">${t("qrFor")}</p>
-  <h1 class="name">${name}</h1>
-  <div class="qr">${svg}</div>
-  <p class="hint">${t("qrScanHint")}</p>
-</div><script>window.onload=function(){window.focus();window.print();}<\/script></body></html>`);
-                        win.document.close();
-                      }}
-                      disabled={ephemeralHost}
-                      title={ephemeralHost ? t("qrEphemeralHost") : undefined}
-                      className="min-h-11 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
-                    >
-                      {t("printQr")}
-                    </button>
-
-                    {/* El enlace lleva el token de invitado: nunca se muestra. */}
-                    <button
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(guestUrl);
-                          toast.success(t("linkCopied"));
-                        } catch {
-                          toast.error(t("apiDown"));
-                        }
-                      }}
-                      className="min-h-11 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary"
-                    >
-                      {t("copyLink")}
-                    </button>
-                  </div>
-
-                  {/* Abrir la mesa tal cual la abre el comensal. */}
-                  <a
-                    href={guestUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary"
-                  >
-                    <ExternalLink className="h-4 w-4" /> {t("previewOpenReal")}
-                  </a>
-
-                  <button
-                    onClick={() => setRotateOpen(true)}
-                    className="mt-2 min-h-11 w-full rounded-full px-4 text-xs text-muted-foreground transition-colors hover:bg-secondary"
-                  >
-                    {t("refreshQr")}
-                  </button>
-
-                  <AlertDialog open={rotateOpen} onOpenChange={setRotateOpen}>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t("refreshQr")}</AlertDialogTitle>
-                        <AlertDialogDescription>{t("rotateQrWarning")}</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={async () => {
-                            try {
-                              await tablesApi.rotateQr(selected!.id);
-                              await qrQuery.refetch();
-                              toast.success(t("refreshQr"));
-                            } catch (error) {
-                              toast.error(error instanceof ApiError ? error.code : t("apiDown"));
-                            }
-                          }}
-                        >
-                          {t("continue")}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </>
-              )}
-            </aside>
           </div>
         </div>
       </main>
+
+      {/* El detalle, encima del panel y no dentro de la lista. Y con él el
+          QR, que vivía siempre abierto en la columna de la derecha: 529 px de
+          los 2.335 de esta pantalla en un móvil, para un código que se imprime
+          una vez y se pega a una mesa. Era además una segunda copia del panel
+          de QR, con su propia función de imprimir, mientras `TableQrDialog`
+          ya existía. Ver `TableDetailSheet`. */}
+      <TableDetailSheet
+        table={selected}
+        open={Boolean(selected)}
+        onOpenChange={(v) => !v && setSelectedId(null)}
+        onDeleted={() => setSelectedId(null)}
+      />
 
       {/* El cobro, encima de todo. Misma mutación, misma clave de idempotencia
           y mismo parseo: sólo cambia dónde se teclea. */}

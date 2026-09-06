@@ -93,7 +93,7 @@ export function AddProductsDialog({
                     type="button"
                     disabled={mismatch || n === 0}
                     onClick={() => bump(p.id, -1)}
-                    aria-label={t("remove")}
+                    aria-label={`${t("oneLessOf")} ${p.name}`}
                     className="rounded-full border border-border p-1.5 disabled:opacity-30"
                   >
                     <Minus className="h-3.5 w-3.5" />
@@ -103,7 +103,7 @@ export function AddProductsDialog({
                     type="button"
                     disabled={mismatch}
                     onClick={() => bump(p.id, 1)}
-                    aria-label={t("addToBill")}
+                    aria-label={`${t("oneMoreOf")} ${p.name}`}
                     className="rounded-full border border-border p-1.5 disabled:opacity-30"
                   >
                     <Plus className="h-3.5 w-3.5" />

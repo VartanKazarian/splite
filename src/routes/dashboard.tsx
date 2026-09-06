@@ -570,7 +570,7 @@ export function ErrorBox({ error, fallback }: { error: unknown; fallback: string
         </ul>
       )}
       {api?.requestId && (
-        <p className="mt-1 break-all text-[10px] text-muted-foreground">
+        <p className="mt-1 break-all text-[11px] text-muted-foreground">
           Request ID: {api.requestId}
         </p>
       )}

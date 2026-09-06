@@ -264,7 +264,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
                     <span className="ml-2 text-[11px] text-muted-foreground">{t("staffYou")}</span>
                   )}
                   {!m.active && (
-                    <span className="ml-2 rounded-full bg-secondary px-1.5 py-px text-[10px] text-muted-foreground">
+                    <span className="ml-2 rounded-full bg-secondary px-1.5 py-px text-[11px] text-muted-foreground">
                       dado de baja
                     </span>
                   )}

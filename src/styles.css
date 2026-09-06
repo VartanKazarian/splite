@@ -110,6 +110,36 @@
   --sidebar-ring: oklch(0.53 0.105 162);
 }
 
+/*
+ * Las tres caras y para qué es cada una.
+ *
+ *   Instrument Serif  (`font-display`)  nombres: la marca, el restaurante, la
+ *                                       mesa. Nada más -- ni rótulos de la
+ *                                       interfaz ni valores de estadísticas.
+ *   DM Sans           (por defecto)     todo lo que se lee: textos, rótulos,
+ *                                       botones, encabezados.
+ *   Instrument Sans   (`figure`,        números que alguien va a comparar con
+ *                     `money-*`)        otro. Es la única de las tres con
+ *                                       cifras tabulares, y por eso está.
+ *
+ * Y los escalones del texto. El dinero tiene los suyos (`money-*`, más abajo);
+ * esto es para lo demás:
+ *
+ *   16  la entradilla de una pantalla. Poco y en sitios contados.
+ *   14  el texto normal.
+ *   13  una fila de controles que tiene que caber en un teléfono de 360 px --
+ *       la barra de navegación y los grupos de botones. Medido, no elegido.
+ *   12  lo secundario: pies, ayudas, rótulos en versalitas.
+ *   11  la letra pequeña y las píldoras de estado.
+ *
+ * Debajo de 11 no hay nada: los 10 px que había repartidos por seis pantallas
+ * eran un escalón sin dueño, y a esa altura la diferencia con 11 no es de
+ * estilo, es de si se lee o no de pie en un comedor.
+ *
+ * Las versalitas llevan siempre `tracking-widest`. Había también `wide` y
+ * `wider` sueltos, así que el mismo rótulo se separaba distinto según la
+ * pantalla.
+ */
 @layer base {
   * {
     border-color: var(--color-border);
@@ -129,6 +159,23 @@
     font-weight: 600;
     letter-spacing: -0.025em;
   }
+
+  /*
+   * La serif es para los nombres: la marca, el restaurante, la mesa. Nunca
+   * para una etiqueta de la interfaz ni para el valor de una estadística.
+   *
+   * Y se planta aquí porque la regla de arriba la pisaba. Instrument Serif
+   * viene en un solo peso, el regular; al caer un `h1`/`h2` con `.font-display`
+   * bajo un `font-weight: 600` el navegador la engordaba él -- una negrita
+   * falsa, con los perfiles emborronados -- y encima le metía el interletraje
+   * cerrado que se calculó para la sans. El resultado era que el mismo nombre
+   * de mesa salía en regular dentro de una fila de la lista y en negrita falsa
+   * y apretada en la cabecera de su propia hoja.
+   */
+  .font-display {
+    font-weight: 400;
+    letter-spacing: normal;
+  }
 }
 
 
@@ -147,7 +194,7 @@
 }
 
 /**
- * La escala del dinero: tres pasos, y cada uno trae su propia cara.
+ * La escala del dinero: cuatro pasos, y cada uno trae su propia cara.
  *
  * El dinero usaba ocho pasos de Tailwind repartidos por la aplicación --
  * `xs sm base lg xl 2xl 3xl 4xl` -- y siete de ellos convivían en la cuenta
@@ -158,10 +205,24 @@
  * sin la cara de dinero, que es exactamente el fallo que había en dos sitios
  * de la cuenta -- y los dos eran importes en bolívares.
  *
- * `figure` se queda para los números que no son dinero: recuentos, cantidades,
- * la tasa dentro de una frase.
+ * Cada paso tiene un trabajo, y por eso son cuatro y no tres. Con tres, la
+ * cuenta del comensal quedaba ordenada y el panel no: entre los 32 px de una
+ * cifra protagonista y los 14 de una fila no había nada, y el panel llenó ese
+ * hueco por su cuenta con `text-xl`, `text-2xl`, `text-3xl`, `text-4xl` y
+ * `text-5xl` según quién escribiera la pantalla.
+ *
+ *   money-xl  32  la cifra de la que va la pantalla. Una por pantalla.
+ *   money-lg  20  el valor de una tarjeta, un aviso o una casilla de importe.
+ *   money-md  14  una cifra dentro de una fila, una lista o un total.
+ *   money-sm  11  la referencia en la otra moneda, debajo de la de arriba.
+ *
+ * `figure` se queda para dos cosas: los números que no son dinero -- recuentos,
+ * cantidades, duraciones, referencias bancarias -- y el dinero que va *dentro*
+ * de una frase, que toma el tamaño de la frase y sólo necesita las cifras
+ * tabulares. La escala es para el dinero que va solo, que es el que alguien
+ * compara de un vistazo con el de la línea de al lado.
  */
-@utility money-lg {
+@utility money-xl {
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
   /* 32 y no 36: a 393 px de ventana un importe de siete dígitos en bolívares
@@ -170,6 +231,16 @@
   font-size: 2rem;
   line-height: 1.1;
   letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+/* El valor de una tarjeta. Antes eran 20 y 24 según el ancho de la ventana, y
+   la misma cifra cambiaba de tamaño al girar el teléfono. */
+@utility money-lg {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.25rem;
+  line-height: 1.2;
   white-space: nowrap;
 }
 

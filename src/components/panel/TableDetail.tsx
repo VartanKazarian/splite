@@ -14,7 +14,6 @@ import {
   formatMoney,
   menu as menuApi,
   newIdempotencyKey,
-  parseMinorInput,
   formatMinor,
   tables as tablesApi,
   type FloorTable,
@@ -160,16 +159,24 @@ export function TableDetail({
   const [idemKey, setIdemKey] = useState(newIdempotencyKey());
   const [tillOpen, setTillOpen] = useState(false);
 
+  // El reparto lo hace la hoja de cobro, que es donde están lo tecleado y lo
+  // pendiente: `amountMinorUnits` es lo que va contra la cuenta y `tipMinorUnits`
+  // lo que el cliente da de más y no quiere de vuelta.
   const payMutation = useMutation({
-    mutationFn: async () => {
-      // `parseMinorInput`, como en todas las demás casillas de dinero de la app.
-      const digits = parseMinorInput(amount);
-      if (!digits || BigInt(digits) <= 0n) throw new Error("empty");
+    mutationFn: async (split: { amountMinorUnits: string; tipMinorUnits: string }) => {
+      if (BigInt(split.amountMinorUnits) <= 0n) throw new Error("empty");
       // La misma clave se reutiliza en cada reintento del mismo intento de cobro.
-      return bills.pay(bill!.id, digits, idemKey, { paymentMethod: payMethod });
+      return bills.pay(bill!.id, split.amountMinorUnits, idemKey, {
+        paymentMethod: payMethod,
+        tipMinorUnits: split.tipMinorUnits,
+      });
     },
-    onSuccess: (result) => {
-      toast.success(`${t("takePayment")} · ${formatMinor(result.remaining)} Bs`);
+    onSuccess: (result, split) => {
+      const tip = BigInt(split.tipMinorUnits);
+      toast.success(
+        `${t("takePayment")} · ${formatMinor(result.remaining)} Bs` +
+          (tip > 0n ? ` · ${formatMinor(split.tipMinorUnits)} Bs ${t("tillTipToast")}` : ""),
+      );
       setAmount("");
       setTillOpen(false);
       setIdemKey(newIdempotencyKey());
@@ -462,7 +469,7 @@ export function TableDetail({
 
             <div className="flex items-baseline justify-between pt-2 text-foreground">
               <span>{t("outstanding")}</span>
-              <span className="figure text-3xl">{formatMoney(bill.remainingVes, "VES")}</span>
+              <span className="money-xl">{formatMoney(bill.remainingVes, "VES")}</span>
             </div>
           </div>
 
@@ -537,7 +544,7 @@ export function TableDetail({
             onAmountChange={setAmount}
             method={payMethod}
             onMethodChange={setPayMethod}
-            onSubmit={() => payMutation.mutate()}
+            onSubmit={(split) => payMutation.mutate(split)}
             pending={payMutation.isPending}
           />
         </>

@@ -932,6 +932,16 @@ export type C2PChargeRequest = {
   phone: string;
   clave: string;
   idempotencyKey: string;
+  /**
+   * La propina, dentro del mismo cargo.
+   *
+   * El banco del comensal cobra `amountVes + tipVes` de una vez; la cuenta sólo
+   * ve `amountVes`, que es lo que impide que el cargo se pase del saldo. El
+   * contrato lo admite desde que se enhebró la propina por las tres vías; era
+   * el cliente el que no lo mandaba, así que quien pagaba con tarjeta dejaba la
+   * propina que no llegaba a cobrarse.
+   */
+  tipVes?: Money;
 };
 
 export type C2PStatus = "SUCCEEDED" | "FAILED" | "IN_DOUBT" | "AMBIGUOUS";
@@ -1517,7 +1527,19 @@ export const bills = {
     id: string,
     amountMinorUnits: Money,
     idempotencyKey: string,
-    options: { paymentMethod: TillPaymentMethod; splitParticipantId?: string },
+    options: {
+      paymentMethod: TillPaymentMethod;
+      splitParticipantId?: string;
+      /**
+       * Lo que el cliente da de más y no quiere de vuelta.
+       *
+       * Va aparte del importe a propósito, y así lo trata el servidor: la
+       * cuenta sólo ve `amountMinorUnits`, y el informe de propinas reparte
+       * esto según el método. Sin mandarlo, cobrar 20.000 de una cuenta de
+       * 16.404,92 era `PAYMENT_EXCEEDS_BALANCE` y la propina no existía.
+       */
+      tipMinorUnits?: Money;
+    },
   ) =>
     apiRequest<PaymentResult>(`/api/v1/bills/${id}/payments`, {
       method: "POST",
@@ -1529,6 +1551,9 @@ export const bills = {
         currency: "VES",
         idempotencyKey,
         paymentMethod: options.paymentMethod,
+        ...(options.tipMinorUnits && BigInt(options.tipMinorUnits) > 0n
+          ? { tipMinorUnits: options.tipMinorUnits }
+          : {}),
         ...(options.splitParticipantId ? { splitParticipantId: options.splitParticipantId } : {}),
       },
     }),

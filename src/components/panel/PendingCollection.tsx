@@ -44,9 +44,7 @@ export function PendingCollection({
       {loading || outstandingVes === null ? (
         <Skeleton className="mt-2 h-11 w-56" />
       ) : (
-        <p className="figure mt-2 text-4xl leading-tight sm:text-5xl">
-          {formatMoney(outstandingVes, "VES")}
-        </p>
+        <p className="money-xl mt-2">{formatMoney(outstandingVes, "VES")}</p>
       )}
 
       {openBills !== null && (

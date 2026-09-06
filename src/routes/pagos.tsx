@@ -262,7 +262,7 @@ function PaymentsPage() {
                 {(claimsQuery.data ?? []).map((claim: StaffPaymentClaim) => (
                   <li key={claim.id} className="rounded-lg border border-border p-4">
                     <div className="flex flex-wrap items-baseline justify-between gap-3">
-                      <span className="figure text-2xl">{formatMoney(claim.amountVes, "VES")}</span>
+                      <span className="money-lg">{formatMoney(claim.amountVes, "VES")}</span>
                       <span className="rounded-full border border-amber-500/50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground">
                         {t("payToVerify")}
                       </span>
@@ -355,7 +355,7 @@ function PaymentsPage() {
                   return (
                     <li key={c.paymentId} className="rounded-lg border border-border p-4">
                       <div className="flex flex-wrap items-baseline justify-between gap-3">
-                        <span className="figure text-2xl">{formatMoney(c.amountVes, "VES")}</span>
+                        <span className="money-lg">{formatMoney(c.amountVes, "VES")}</span>
                         <span className="rounded-full border border-amber-500/50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground">
                           {c.status === "IN_DOUBT" ? t("c2pInDoubt") : t("c2pAmbiguous")}
                         </span>

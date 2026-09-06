@@ -248,7 +248,7 @@ export function MenuSections({
                   >
                     {c.name}
                   </span>
-                  <span className="figure shrink-0 text-xs text-muted-foreground">
+                  <span className="money-sm shrink-0 text-muted-foreground">
                     {c.productCount ?? 0}
                   </span>
                 </div>

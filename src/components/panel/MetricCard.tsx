@@ -48,14 +48,14 @@ export function MetricCard({
         tone === "attention" ? "border-amber-500/50 bg-amber-500/5" : ""
       }`}
     >
-      <p className="text-[11px] uppercase leading-tight tracking-wider text-muted-foreground sm:tracking-widest">
+      <p className="text-[11px] uppercase leading-tight tracking-widest text-muted-foreground">
         {label}
       </p>
       {loading ? (
         <Skeleton className="h-6 w-16 justify-self-end sm:mt-1 sm:justify-self-start" />
       ) : (
         <p
-          className={`figure justify-self-end text-xl sm:mt-1 sm:justify-self-start lg:text-2xl ${
+          className={`money-lg justify-self-end sm:mt-1 sm:justify-self-start ${
             tone === "attention" ? "text-amber-700" : ""
           }`}
         >

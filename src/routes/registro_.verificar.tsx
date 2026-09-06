@@ -178,7 +178,7 @@ function Verificar() {
           <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs">
             <p className="text-muted-foreground">{error.text}</p>
             {error.requestId && (
-              <p className="mt-1 break-all text-[10px] text-muted-foreground">
+              <p className="mt-1 break-all text-[11px] text-muted-foreground">
                 Referencia: {error.requestId}
               </p>
             )}

@@ -63,7 +63,7 @@ function CopyRow({
         {/* El monto es lo que se teclea en el banco, y medía 14 px como el
             código de la sucursal. Sube a la escala grande y se lleva la fila
             entera; los otros tres datos se quedan como estaban. */}
-        <span className={lead ? "money-lg" : "money-md"}>{display}</span>
+        <span className={lead ? "money-xl" : "money-md"}>{display}</span>
         <button
           type="button"
           onClick={copy}
@@ -323,21 +323,16 @@ export function GuestPaymentPanel({
       )}
 
       {tab === "c2p" && (
-        <>
-          {/*
-            El cargo C2P no admite propina: el contrato sólo tiene amountVes y
-            el backend la cuenta contra el saldo. Prefijar share+propina hacía
-            que el banco rechazara el pago por exceder lo pendiente. Se pasa
-            sólo la parte de la cuenta y se avisa de que la propina va aparte.
-          */}
-          {BigInt(tipVes || "0") > 0n && (
-            <p className="mt-4 rounded-lg border border-border bg-secondary/50 p-3 text-[11px] text-muted-foreground">
-              El pago con tarjeta no incluye la propina de {formatMoney(tipVes, "VES")}; puedes
-              dejarla aparte con pago móvil.
-            </p>
-          )}
-          <GuestC2PForm maxVes={billShareVes} demo={demo} />
-        </>
+        /*
+          La propina va dentro del cargo, no aparte.
+          `maxVes` es lo que puede ir contra la cuenta -- por eso sigue siendo
+          la parte sin propina, que es lo que el saldo admite -- y `tipVes`
+          viaja al lado: el banco cobra la suma de los dos. Prefijar
+          parte+propina como importe era lo que hacía que el cargo se pasara
+          del saldo, y quitarla del todo dejaba al comensal eligiendo una
+          propina que nunca se le cobraba.
+        */
+        <GuestC2PForm maxVes={billShareVes} tipVes={tipVes} demo={demo} />
       )}
 
       {tab === "claim" && (
@@ -486,7 +481,7 @@ export function GuestPaymentPanel({
                     </button>
                   )}
                   {error.requestId && (
-                    <p className="mt-2 font-mono text-[10px] text-muted-foreground">
+                    <p className="mt-2 font-mono text-[11px] text-muted-foreground">
                       Referencia: {error.requestId}
                     </p>
                   )}

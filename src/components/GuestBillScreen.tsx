@@ -445,7 +445,7 @@ export function GuestBillScreen({
           <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
             {partlyPaid ? t("outstanding") : t("totalPayable")}
           </span>
-          <span className="money-lg">
+          <span className="money-xl">
             {formatMoney(partlyPaid ? bill.remainingVes : bill.totalDueVes, "VES")}
           </span>
 
@@ -670,7 +670,7 @@ export function GuestBillScreen({
                   <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
                     {mode === "EQUAL" ? t("perPerson") : t("yourShare")}
                   </span>
-                  <span className="money-lg">{formatMoney(myShare(preview, mode), "VES")}</span>
+                  <span className="money-xl">{formatMoney(myShare(preview, mode), "VES")}</span>
                 </div>
               ) : (
                 <div className="flex justify-between gap-3">
@@ -762,7 +762,7 @@ export function GuestBillScreen({
                     <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
                       {t("yourTotalWithTip")}
                     </span>
-                    <span className="money-lg">
+                    <span className="money-xl">
                       {formatMoney(
                         (BigInt(myShare(preview, mode)) + BigInt(tipMinor)).toString(),
                         "VES",

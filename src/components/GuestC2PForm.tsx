@@ -24,7 +24,25 @@ const ID_TYPES = ["V", "E", "J", "G", "P", "C"] as const;
  *  - La clave de idempotencia se genera una vez por intento y se reutiliza mientras
  *    el cargo siga sin resolverse. Generar otra puede cobrar dos veces.
  */
-export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }) {
+export function GuestC2PForm({
+  maxVes,
+  tipVes = "0",
+  demo,
+}: {
+  /** Techo de lo que puede ir contra la cuenta: el saldo, o la parte del reparto. */
+  maxVes: string;
+  /**
+   * Lo que el comensal eligió dejar de propina, en céntimos.
+   *
+   * Viaja aparte del importe hasta el banco: Mercantil cobra `amountVes +
+   * tipVes` de una vez y la cuenta sólo ve `amountVes`, que es lo que evita que
+   * el cargo se pase del saldo. Antes no se mandaba, y la pantalla avisaba de
+   * que la propina «va aparte» -- es decir, el comensal la elegía, la veía en
+   * su cuenta y luego no se le cobraba.
+   */
+  tipVes?: string;
+  demo: boolean;
+}) {
   const { t } = useI18n();
   const banksQuery = useQuery({
     queryKey: ["c2p-banks"],
@@ -89,6 +107,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
         phone: phone.replace(/\D/g, ""),
         clave,
         idempotencyKey: idemRef.current,
+        ...(BigInt(tipVes || "0") > 0n ? { tipVes } : {}),
       });
     },
     onSettled: () => {
@@ -143,7 +162,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
           : "border-amber-500/50 bg-amber-500/10";
     return (
       <div className={`mt-5 rounded-lg border p-4 ${tone}`}>
-        <p className="figure text-2xl">
+        <p className="money-lg">
           {result.status === "SUCCEEDED"
             ? t("c2pOkTitle")
             : result.status === "FAILED"
@@ -305,6 +324,21 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
         <p className="mt-1 text-[11px] text-muted-foreground">
           {t("c2pMax").replace("{amount}", formatMoney(maxVes || "0", "VES"))}
         </p>
+        {/* Lo que va a salir de la cuenta del comensal, dicho entero: la
+            casilla de arriba es lo de la cuenta y el banco cobra eso más la
+            propina, así que sin esta línea el cargo no cuadraría con lo que
+            puso en la pantalla anterior. */}
+        {BigInt(tipVes || "0") > 0n && (
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {t("c2pWithTip")
+              .replace("{bill}", formatMoney(amountMinor, "VES"))
+              .replace("{tip}", formatMoney(tipVes, "VES"))
+              .replace(
+                "{total}",
+                formatMoney((BigInt(amountMinor) + BigInt(tipVes)).toString(), "VES"),
+              )}
+          </p>
+        )}
       </div>
 
       <div className="mt-4">
@@ -330,7 +364,7 @@ export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }
         <div className="mt-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs">
           <p>{error.message}</p>
           {error.requestId && (
-            <p className="mt-2 font-mono text-[10px] text-muted-foreground">
+            <p className="mt-2 font-mono text-[11px] text-muted-foreground">
               {t("c2pRef")}: {error.requestId}
             </p>
           )}

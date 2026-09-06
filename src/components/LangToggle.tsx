@@ -8,7 +8,7 @@ export function LangToggle() {
         <button
           key={l}
           onClick={() => setLang(l)}
-          className={`rounded-full px-2.5 py-1 uppercase tracking-wide transition-colors ${
+          className={`rounded-full px-2.5 py-1 uppercase tracking-widest transition-colors ${
             lang === l
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:text-foreground"

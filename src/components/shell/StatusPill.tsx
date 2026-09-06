@@ -19,7 +19,9 @@ export function StatusPill({
     bad: "bg-destructive/10 text-destructive",
   }[tone];
   return (
-    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] leading-tight ${styles}`}>
+    <span
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-normal leading-tight tracking-normal ${styles}`}
+    >
       {children}
     </span>
   );

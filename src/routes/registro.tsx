@@ -386,7 +386,7 @@ function Registro() {
               >
                 <span>
                   <span className="text-lg">Cuéntanos de tu operación</span>
-                  <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground">
                     Opcional
                   </span>
                 </span>

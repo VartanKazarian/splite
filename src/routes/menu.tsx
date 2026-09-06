@@ -357,7 +357,7 @@ function MenuPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 px-2">
                 <div className="flex items-baseline gap-3">
                   <h2 className="text-xl">{t("items")}</h2>
-                  <span className="figure text-xs text-muted-foreground">
+                  <span className="money-sm text-muted-foreground">
                     {visible.length} / {all.length}
                   </span>
                 </div>
@@ -540,7 +540,7 @@ function MenuPage() {
                   <div key={cat} className="mb-2">
                     <div className="flex items-center gap-2 px-2 py-1">
                       <Tag className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                         {cat}
                       </span>
                       <span className="ml-auto text-[11px] figure text-muted-foreground">
@@ -597,7 +597,7 @@ function MenuPage() {
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   <span className="text-sm font-medium">{p.name}</span>
                                   <span
-                                    className={`rounded-full px-1.5 py-px text-[10px] leading-tight ${
+                                    className={`rounded-full px-1.5 py-px text-[11px] leading-tight ${
                                       p.active
                                         ? "bg-primary/15 text-primary"
                                         : "bg-secondary text-muted-foreground"
@@ -611,7 +611,7 @@ function MenuPage() {
                                     {p.description}
                                   </p>
                                 )}
-                                <p className="mt-0.5 figure text-xs sm:hidden">
+                                <p className="money-sm mt-0.5 sm:hidden">
                                   {formatMoney(p.priceMinorUnits, p.currency)}
                                 </p>
                               </div>
@@ -687,7 +687,7 @@ function MenuPage() {
                       <p className="text-xs uppercase tracking-widest text-muted-foreground">
                         {settings.data?.name ?? t("menuTitle")}
                       </p>
-                      <p className="mt-1 font-display text-3xl">
+                      <p className="mt-1 text-xl">
                         {settings.data?.menuCurrency
                           ? t(`currency${settings.data.menuCurrency}` as never)
                           : "—"}
@@ -696,11 +696,11 @@ function MenuPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-right">
                       <div>
-                        <p className="figure text-2xl">{activeCount}</p>
+                        <p className="figure text-xl">{activeCount}</p>
                         <p className="text-xs text-muted-foreground">{t("filterActive")}</p>
                       </div>
                       <div>
-                        <p className="figure text-2xl">{inactiveCount}</p>
+                        <p className="figure text-xl">{inactiveCount}</p>
                         <p className="text-xs text-muted-foreground">{t("filterInactive")}</p>
                       </div>
                     </div>

@@ -187,7 +187,7 @@ export function PanelHeader({
                       lo único que decía "hay dinero esperando" y sólo se veía
                       desde el panel de sala. */}
                   {"badge" in item && item.badge > 0 && (
-                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] leading-none text-primary-foreground sm:text-[11px]">
+                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[11px] leading-none text-primary-foreground">
                       {item.badge}
                     </span>
                   )}

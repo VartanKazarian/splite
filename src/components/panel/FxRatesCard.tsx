@@ -77,9 +77,7 @@ export function FxRatesCard() {
             className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 border-b border-border pb-2 last:border-0"
           >
             <span className="font-medium">{code}</span>
-            <span className="figure justify-self-end whitespace-nowrap text-base">
-              {formatFxRate(r.rate)} Bs
-            </span>
+            <span className="money-md justify-self-end">{formatFxRate(r.rate)} Bs</span>
             {/* Ni la constante del backend ni la fecha en crudo. Esto enseñaba
                 "Fecha valor Sat Sep 05 · BCV_LAST_IN_FORCE" a un restaurante
                 venezolano: un nombre de enum y una fecha en inglés. La fecha

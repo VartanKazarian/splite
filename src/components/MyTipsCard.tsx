@@ -53,11 +53,11 @@ export function MyTipsCard({ from, to }: { from: string; to: string }) {
       <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
         <div>
           <dt className="text-xs text-muted-foreground">{t("myTipsAmount")}</dt>
-          <dd className="mt-1 figure text-2xl">{formatMoney(d.tipsVes, "VES")}</dd>
+          <dd className="money-lg mt-1">{formatMoney(d.tipsVes, "VES")}</dd>
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">{t("myTipsBilled")}</dt>
-          <dd className="mt-1 figure">{formatMoney(d.billedVes, "VES")}</dd>
+          <dd className="money-md mt-1">{formatMoney(d.billedVes, "VES")}</dd>
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">{t("myTipsRate")}</dt>

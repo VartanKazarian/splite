@@ -93,7 +93,7 @@ export function ConfigurationCard() {
         <h2 id="setup-heading" className="text-sm font-medium">
           {t("setupTitle")}
         </h2>
-        <span className="figure text-xs text-muted-foreground">
+        <span className="money-sm text-muted-foreground">
           {done}/{steps.length}
         </span>
       </div>

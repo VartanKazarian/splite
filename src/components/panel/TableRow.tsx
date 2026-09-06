@@ -78,7 +78,7 @@ export function TableRow({
         <span className={`rounded-full px-2 py-0.5 text-[11px] ${pill.className}`}>
           {pill.text}
         </span>
-        <span className="figure ml-auto text-base">{formatMoney(bill.remainingVes, "VES")}</span>
+        <span className="money-md ml-auto">{formatMoney(bill.remainingVes, "VES")}</span>
       </div>
 
       {/* La referencia en dólares la calcula el servidor con la tasa congelada
@@ -87,9 +87,7 @@ export function TableRow({
           tasa 1, así que su `usdReference` es el mismo importe en bolívares
           con un símbolo de dólar delante -- "11.200,00 Bs ≈ $11200.00". */}
       {bill.currency !== "VES" && bill.usdReference && (
-        <p className="figure mt-0.5 text-right text-xs text-muted-foreground">
-          ≈ ${bill.usdReference}
-        </p>
+        <p className="money-sm mt-0.5 text-right text-muted-foreground">≈ ${bill.usdReference}</p>
       )}
 
       {/* Cuánto se lleva cobrado. La barra es presentación; el importe exacto

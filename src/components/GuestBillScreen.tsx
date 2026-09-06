@@ -787,9 +787,7 @@ export function GuestBillScreen({
                   >
                     {confirmSplit.isPending ? t("loading") : t("splitConfirm")}
                   </button>
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    Al confirmarla, cada parte queda guardada y se paga por separado.
-                  </p>
+                  <p className="mt-2 text-[11px] text-muted-foreground">{t("splitConfirmNote")}</p>
                   {confirmSplit.isError && <GuestError error={confirmSplit.error} />}
                 </div>
               )}

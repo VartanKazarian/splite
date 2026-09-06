@@ -2,12 +2,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ArrowRight } from "lucide-react";
 
 import { ConfigurationCard } from "@/components/panel/ConfigurationCard";
 import { PanelIntro } from "@/components/panel/PanelIntro";
 import { PendingCollection } from "@/components/panel/PendingCollection";
 import { MetricCard } from "@/components/panel/MetricCard";
 import { TableRow } from "@/components/panel/TableRow";
+import { AGE_ATTENTION_MINUTES } from "@/components/panel/tableStatus";
 import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
 import { AttentionList } from "@/components/panel/AttentionList";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
@@ -38,6 +40,7 @@ import {
   staffSession,
   tables as tablesApi,
   type Bill,
+  type ServiceSnapshot,
   type TillPaymentMethod,
 } from "@/lib/api";
 import { PanelHeader } from "@/components/PanelHeader";
@@ -347,6 +350,14 @@ function Dashboard() {
   // encendido sobre cifras congeladas.
   const live = tablesQuery.isSuccess && !tablesQuery.isError;
 
+  // La mesa por la que se empieza: la que lleva más tiempo con la cuenta
+  // abierta. El resumen del servidor trae la fecha pero no de qué mesa es, y
+  // el plano ya está aquí -- así que se busca aquí y no se pide otra vez.
+  const oldestOpen = tableList
+    .filter((tb) => tb.openBill)
+    .sort((a, b) => (a.openBill!.openMinutes ?? 0) - (b.openBill!.openMinutes ?? 0))
+    .at(-1);
+
   const alerts =
     (snap?.claims.pending ?? pendingCount) +
     (snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount);
@@ -387,6 +398,8 @@ function Dashboard() {
               outstandingVes={snap?.openBills.outstandingVes ?? null}
               openBills={snap?.openBills.count ?? null}
               loading={snapshot.isLoading && !snap}
+              onOldest={oldestOpen ? () => setSelectedId(oldestOpen.id) : undefined}
+              onFree={() => setFloorFilter("FREE")}
             />
 
             {/* Tres cifras de contexto. "C2P sin resolver: 0" era una casilla
@@ -406,21 +419,24 @@ function Dashboard() {
                 }
                 loading={snapshot.isLoading && !snap}
               />
+              {/* "Cobros hoy" sonaba a lo que teclea el personal, que es
+                  justo la mitad que este número no es. Y debajo, de qué mitad
+                  viene: un turno en el que la mayoría se tecleó en caja es un
+                  turno en el que el QR no funcionó. */}
               <MetricCard
                 label={t("kpiTakenTodayShort")}
                 value={snap ? formatMoney(snap.taken.paymentsVes, "VES") : "—"}
-                hint={
-                  snap
-                    ? `${snap.taken.payments} ${plural(snap.taken.payments, "payment")}`
-                    : undefined
-                }
+                hint={snap ? salesHint(snap.taken, t) : undefined}
                 loading={snapshot.isLoading && !snap}
               />
+              {/* Con avisos, la tarjeta lleva a la cola donde se atienden.
+                  Decía cuántos había y dejaba buscar la pantalla a mano. */}
               <MetricCard
                 label={t("kpiAlerts")}
                 value={alerts > 0 ? String(alerts) : "✓"}
-                hint={alerts > 0 ? undefined : t("allClear")}
+                hint={alerts > 0 ? t("payStateVerify") : t("allClear")}
                 tone={alerts > 0 ? "attention" : "neutral"}
+                to={alerts > 0 ? "/pagos" : undefined}
                 loading={snapshot.isLoading && !snap}
               />
             </div>
@@ -428,11 +444,35 @@ function Dashboard() {
             {/* La antigüedad de la cuenta más vieja iba dentro de una frase
                 larga junto a los cobros del día; aquí es su propio dato, que
                 es como se lee de un vistazo. */}
+            {/* La fila entera, y no sólo su texto: enseñaba el problema y no
+                llevaba a él. En ámbar a partir del mismo umbral con el que se
+                pinta la mesa en la lista, para que no digan dos cosas. */}
             {snap?.openBills.oldestOpenedAt && (
-              <p className="flex items-baseline justify-between gap-3 text-xs text-muted-foreground">
+              <button
+                type="button"
+                disabled={!oldestOpen}
+                onClick={() => oldestOpen && setSelectedId(oldestOpen.id)}
+                className="flex w-full min-h-11 items-center justify-between gap-3 rounded-lg px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary disabled:pointer-events-none"
+              >
                 <span>{t("oldestBillLabel")}</span>
-                <span className="figure">{relativeAge(snap.openBills.oldestOpenedAt)}</span>
-              </p>
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className={`figure ${
+                      (oldestOpen?.openBill?.openMinutes ?? 0) >= AGE_ATTENTION_MINUTES
+                        ? "text-amber-700"
+                        : ""
+                    }`}
+                  >
+                    {relativeAge(snap.openBills.oldestOpenedAt)}
+                  </span>
+                  {oldestOpen && (
+                    <>
+                      <span className="text-primary">{t("goToBill")}</span>
+                      <ArrowRight aria-hidden className="h-3.5 w-3.5 text-primary" />
+                    </>
+                  )}
+                </span>
+              </button>
             )}
 
             <section aria-labelledby="live-tables-heading">
@@ -579,6 +619,32 @@ export function ErrorBox({ error, fallback }: { error: unknown; fallback: string
 }
 
 /** Antigüedad legible de una cuenta abierta: la fecha la da el servidor, aquí sólo se formatea. */
+/**
+ * De dónde vino lo cobrado hoy.
+ *
+ * Dos cifras y no tres mientras el tercer cubo esté vacío, que es lo normal:
+ * `unclassified` son cobros de caja anteriores a que el cliente empezara a
+ * decir el método, así que en un turno de hoy no debería aparecer -- y si
+ * aparece, se dice, porque es dinero que el informe de propinas tampoco sabe
+ * dónde poner.
+ */
+function salesHint(
+  taken: ServiceSnapshot["taken"],
+  t: (key: "salesSplit" | "salesSplitUnclassified") => string,
+): string | undefined {
+  const by = taken.byChannel;
+  if (!by) return undefined;
+  const money = (v: string) => formatMoney(v, "VES");
+  return BigInt(by.unclassified.paymentsVes) > 0n
+    ? t("salesSplitUnclassified")
+        .replace("{app}", money(by.app.paymentsVes))
+        .replace("{till}", money(by.till.paymentsVes))
+        .replace("{rest}", money(by.unclassified.paymentsVes))
+    : t("salesSplit")
+        .replace("{app}", money(by.app.paymentsVes))
+        .replace("{till}", money(by.till.paymentsVes));
+}
+
 function relativeAge(iso: string): string {
   const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
   if (minutes < 60) return `${minutes} min`;

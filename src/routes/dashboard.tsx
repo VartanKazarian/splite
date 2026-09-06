@@ -9,7 +9,8 @@ import { PanelIntro } from "@/components/panel/PanelIntro";
 import { PendingCollection } from "@/components/panel/PendingCollection";
 import { MetricCard } from "@/components/panel/MetricCard";
 import { TableRow } from "@/components/panel/TableRow";
-import { AGE_ATTENTION_MINUTES } from "@/components/panel/tableStatus";
+import { AGE_ATTENTION_MINUTES, toneOf } from "@/components/panel/tableStatus";
+import { FloorFilters, matchesFilter, type FloorFilter } from "@/components/panel/FloorFilters";
 import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
 import { AttentionList } from "@/components/panel/AttentionList";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
@@ -156,17 +157,24 @@ function Dashboard() {
     refetchInterval: 30000,
   });
 
-  const [floorFilter, setFloorFilter] = useState<"ALL" | "BUSY" | "FREE">("ALL");
+  const [floorFilter, setFloorFilter] = useState<FloorFilter>("ALL");
 
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
   const visibleTables = useMemo(
-    () =>
-      tableList.filter((tb) =>
-        floorFilter === "ALL" ? true : floorFilter === "BUSY" ? !!tb.openBill : !tb.openBill,
-      ),
+    () => tableList.filter((tb) => matchesFilter(tb, floorFilter)),
     [tableList, floorFilter],
   );
   const busyCount = tableList.filter((tb) => tb.openBill).length;
+
+  // Si se resuelve el último aviso mientras está puesto el filtro de alertas,
+  // la ficha desaparece y la lista se queda vacía sin decir por qué. Vuelve a
+  // "todas", que es de donde salió.
+  useEffect(() => {
+    if (floorFilter === "ALERT" && !tableList.some((tb) => toneOf(tb) === "attention")) {
+      setFloorFilter("ALL");
+    }
+  }, [floorFilter, tableList]);
+
   /*
    * La mesa elegida, y sólo si de verdad la han elegido.
    *
@@ -480,30 +488,7 @@ function Dashboard() {
                 <h2 id="live-tables-heading" className="text-lg">
                   {t("liveTables")}
                 </h2>
-                {/* Los filtros que ya existían hacen de "ver todas": no hay
-                    una pantalla de Mesas aparte, y no se inventa una. */}
-                <div className="flex gap-1">
-                  {(
-                    [
-                      ["ALL", `${t("seeAll")} (${tableList.length})`],
-                      ["BUSY", `${t("tableOpenShort")} (${busyCount})`],
-                      ["FREE", `${t("tableFreeShort")} (${tableList.length - busyCount})`],
-                    ] as const
-                  ).map(([value, label]) => (
-                    <button
-                      key={value}
-                      onClick={() => setFloorFilter(value)}
-                      aria-pressed={floorFilter === value}
-                      className={`min-h-11 whitespace-nowrap rounded-full px-3 text-xs transition-colors ${
-                        floorFilter === value
-                          ? "bg-secondary font-medium text-foreground"
-                          : "text-muted-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                <FloorFilters value={floorFilter} onChange={setFloorFilter} tables={tableList} />
               </div>
 
               {tablesQuery.isLoading ? (

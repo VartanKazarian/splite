@@ -10,6 +10,8 @@ import { EmptyState } from "@/components/shell/EmptyState";
 import { LoadFailed } from "@/components/shell/LoadFailed";
 import { TableRow } from "@/components/panel/TableRow";
 import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
+import { FloorFilters, matchesFilter, type FloorFilter } from "@/components/panel/FloorFilters";
+import { toneOf } from "@/components/panel/tableStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -83,14 +85,23 @@ function Mesas() {
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
   const busyCount = tableList.filter((tb) => tb.openBill).length;
 
-  const [filter, setFilter] = useState<"ALL" | "BUSY" | "FREE">("ALL");
+  const [filter, setFilter] = useState<FloorFilter>("ALL");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Si se resuelve el último aviso mientras está puesto el filtro de alertas,
+  // la ficha desaparece y la lista se queda vacía sin decir por qué. Vuelve a
+  // "todas", que es de donde salió.
+  useEffect(() => {
+    if (filter === "ALERT" && !tableList.some((tb) => toneOf(tb) === "attention")) {
+      setFilter("ALL");
+    }
+  }, [filter, tableList]);
 
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return tableList
-      .filter((tb) => (filter === "ALL" ? true : filter === "BUSY" ? !!tb.openBill : !tb.openBill))
+      .filter((tb) => matchesFilter(tb, filter))
       .filter((tb) => (needle ? tb.name.toLowerCase().includes(needle) : true));
   }, [tableList, filter, search]);
 
@@ -190,28 +201,7 @@ function Mesas() {
             />
           </div>
 
-          <div className="flex gap-1">
-            {(
-              [
-                ["ALL", t("seeAll"), tableList.length],
-                ["BUSY", t("tableOpenShort"), busyCount],
-                ["FREE", t("tableFreeShort"), tableList.length - busyCount],
-              ] as const
-            ).map(([value, label, count]) => (
-              <button
-                key={value}
-                onClick={() => setFilter(value)}
-                aria-pressed={filter === value}
-                className={`min-h-11 whitespace-nowrap rounded-full px-3 text-xs transition-colors ${
-                  filter === value
-                    ? "bg-primary/10 font-medium text-primary"
-                    : "text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                {label} ({count})
-              </button>
-            ))}
-          </div>
+          <FloorFilters value={filter} onChange={setFilter} tables={tableList} />
         </div>
 
         <div className="mt-4">

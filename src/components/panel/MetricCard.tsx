@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { ChevronRight } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -28,6 +30,11 @@ import { Skeleton } from "@/components/ui/skeleton";
  *
  * El estado nunca va sólo en el color: `hint` lleva la misma información
  * escrita, que es lo que lee alguien que no distingue el verde del ámbar.
+ *
+ * **Y con `to`, la tarjeta lleva a alguna parte.** Una cifra que dice "cuatro
+ * avisos" y no se puede tocar obliga a buscar a mano la pantalla donde se
+ * atienden, que es la que la propia tarjeta acaba de nombrar. Entera y no un
+ * enlace dentro: el objetivo táctil es la tarjeta, no seis caracteres.
  */
 export function MetricCard({
   label,
@@ -35,19 +42,32 @@ export function MetricCard({
   hint,
   tone = "neutral",
   loading,
+  to,
 }: {
   label: string;
   value: ReactNode;
   hint?: ReactNode;
   tone?: "neutral" | "attention";
   loading?: boolean;
+  /** A dónde se va tocándola. Sin esto es una cifra y nada más. */
+  to?: "/pagos" | "/mesas" | "/menu" | undefined;
 }) {
+  const shell = `surface grid min-w-0 grid-cols-[1fr_auto] items-baseline gap-x-3 px-4 py-3 sm:row-span-3 sm:grid-cols-1 sm:grid-rows-subgrid sm:p-4 ${
+    tone === "attention" ? "border-amber-500/50 bg-amber-500/5" : ""
+  }`;
+  const Shell = to
+    ? ({ children }: { children: ReactNode }) => (
+        <Link
+          to={to}
+          className={`${shell} text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+        >
+          {children}
+        </Link>
+      )
+    : ({ children }: { children: ReactNode }) => <div className={shell}>{children}</div>;
+
   return (
-    <div
-      className={`surface grid min-w-0 grid-cols-[1fr_auto] items-baseline gap-x-3 px-4 py-3 sm:row-span-3 sm:grid-cols-1 sm:grid-rows-subgrid sm:p-4 ${
-        tone === "attention" ? "border-amber-500/50 bg-amber-500/5" : ""
-      }`}
-    >
+    <Shell>
       <p className="text-[11px] uppercase leading-tight tracking-widest text-muted-foreground">
         {label}
       </p>
@@ -65,9 +85,14 @@ export function MetricCard({
       {/* Siempre presente, aunque venga vacía: es la tercera fila de la
           rejilla compartida, y si desapareciera en una tarjeta y no en otra
           volverían a descuadrarse. Vacía no ocupa nada. */}
-      <p className="col-start-2 justify-self-end text-xs text-muted-foreground sm:col-start-1 sm:mt-0.5 sm:justify-self-start sm:truncate">
+      <p
+        className={`col-start-2 flex items-center gap-1 justify-self-end text-xs sm:col-start-1 sm:mt-0.5 sm:justify-self-start sm:truncate ${
+          tone === "attention" ? "text-amber-700" : "text-muted-foreground"
+        }`}
+      >
         {hint}
+        {to && <ChevronRight aria-hidden className="h-3.5 w-3.5 shrink-0" />}
       </p>
-    </div>
+    </Shell>
   );
 }

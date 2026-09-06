@@ -776,6 +776,8 @@ export type TipsByServer = {
  * cliente no hace aritmética con dinero, así que hasta ahora el panel podía
  * contar mesas pero no decir cuánto se debe en total.
  */
+export type TakingsChannel = { paymentsVes: Money; payments: number };
+
 export type ServiceSnapshot = {
   asOf: string;
   since: string | null;
@@ -787,7 +789,27 @@ export type ServiceSnapshot = {
     outstandingVes: Money;
     oldestOpenedAt: string | null;
   };
-  taken: { paymentsVes: Money; tipsVes: Money; payments: number };
+  taken: {
+    paymentsVes: Money;
+    tipsVes: Money;
+    payments: number;
+    /**
+     * Cómo llegó el dinero, que no es dónde está.
+     *
+     * `app` es lo que el comensal pagó solo desde su teléfono (C2P, Pago
+     * Móvil); `till` lo que registró alguien de la casa; `unclassified` es
+     * `SPLITE` y `OTHER`, que no nombran ningún canal y el servidor se niega a
+     * adivinar. Los tres suman el total de arriba.
+     *
+     * Opcional porque un backend anterior a este desglose no lo manda, y el
+     * panel tiene que seguir pintando el total.
+     */
+    byChannel?: {
+      app: TakingsChannel;
+      till: TakingsChannel;
+      unclassified: TakingsChannel;
+    };
+  };
   claims: {
     pending: number;
     oldestPendingAt: string | null;
@@ -1474,6 +1496,22 @@ export const bills = {
     apiRequest<{ data: BillItem[] }>(`/api/v1/bills/${id}/items`, { auth: "staff" }).then(
       (r) => r.data,
     ),
+  /**
+   * Una comanda entera, de una vez.
+   *
+   * El cliente mandaba una llamada por producto y las encadenaba con `await`,
+   * así que "dos tequeños y una cachapa" eran dos peticiones que podían fallar
+   * por la mitad y dejar media comanda puesta. El servidor tiene este endpoint
+   * justo para eso -- hasta cincuenta líneas en una transacción -- y además
+   * abre la cuenta si la mesa no tenía ninguna, que es lo que hace que tomar
+   * nota en una mesa libre sea una acción y no dos.
+   */
+  order: (tableId: string, items: { productId: string; quantity: number }[]) =>
+    apiRequest<{ opened: boolean; bill: Bill }>(`/api/v1/bills/tables/${tableId}/order`, {
+      method: "POST",
+      auth: "staff",
+      body: { items },
+    }),
   addItem: (id: string, productId: string, quantity = 1) =>
     apiRequest<{ item: BillItem; bill: Bill }>(`/api/v1/bills/${id}/items`, {
       method: "POST",

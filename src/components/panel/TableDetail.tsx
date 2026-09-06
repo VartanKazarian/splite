@@ -20,7 +20,7 @@ import {
   type MenuCurrency,
   type TillPaymentMethod,
 } from "@/lib/api";
-import { AddProductsDialog } from "@/components/AddProductsDialog";
+import { AddProductsSheet } from "@/components/panel/AddProductsSheet";
 import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
 import { LoadFailed } from "@/components/shell/LoadFailed";
@@ -239,10 +239,11 @@ export function TableDetail({
     onError: fail,
   });
 
+  // La comanda entera en una llamada. Era un bucle de `await` con una petición
+  // por producto: si la tercera fallaba, las dos primeras ya estaban en la
+  // cuenta y nadie lo decía.
   const addLines = useMutation({
-    mutationFn: async (lines: { productId: string; quantity: number }[]) => {
-      for (const line of lines) await bills.addItem(bill!.id, line.productId, line.quantity);
-    },
+    mutationFn: (lines: { productId: string; quantity: number }[]) => bills.order(table.id, lines),
     onSuccess: () => {
       setPickerOpen(false);
       toast.success(t("lineAdded"));
@@ -434,7 +435,7 @@ export function TableDetail({
             )}
           </ul>
 
-          <AddProductsDialog
+          <AddProductsSheet
             open={pickerOpen}
             onOpenChange={setPickerOpen}
             products={productsQuery.data ?? []}

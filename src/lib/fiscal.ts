@@ -32,12 +32,7 @@ export type PaymentMethod = "CASH" | "CARD" | "TRANSFER" | "PAGO_MOVIL" | "SPLIT
 
 /** payments.status y sus transiciones legales (migración 007). */
 export type PaymentStatus =
-  | "PENDING"
-  | "SUCCEEDED"
-  | "FAILED"
-  | "CANCELLED"
-  | "REFUNDED"
-  | "PARTIALLY_REFUNDED";
+  "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "REFUNDED" | "PARTIALLY_REFUNDED";
 
 export const ALLOWED_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
   PENDING: ["SUCCEEDED", "FAILED", "CANCELLED"],
@@ -135,7 +130,8 @@ export function computeBreakdown(opts: {
   const service = applyBps(base, opts.serviceBps ?? SERVICE_BPS);
   const iva = applyBps(base + service, IVA_BPS);
   const taxed = base + service + iva;
-  const igtf = opts.tenderCurrency && opts.tenderCurrency !== "VES" ? applyBps(taxed, IGTF_BPS) : 0n;
+  const igtf =
+    opts.tenderCurrency && opts.tenderCurrency !== "VES" ? applyBps(taxed, IGTF_BPS) : 0n;
   const tip = applyBps(base, opts.tipBps ?? 0);
   return { base, service, iva, igtf, tip, total: taxed + igtf + tip };
 }

@@ -145,7 +145,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
   if (forbidden) {
     return (
       <section className="surface mt-4 p-6">
-        <h2 className="text-xl">Personal</h2>
+        <h2 className="text-xl">{t("staffTitle")}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           Sólo el dueño y los encargados pueden gestionar al personal.
         </p>
@@ -162,7 +162,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
         <button
           onClick={() => setAdding((v) => !v)}
           disabled={busy || grantable.length === 0}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 min-h-11 rounded-lg bg-primary px-4 text-sm text-primary-foreground disabled:opacity-60"
         >
           <UserPlus className="h-4 w-4" /> {adding ? "Cancelar" : t("staffAddPerson")}
         </button>
@@ -183,7 +183,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1">
-              <span className="text-xs text-muted-foreground">Correo</span>
+              <span className="text-xs text-muted-foreground">{t("email")}</span>
               <input
                 type="email"
                 value={email}
@@ -191,7 +191,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
                 required
                 maxLength={254}
                 autoComplete="off"
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                className="min-h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring"
               />
               {fieldErrors["email"] && (
                 <span className="text-[11px] text-destructive">{fieldErrors["email"]}</span>
@@ -202,7 +202,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as StaffRole)}
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                className="min-h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring"
               >
                 {grantable.map((r) => (
                   <option key={r} value={r}>
@@ -224,7 +224,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
               minLength={MIN_PASSWORD}
               maxLength={128}
               autoComplete="new-password"
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+              className="min-h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring"
             />
             {fieldErrors["password"] && (
               <span className="text-[11px] text-destructive">{fieldErrors["password"]}</span>
@@ -238,7 +238,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
             <button
               type="submit"
               disabled={busy || password.length < MIN_PASSWORD}
-              className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60"
+              className="min-h-11 rounded-lg bg-primary px-5 text-sm text-primary-foreground disabled:opacity-60"
             >
               {create.isPending ? t("staffAdding") : t("staffAdd")}
             </button>
@@ -246,7 +246,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
         </form>
       )}
 
-      {list.isLoading && <p className="mt-4 text-sm text-muted-foreground">Cargando…</p>}
+      {list.isLoading && <p className="mt-4 text-sm text-muted-foreground">{t("loading")}</p>}
       {list.isError && !forbidden && (
         <ErrorBox error={list.error} fallback="No se pudo cargar el personal" />
       )}
@@ -279,7 +279,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
                   update.mutate({ id: m.id, body: { role: e.target.value as StaffRole } })
                 }
                 aria-label={`Rol de ${m.email}`}
-                className="rounded-lg border border-input bg-secondary px-2 py-1.5 text-xs outline-none focus:border-ring disabled:opacity-50"
+                className="min-h-11 rounded-lg border border-input bg-secondary px-2 text-xs outline-none focus:border-ring disabled:opacity-50"
               >
                 {(Object.keys(STAFF_RANK) as StaffRole[])
                   .sort((a, b) => STAFF_RANK[b] - STAFF_RANK[a])

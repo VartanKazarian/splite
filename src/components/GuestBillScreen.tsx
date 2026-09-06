@@ -751,7 +751,7 @@ export function GuestBillScreen({
                     onClick={() => confirmSplit.mutate()}
                     className="w-full rounded-lg border border-primary bg-primary/15 px-4 py-3 text-sm text-foreground disabled:opacity-40"
                   >
-                    {confirmSplit.isPending ? "Guardando…" : "Confirmar división"}
+                    {confirmSplit.isPending ? t("loading") : t("splitConfirm")}
                   </button>
                   <p className="mt-2 text-[11px] text-muted-foreground">
                     Al confirmarla, cada parte queda guardada y se paga por separado.
@@ -766,7 +766,7 @@ export function GuestBillScreen({
 
       {activeSplit && (
         <div className="surface mt-4 p-6">
-          <h2 className="text-xl">División acordada</h2>
+          <h2 className="text-xl">{t("splitAgreed")}</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Sobre {formatMoney(activeSplit.basisVes, "VES")} pendientes al acordarla.
           </p>

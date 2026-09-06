@@ -158,7 +158,7 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
                   maxLength={160}
                   onChange={(e) => setRow(i, { name: e.target.value })}
                   placeholder={t("ocrName")}
-                  className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
+                  className="min-h-11 rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
                 />
                 <div className="flex flex-col gap-1">
                   <input
@@ -166,7 +166,7 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
                     inputMode="decimal"
                     onChange={(e) => setRow(i, { price: e.target.value })}
                     placeholder="0,00"
-                    className={`rounded-lg border bg-secondary px-3 py-2 text-sm outline-none focus:border-ring ${
+                    className={`min-h-11 rounded-lg border bg-secondary px-3 text-sm outline-none focus:border-ring ${
                       r.price.trim() ? "border-input" : "border-destructive"
                     }`}
                   />
@@ -200,14 +200,14 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
                   maxLength={80}
                   onChange={(e) => setRow(i, { section: e.target.value })}
                   placeholder={t("ocrSection")}
-                  className="rounded-lg border border-input bg-secondary px-3 py-2 text-xs outline-none focus:border-ring"
+                  className="min-h-11 rounded-lg border border-input bg-secondary px-3 text-xs outline-none focus:border-ring"
                 />
                 <input
                   value={r.description}
                   maxLength={500}
                   onChange={(e) => setRow(i, { description: e.target.value })}
                   placeholder={t("ocrDescription")}
-                  className="rounded-lg border border-input bg-secondary px-3 py-2 text-xs outline-none focus:border-ring sm:col-span-2"
+                  className="min-h-11 rounded-lg border border-input bg-secondary px-3 text-xs outline-none focus:border-ring sm:col-span-2"
                 />
                 {r.duplicate && (
                   <p className="text-[11px] text-destructive sm:col-span-3">

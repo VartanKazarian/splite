@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, ExternalLink, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, ExternalLink, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { ConfigurationCard } from "@/components/panel/ConfigurationCard";
@@ -9,13 +9,13 @@ import { PanelIntro } from "@/components/panel/PanelIntro";
 import { PendingCollection } from "@/components/panel/PendingCollection";
 import { MetricCard } from "@/components/panel/MetricCard";
 import { TableRow } from "@/components/panel/TableRow";
+import { TableDetail } from "@/components/panel/TableDetail";
 import { AttentionList } from "@/components/panel/AttentionList";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { usePayoutConfigured } from "@/lib/use-payout";
 import { QrCode } from "@/components/QrCode";
-import { AddProductsDialog } from "@/components/AddProductsDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
@@ -34,10 +33,8 @@ import {
   bills,
   errorFields,
   errorFieldsText,
-  formatBps,
   GUEST_BASE_URL,
   isEphemeralGuestHost,
-  formatFxRate,
   formatMinor,
   parseMinorInput,
   formatMoney,
@@ -47,11 +44,9 @@ import {
   staffSession,
   tables as tablesApi,
   type Bill,
-  type MenuCurrency,
   type TillPaymentMethod,
 } from "@/lib/api";
 import { PanelHeader } from "@/components/PanelHeader";
-import { formatDay } from "../lib/dates";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -419,248 +414,10 @@ function Dashboard() {
    * ahora se inserta *dentro* de la rejilla de mesas, detrás de la fila de
    * la mesa elegida, y no al final de la lista.
    */
+  // Extraído a un componente para que la pantalla de Mesas use exactamente
+  // este cobro y este cierre de cuenta, y no una segunda copia.
   const tableDetail = selected ? (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {renaming ? (
-          <div className="flex items-center gap-2">
-            <input
-              autoFocus
-              value={renameValue}
-              maxLength={50}
-              onChange={(e) => setRenameValue(e.target.value)}
-              className="rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
-            />
-            <button
-              disabled={!renameValue.trim() || renameTable.isPending}
-              onClick={() => renameTable.mutate()}
-              aria-label={t("save")}
-              className="rounded-full border border-border p-2 text-primary disabled:opacity-40"
-            >
-              <Check className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setRenaming(false)}
-              aria-label={t("cancel")}
-              className="rounded-full border border-border p-2"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        ) : (
-          <h2 className="text-xl">
-            {t("openBill")} · {selected.name}
-          </h2>
-        )}
-        <div className="flex items-center gap-2">
-          {!renaming && (
-            <button
-              onClick={() => {
-                setRenameValue(selected.name);
-                setRenaming(true);
-              }}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs transition-colors hover:bg-secondary"
-            >
-              <Pencil className="h-3.5 w-3.5" /> {t("renameTable")}
-            </button>
-          )}
-          {bill && (
-            <button
-              onClick={() => setCloseOpen(true)}
-              className="inline-flex min-h-11 items-center rounded-full border border-border px-4 text-xs transition-colors hover:bg-secondary"
-            >
-              {t("closeBill")}
-            </button>
-          )}
-          {!bill && (
-            <button
-              onClick={() => setDeleteOpen(true)}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs text-destructive transition-colors hover:bg-secondary"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> {t("deleteTable")}
-            </button>
-          )}
-        </div>
-      </div>
-
-      <AlertDialog open={closeOpen} onOpenChange={setCloseOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("closeBill")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("closeBillConfirm")}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => closeBill.mutate()}>
-              {t("closeBill")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("deleteTable")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("deleteTableConfirm")}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteTable.mutate()}>
-              {t("deleteTable")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {!bill && (
-        <div className="mt-3">
-          <p className="text-sm text-muted-foreground">
-            {t("tableFree")} · {t("oneOpenBill")}
-          </p>
-          <button
-            disabled={openBill.isPending}
-            onClick={() => openBill.mutate()}
-            className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-40"
-          >
-            <Plus className="h-4 w-4" /> {t("openNewBill")}
-          </button>
-        </div>
-      )}
-
-      {bill && (
-        <>
-          <p className="mt-4 border-t border-border pt-4 text-xs uppercase tracking-widest text-muted-foreground">
-            {t("itemsOnBill")}
-          </p>
-          <div className="mt-2 border-b border-border pb-2">
-            <BillServerPicker
-              billId={bill.id}
-              servedBy={bill.servedBy ?? null}
-              canAssign={canAssignServer(me.data?.user.role)}
-              onChanged={() => {
-                void billQuery.refetch();
-                void openBillsQuery.refetch();
-              }}
-            />
-          </div>
-
-          <ul className="mt-2 space-y-2 text-sm">
-            {billItems.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-3">
-                <span>
-                  {item.quantity} × {item.name}
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="figure">{formatMoney(item.subtotalMinor, bill.currency)}</span>
-
-                  <button
-                    onClick={() => removeLine.mutate(item.id)}
-                    aria-label={t("remove")}
-                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-destructive"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              </li>
-            ))}
-            {itemsQuery.isError && (
-              <li>
-                <ErrorBox error={itemsQuery.error} fallback={t("apiDown")} />
-              </li>
-            )}
-            {itemsQuery.isSuccess && billItems.length === 0 && (
-              <li className="text-muted-foreground">{t("addLines")}</li>
-            )}
-          </ul>
-
-          {/* El diálogo se queda: lo abre ahora el botón "Añadir productos"
-              de la fila de acciones, para no tener dos sitios desde donde
-              hacer lo mismo. */}
-          <AddProductsDialog
-            open={pickerOpen}
-            onOpenChange={setPickerOpen}
-            products={productsQuery.data ?? []}
-            billCurrency={bill.currency}
-            pending={addLines.isPending}
-            onConfirm={(lines) => addLines.mutate(lines)}
-          />
-
-          {(productsQuery.data ?? []).some((p) => p.active && p.currency !== bill.currency) && (
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              {t("currencyMismatchHint")}{" "}
-              <Link to="/menu" className="underline">
-                {t("manageMenu")}
-              </Link>
-            </p>
-          )}
-
-          <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
-            <MoneyRow label={t("subtotal")} amount={totals.subtotal} currency={bill.currency} />
-            <MoneyRow
-              label={`${t("iva")} ${formatBps(bill.vatBps)}`}
-              amount={totals.vat}
-              currency={bill.currency}
-            />
-            <MoneyRow
-              label={`${t("service")} ${formatBps(bill.serviceChargeBps)}`}
-              amount={totals.service}
-              currency={bill.currency}
-            />
-            <MoneyRow label={t("total")} amount={totals.total} currency={bill.currency} highlight />
-            <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
-
-            <div className="flex items-baseline justify-between pt-2 text-foreground">
-              <span>{t("outstanding")}</span>
-              <span className="figure text-3xl">{formatMoney(bill.remainingVes, "VES")}</span>
-            </div>
-            {/* Sólo cuando hay conversión de verdad. Una cuenta en bolívares
-                no tiene tasa: enseñaba "Tasa congelada al abrir la cuenta: 1 ·
-                Fecha valor" -- un 1 que no significa nada y una etiqueta sin
-                fecha detrás, porque `fxValueDate` puede venir nula. Y la fecha
-                salía en ISO, que es justo lo que se acaba de corregir en el
-                resto de la aplicación. */}
-            {bill.currency !== "VES" && (bill.fxRateVesPerUnit ?? bill.fxRate) && (
-              <p className="pt-2 text-[11px] text-muted-foreground">
-                {t("frozenRate")}: {formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)}
-                {formatDay(bill.fxValueDate, lang)
-                  ? ` · ${t("valueDate")} ${formatDay(bill.fxValueDate, lang)}`
-                  : ""}
-              </p>
-            )}
-          </div>
-
-          {/* Las acciones de la mesa, juntas y por orden de importancia.
-              Cobrar era un formulario al final de todo esto: en un teléfono
-              había que bajar por las líneas, los totales y la tasa congelada
-              con el cliente esperando. Ahora es el botón fuerte y el
-              formulario se abre encima. */}
-          <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
-            <button
-              onClick={() => setTillOpen(true)}
-              className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 sm:flex-none"
-            >
-              {t("registerPayment")}
-            </button>
-            {productsQuery.isSuccess && productsQuery.data.length === 0 ? (
-              <Link
-                to="/menu"
-                className="inline-flex min-h-12 items-center gap-2 rounded-full border border-border px-5 text-sm transition-colors hover:bg-secondary"
-              >
-                <Plus className="h-4 w-4" /> {t("manageMenu")}
-              </Link>
-            ) : (
-              <button
-                onClick={() => setPickerOpen(true)}
-                className="inline-flex min-h-12 items-center gap-2 rounded-full border border-border px-5 text-sm transition-colors hover:bg-secondary"
-              >
-                <Plus className="h-4 w-4" /> {t("addProducts")}
-              </button>
-            )}
-          </div>
-        </>
-      )}
-    </div>
+    <TableDetail table={selected} onDeleted={() => setSelectedId(null)} />
   ) : null;
 
   // El plano se vuelve a pedir cada ocho segundos; "En vivo" dice eso y no
@@ -1059,25 +816,6 @@ function Dashboard() {
           pending={payMutation.isPending}
         />
       )}
-    </div>
-  );
-}
-
-function MoneyRow({
-  label,
-  amount,
-  currency,
-  highlight,
-}: {
-  label: string;
-  amount: string;
-  currency: MenuCurrency;
-  highlight?: boolean;
-}) {
-  return (
-    <div className={`flex justify-between ${highlight ? "text-foreground" : ""}`}>
-      <span>{label}</span>
-      <span className="figure">{formatMoney(amount, currency)}</span>
     </div>
   );
 }

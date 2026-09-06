@@ -4,8 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { exchangeRate, formatFxRate, staffSession } from "@/lib/api";
-import { ErrorBox } from "@/routes/dashboard";
 import { PanelHeader } from "@/components/PanelHeader";
+import { PageHeader } from "@/components/shell/PageHeader";
+import { LoadFailed } from "@/components/shell/LoadFailed";
 import { formatDay } from "../lib/dates";
 
 export const Route = createFileRoute("/tasas")({
@@ -56,24 +57,45 @@ function RatesPage() {
       <PanelHeader current="tasas" />
 
       <main className="mx-auto max-w-3xl px-5 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-3xl">{t("exchangeRate")}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{t("fxSource")}</p>
-          </div>
-          <button
-            onClick={() => rates.refetch()}
-            disabled={rates.isFetching}
-            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-secondary disabled:opacity-40"
-          >
-            <RefreshCw className={`h-4 w-4 ${rates.isFetching ? "animate-spin" : ""}`} />{" "}
-            {t("refreshRates")}
-          </button>
-        </div>
+        <PageHeader
+          title={t("exchangeRate")}
+          meta={t("fxSource")}
+          actions={
+            <button
+              onClick={() => rates.refetch()}
+              disabled={rates.isFetching}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary disabled:opacity-40"
+            >
+              <RefreshCw className={`h-4 w-4 ${rates.isFetching ? "animate-spin" : ""}`} />{" "}
+              {t("refreshRates")}
+            </button>
+          }
+        />
+
+        {/* Si la tasa llegó o no. El servicio se niega a servir una tasa que no
+            ha podido verificar -- devuelve 503 en vez de adivinar -- así que
+            "no hay tasa" es un estado real y se dice, no se disimula. */}
+        <p
+          className={`mt-3 inline-flex items-center gap-2 text-xs ${
+            rates.isError ? "text-amber-700" : "text-muted-foreground"
+          }`}
+        >
+          <span
+            aria-hidden
+            className={`h-1.5 w-1.5 rounded-full ${rates.isError ? "bg-amber-500" : "bg-primary"}`}
+          />
+          {rates.isError ? t("fxStale") : t("fxFresh")}
+        </p>
 
         <section className="surface mt-6 p-6">
           <h2 className="text-xl">{t("todayRate")}</h2>
-          {rates.isError && <ErrorBox error={rates.error} fallback={t("apiDown")} />}
+          {/* Sin el código del error ni el identificador de la petición: quien
+              mira esta pantalla no puede hacer nada con ellos. */}
+          {rates.isError && (
+            <div className="mt-3">
+              <LoadFailed message={t("fxCouldNotLoad")} onRetry={() => void rates.refetch()} />
+            </div>
+          )}
           <ul className="mt-4 space-y-2 text-sm">
             {today.length === 0 && !rates.isError && (
               <li className="text-muted-foreground">

@@ -521,12 +521,24 @@ function Audiences() {
 
 function Trust() {
   const items = [
-    { icon: ShieldCheck, t: "Importes calculados en el backend", d: "Nada depende del teléfono del cliente." },
-    { icon: KeyRound, t: "Control de acceso por roles", d: "Cada miembro del equipo ve solo lo suyo." },
+    {
+      icon: ShieldCheck,
+      t: "Importes calculados en el backend",
+      d: "Nada depende del teléfono del cliente.",
+    },
+    {
+      icon: KeyRound,
+      t: "Control de acceso por roles",
+      d: "Cada miembro del equipo ve solo lo suyo.",
+    },
     { icon: Lock, t: "Sesiones seguras", d: "Sesiones de invitado limitadas a su mesa." },
     { icon: RefreshCcw, t: "QR revocables", d: "Puedes rotar el QR de una mesa cuando quieras." },
     { icon: ClipboardList, t: "Registro de actividad", d: "Cada cuenta y pago queda registrado." },
-    { icon: Check, t: "Protección contra pagos duplicados", d: "Claves de idempotencia en cada cobro." },
+    {
+      icon: Check,
+      t: "Protección contra pagos duplicados",
+      d: "Claves de idempotencia en cada cobro.",
+    },
   ];
   return (
     <Section id="seguridad" className="border-y border-border bg-secondary">

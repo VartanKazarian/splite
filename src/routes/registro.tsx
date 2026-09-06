@@ -14,7 +14,8 @@ export const Route = createFileRoute("/registro")({
       { property: "og:title", content: "Registra tu restaurante — Splite" },
       {
         property: "og:description",
-        content: "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+        content:
+          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -60,7 +61,10 @@ function Registro() {
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [pending, setPending] = useState(false);
-  const [formError, setFormError] = useState<{ text: string; requestId?: string | undefined } | null>(null);
+  const [formError, setFormError] = useState<{
+    text: string;
+    requestId?: string | undefined;
+  } | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const [submittedPhone, setSubmittedPhone] = useState<string | null>(null);
   const successRef = useRef<HTMLDivElement>(null);
@@ -82,7 +86,8 @@ function Registro() {
   function validate(key: FieldKey, value: string): string | undefined {
     const v = value.trim();
     if (key === "restaurantName") {
-      if (v.length < 2 || v.length > 120) return "Escribe el nombre del restaurante (2–120 caracteres).";
+      if (v.length < 2 || v.length > 120)
+        return "Escribe el nombre del restaurante (2–120 caracteres).";
     }
     if (key === "rif") {
       if (!/^[VEJPG]\d{9}$/.test(normalizeRif(v))) return RIF_MSG;
@@ -104,7 +109,8 @@ function Registro() {
     }
     if (key === "monthlyCovers" && v) {
       const n = Number(v);
-      if (!Number.isInteger(n) || n < 0 || n > 1000000) return "Escribe un número entre 0 y 1.000.000.";
+      if (!Number.isInteger(n) || n < 0 || n > 1000000)
+        return "Escribe un número entre 0 y 1.000.000.";
     }
     if (key === "posSystem" && v.length > 120) return "Máximo 120 caracteres.";
     if (key === "notes" && v.length > 2000) return "Máximo 2000 caracteres.";
@@ -143,7 +149,13 @@ function Registro() {
     if (pending || cooldown > 0) return;
 
     const required: FieldKey[] = ["restaurantName", "rif", "email", "phone"];
-    const optional: FieldKey[] = ["tableCount", "staffCount", "monthlyCovers", "posSystem", "notes"];
+    const optional: FieldKey[] = [
+      "tableCount",
+      "staffCount",
+      "monthlyCovers",
+      "posSystem",
+      "notes",
+    ];
     const next: Partial<Record<FieldKey, string>> = {};
     for (const key of [...required, ...optional]) {
       const message = validate(key, values[key]);
@@ -156,11 +168,11 @@ function Registro() {
     }
 
     const profile: Record<string, string | number> = {};
-    if (values.tableCount.trim()) profile['tableCount'] = Number(values.tableCount);
-    if (values.staffCount.trim()) profile['staffCount'] = Number(values.staffCount);
-    if (values.monthlyCovers.trim()) profile['monthlyCovers'] = Number(values.monthlyCovers);
-    if (values.posSystem.trim()) profile['posSystem'] = values.posSystem.trim();
-    if (values.notes.trim()) profile['notes'] = values.notes.trim();
+    if (values.tableCount.trim()) profile["tableCount"] = Number(values.tableCount);
+    if (values.staffCount.trim()) profile["staffCount"] = Number(values.staffCount);
+    if (values.monthlyCovers.trim()) profile["monthlyCovers"] = Number(values.monthlyCovers);
+    if (values.posSystem.trim()) profile["posSystem"] = values.posSystem.trim();
+    if (values.notes.trim()) profile["notes"] = values.notes.trim();
 
     const body: Record<string, unknown> = {
       restaurantName: values.restaurantName.trim(),
@@ -168,7 +180,7 @@ function Registro() {
       email: values.email.trim(),
       phone: values.phone.trim(),
     };
-    if (Object.keys(profile).length > 0) body['profile'] = profile;
+    if (Object.keys(profile).length > 0) body["profile"] = profile;
 
     setPending(true);
     setFormError(null);
@@ -184,18 +196,18 @@ function Registro() {
         return;
       }
 
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: { code?: string; details?: Record<string, unknown>; requestId?: string } }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: { code?: string; details?: Record<string, unknown>; requestId?: string };
+      } | null;
       const error = payload?.error;
       const code = error?.code ?? "INTERNAL_ERROR";
       const requestId = error?.requestId;
 
       if (code === "VALIDATION_FAILED") {
-        setErrors((prev) => ({ ...prev, ...mapServerFields(error?.details?.['fields']) }));
+        setErrors((prev) => ({ ...prev, ...mapServerFields(error?.details?.["fields"]) }));
         setFormError({ text: "Revisa los datos del formulario.", requestId });
       } else if (code === "RATE_LIMITED") {
-        const retry = Number(error?.details?.['retryAfterSeconds']);
+        const retry = Number(error?.details?.["retryAfterSeconds"]);
         setCooldown(Number.isFinite(retry) && retry > 0 ? Math.ceil(retry) : 60);
         setFormError({
           text: "Demasiados intentos. Vuelve a intentarlo en unos minutos.",
@@ -310,7 +322,6 @@ function Registro() {
                   </p>
                 )}
               </div>
-
             </section>
 
             <section className="mt-10">
@@ -488,11 +499,7 @@ function Registro() {
               {pending && (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground" />
               )}
-              {pending
-                ? "Enviando..."
-                : cooldown > 0
-                  ? `Espera ${cooldown}s`
-                  : "Enviar solicitud"}
+              {pending ? "Enviando..." : cooldown > 0 ? `Espera ${cooldown}s` : "Enviar solicitud"}
             </button>
           </form>
         )}

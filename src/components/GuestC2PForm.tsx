@@ -23,14 +23,7 @@ const ID_TYPES = ["V", "E", "J", "G", "P", "C"] as const;
  *  - La clave de idempotencia se genera una vez por intento y se reutiliza mientras
  *    el cargo siga sin resolverse. Generar otra puede cobrar dos veces.
  */
-export function GuestC2PForm({
-  maxVes,
-  demo,
-}: {
-  maxVes: string;
-  demo: boolean;
-}) {
-
+export function GuestC2PForm({ maxVes, demo }: { maxVes: string; demo: boolean }) {
   const banksQuery = useQuery({
     queryKey: ["c2p-banks"],
     enabled: !demo,
@@ -95,7 +88,6 @@ export function GuestC2PForm({
         clave,
         idempotencyKey: idemRef.current,
       });
-
     },
     onSettled: () => {
       // La clave no sobrevive al envío, ni siquiera en memoria del formulario.
@@ -180,9 +172,7 @@ export function GuestC2PForm({
             Intentar de nuevo
           </button>
         )}
-        {result.reason && (
-          <p className="mt-2 text-[11px] text-muted-foreground">{result.reason}</p>
-        )}
+        {result.reason && <p className="mt-2 text-[11px] text-muted-foreground">{result.reason}</p>}
         {result.bankReference && (
           <p className="mt-2 text-[11px] text-muted-foreground">
             Referencia del banco: {result.bankReference}
@@ -207,7 +197,10 @@ export function GuestC2PForm({
       </p>
 
       <div className="mt-4">
-        <label htmlFor="c2p-bank" className="text-xs uppercase tracking-widest text-muted-foreground">
+        <label
+          htmlFor="c2p-bank"
+          className="text-xs uppercase tracking-widest text-muted-foreground"
+        >
           Tu banco
         </label>
         <select
@@ -248,7 +241,10 @@ export function GuestC2PForm({
 
       <div className="mt-4 grid grid-cols-[80px_1fr] gap-2">
         <div>
-          <label htmlFor="c2p-idtype" className="text-xs uppercase tracking-widest text-muted-foreground">
+          <label
+            htmlFor="c2p-idtype"
+            className="text-xs uppercase tracking-widest text-muted-foreground"
+          >
             Tipo
           </label>
           <select
@@ -265,7 +261,10 @@ export function GuestC2PForm({
           </select>
         </div>
         <div>
-          <label htmlFor="c2p-id" className="text-xs uppercase tracking-widest text-muted-foreground">
+          <label
+            htmlFor="c2p-id"
+            className="text-xs uppercase tracking-widest text-muted-foreground"
+          >
             Cédula o RIF
           </label>
           <input
@@ -279,7 +278,10 @@ export function GuestC2PForm({
       </div>
 
       <div className="mt-4">
-        <label htmlFor="c2p-phone" className="text-xs uppercase tracking-widest text-muted-foreground">
+        <label
+          htmlFor="c2p-phone"
+          className="text-xs uppercase tracking-widest text-muted-foreground"
+        >
           Teléfono afiliado
         </label>
         <input
@@ -293,7 +295,10 @@ export function GuestC2PForm({
       </div>
 
       <div className="mt-4">
-        <label htmlFor="c2p-amount" className="text-xs uppercase tracking-widest text-muted-foreground">
+        <label
+          htmlFor="c2p-amount"
+          className="text-xs uppercase tracking-widest text-muted-foreground"
+        >
           Monto a pagar (Bs)
         </label>
         <input
@@ -309,7 +314,10 @@ export function GuestC2PForm({
       </div>
 
       <div className="mt-4">
-        <label htmlFor="c2p-clave" className="text-xs uppercase tracking-widest text-muted-foreground">
+        <label
+          htmlFor="c2p-clave"
+          className="text-xs uppercase tracking-widest text-muted-foreground"
+        >
           Clave C2P
         </label>
         <input

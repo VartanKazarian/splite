@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BadgeCheck,
   LayoutGrid,
+  LayoutPanelTop,
   LogOut,
   Settings as SettingsIcon,
   TrendingUp,
@@ -43,7 +44,7 @@ import {
 export function PanelHeader({
   current,
 }: {
-  current: "dashboard" | "menu" | "tasas" | "pagos" | "settings";
+  current: "dashboard" | "mesas" | "menu" | "tasas" | "pagos" | "settings";
 }) {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -75,6 +76,7 @@ export function PanelHeader({
   // cuenta, no una parada del turno.
   const items = [
     { key: "dashboard", to: "/dashboard", icon: LayoutGrid, label: t("dashboard") },
+    { key: "mesas", to: "/mesas", icon: LayoutPanelTop, label: t("tablesNav") },
     { key: "menu", to: "/menu", icon: UtensilsCrossed, label: t("manageMenu") },
     { key: "tasas", to: "/tasas", icon: TrendingUp, label: t("fxRates") },
     { key: "pagos", to: "/pagos", icon: BadgeCheck, label: t("paymentsNav"), badge: pending },

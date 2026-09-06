@@ -1,5 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Check, QrCode, Receipt, Smartphone, Split, Timer, Utensils } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  QrCode,
+  Receipt,
+  Smartphone,
+  Split,
+  Timer,
+  Utensils,
+} from "lucide-react";
 
 const TITLE = "TPV para hostelería: cobra por mesa sin fricción — Splite";
 const DESC =
@@ -99,8 +108,8 @@ function TpvHosteleria() {
               Tu TPV de hostelería cobra. Splite hace que cada cliente pague lo suyo.
             </h1>
             <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-              Dividir la cuenta a mano consume minutos de cada mesa y genera errores. Splite se suma a
-              tu TPV para hostelería con un QR por mesa: los comensales dividen la cuenta y pagan
+              Dividir la cuenta a mano consume minutos de cada mesa y genera errores. Splite se suma
+              a tu TPV para hostelería con un QR por mesa: los comensales dividen la cuenta y pagan
               desde su móvil, y tu equipo confirma el cobro en un panel.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -188,7 +197,10 @@ function TpvHosteleria() {
 
       <footer className="border-t border-border px-5 py-8">
         <p className="mx-auto w-full max-w-6xl text-xs text-muted-foreground">
-          © 2026 Splite · <Link to="/" className="hover:text-foreground">Volver al inicio</Link>
+          © 2026 Splite ·{" "}
+          <Link to="/" className="hover:text-foreground">
+            Volver al inicio
+          </Link>
         </p>
       </footer>
     </div>

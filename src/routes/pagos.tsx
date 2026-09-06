@@ -18,6 +18,7 @@ import { ErrorBox } from "@/routes/dashboard";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { MyTipsCard } from "@/components/MyTipsCard";
 import { PanelHeader } from "@/components/PanelHeader";
+import { PageHeader } from "@/components/shell/PageHeader";
 import { formatDateTime } from "../lib/dates";
 
 export const Route = createFileRoute("/pagos")({
@@ -162,18 +163,18 @@ function PaymentsPage() {
         {/* Actualizar vivía en la cabecera; la cabecera ahora es la misma en
             todas las pantallas, así que baja junto al título -- que es donde
             está en Tasas, la otra pantalla que se recarga a mano. */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-3xl">{t("payVerifyTitle")}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{t("payVerifySub")}</p>
-          </div>
-          <button
-            onClick={refresh}
-            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary"
-          >
-            <RefreshCw className="h-4 w-4" /> {t("payRefresh")}
-          </button>
-        </div>
+        <PageHeader
+          title={t("payVerifyTitle")}
+          meta={t("payVerifySub")}
+          actions={
+            <button
+              onClick={refresh}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm hover:bg-secondary"
+            >
+              <RefreshCw className="h-4 w-4" /> {t("payRefresh")}
+            </button>
+          }
+        />
 
         {/* Los movimientos, arriba del todo. Es la pregunta con la que se
             entra aquí -- "¿ha entrado ya ese cobro?" -- y estaba en el panel de
@@ -266,7 +267,7 @@ function PaymentsPage() {
                     <button
                       disabled={confirmClaim.isPending}
                       onClick={() => confirmClaim.mutate(claim.id)}
-                      className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground disabled:opacity-40"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground disabled:opacity-40"
                     >
                       <Check className="h-3.5 w-3.5" /> {t("payConfirmArrived")}
                     </button>
@@ -275,7 +276,7 @@ function PaymentsPage() {
                         setReason("");
                         setRejecting(claim.id);
                       }}
-                      className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs"
                     >
                       <X className="h-3.5 w-3.5" /> {t("payNotThere")}
                     </button>
@@ -384,7 +385,7 @@ function PaymentsPage() {
                   <button
                     disabled={resolveC2P.isPending}
                     onClick={() => resolveC2P.mutate(c.paymentId)}
-                    className="mt-3 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs disabled:opacity-40"
+                    className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs disabled:opacity-40"
                   >
                     <RefreshCw className="h-3.5 w-3.5" /> Preguntar al banco
                   </button>

@@ -34,8 +34,7 @@ export const Route = createFileRoute("/registro_/verificar")({
       { title: "Activa tu cuenta — Splite" },
       {
         name: "description",
-        content:
-          "Elige tu contraseña y activa la cuenta de tu restaurante en Splite.",
+        content: "Elige tu contraseña y activa la cuenta de tu restaurante en Splite.",
       },
       // Un enlace de un solo uso no debe acabar en un índice de búsqueda.
       { name: "robots", content: "noindex, nofollow" },
@@ -58,8 +57,7 @@ function Verificar() {
 
   const tooShort = password.length > 0 && password.length < MIN_PASSWORD;
   const mismatch = confirm.length > 0 && confirm !== password;
-  const canSubmit =
-    !pending && password.length >= MIN_PASSWORD && confirm === password;
+  const canSubmit = !pending && password.length >= MIN_PASSWORD && confirm === password;
 
   /**
    * Sin token no hay nada que enviar, así que no se enseña el formulario.
@@ -73,12 +71,12 @@ function Verificar() {
       <Shell>
         <h1 className="text-3xl">Falta el enlace</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Esta página se abre desde el enlace que te enviamos por correo. Ábrelo
-          desde ahí — copiarlo a mano suele cortar el final.
+          Esta página se abre desde el enlace que te enviamos por correo. Ábrelo desde ahí —
+          copiarlo a mano suele cortar el final.
         </p>
         <p className="mt-3 text-sm text-muted-foreground">
-          Si no encuentras el correo, escríbenos respondiendo al que recibiste
-          cuando enviaste la solicitud y te mandamos otro.
+          Si no encuentras el correo, escríbenos respondiendo al que recibiste cuando enviaste la
+          solicitud y te mandamos otro.
         </p>
         <Link
           to="/"
@@ -220,16 +218,19 @@ function messageFor(err: ApiError): { text: string } {
     case "RATE_LIMITED":
       return { text: "Demasiados intentos. Espera unos minutos y vuelve a probar." };
     case "RATE_LIMITER_UNAVAILABLE":
-      return { text: "No podemos procesar la activación ahora mismo. Intenta de nuevo en unos minutos." };
+      return {
+        text: "No podemos procesar la activación ahora mismo. Intenta de nuevo en unos minutos.",
+      };
     case "ONBOARDING_NOT_CONFIGURED":
-      return { text: "El registro no está habilitado en este momento. Escríbenos y lo resolvemos." };
+      return {
+        text: "El registro no está habilitado en este momento. Escríbenos y lo resolvemos.",
+      };
     // Sólo pueden aparecer si alguien se registró entre la invitación y este
     // envío: inviteLead ya los comprueba, y esto es la carrera intermedia.
     case "EMAIL_ALREADY_REGISTERED":
     case "RIF_ALREADY_REGISTERED":
       return {
-        text:
-          "Ya existe una cuenta con estos datos. Entra con tu contraseña, o escríbenos si no la reconoces.",
+        text: "Ya existe una cuenta con estos datos. Entra con tu contraseña, o escríbenos si no la reconoces.",
       };
     default:
       return { text: "Algo salió mal de nuestro lado. Intenta de nuevo." };

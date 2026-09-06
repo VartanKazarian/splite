@@ -1,7 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import {
   BadgeCheck,
+  Bell,
+  BellOff,
   LayoutGrid,
   LayoutPanelTop,
   LogOut,
@@ -13,6 +16,7 @@ import { useI18n } from "@/lib/i18n";
 import { account, auth, payments } from "@/lib/api";
 import { LangToggle } from "@/components/LangToggle";
 import { PlanBanner } from "@/components/PlanBanner";
+import { chime, chimeEnabled, useOrderChime } from "@/lib/chime";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +75,16 @@ export function PanelHeader({
   });
   const pending = claims.data?.pending ?? 0;
 
+  /**
+   * El aviso sonoro de que ha entrado un pedido.
+   *
+   * Aquí y no en la bandeja del panel de inicio: la bandeja vive en una
+   * pantalla y un mesero trabaja desde Mesas. La cabecera está en las cinco.
+   */
+  useOrderChime(me.isSuccess);
+  const [sound, setSound] = useState(true);
+  useEffect(() => setSound(chimeEnabled.get()), []);
+
   // Configuración sale de la barra y se va al menú del avatar: es un destino de
   // cuenta, no una parada del turno.
   const items = [
@@ -128,6 +142,25 @@ export function PanelHeader({
                 <div className="px-2 py-1.5">
                   <LangToggle />
                 </div>
+                {/* Aquí y no en Configuración: es una preferencia de este
+                    aparato -- el móvil del mesero sí, el portátil de la oficina
+                    no -- y se cambia cuando molesta, no cuando se está
+                    configurando el restaurante. Suena al encenderlo, que es la
+                    única forma de comprobar que el navegador deja sonar. */}
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onSelect={(event) => {
+                    // Sin esto el menú se cierra y no se llega a oír nada.
+                    event.preventDefault();
+                    const next = !sound;
+                    chimeEnabled.set(next);
+                    setSound(next);
+                    if (next) chime();
+                  }}
+                >
+                  {sound ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+                  {sound ? t("chimeOn") : t("chimeOff")}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/settings" className="cursor-pointer">

@@ -35,6 +35,8 @@ export function OrderTray({ onOpenTable }: { onOpenTable?: (tableId: string) => 
     refetchInterval: 8000,
   });
 
+  // El sonido no está aquí: lo lleva la cabecera del panel, que está en todas
+  // las pantallas. Ver `useOrderChime`. Las dos comparten la misma consulta.
   const ack = useMutation({
     mutationFn: (id: string) => orders.ack(id),
     onSuccess: () => {

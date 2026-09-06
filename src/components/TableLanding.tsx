@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, BookOpen, Receipt } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
-import { ApiError, guest, guestSession, scannedQr } from "@/lib/api";
+import { ApiError, guest, guestSession, menu, scannedQr } from "@/lib/api";
 import { GuestError } from "@/components/GuestError";
 import { GuestBillScreen } from "@/components/GuestBillScreen";
 import { GuestMenuView } from "@/components/GuestMenuView";
+import { GuestOrderBar, GuestOrderSent } from "@/components/GuestOrderBar";
 import { RestaurantHero } from "@/components/RestaurantHero";
 import type { GuestView } from "@/lib/guest-view";
 
@@ -126,6 +127,18 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
     }
   };
 
+  /**
+   * Lo que el comensal lleva elegido de la carta.
+   *
+   * Vive aquí y no dentro de la carta porque la barra de enviar es hermana de
+   * la carta, no hija: las dos necesitan lo mismo y ninguna es dueña de la
+   * otra. Se vacía al enviar.
+   */
+  const [cart, setCart] = useState<Record<string, number>>({});
+  const [sent, setSent] = useState(false);
+  const bumpCart = (productId: string, delta: number) =>
+    setCart((prev) => ({ ...prev, [productId]: Math.max(0, (prev[productId] ?? 0) + delta) }));
+
   const contextQuery = useQuery({
     queryKey: ["qr-context", token],
     enabled: !demo && Boolean(token),
@@ -135,6 +148,17 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
     staleTime: 30_000,
     queryFn: () => guest.qrContext(token as string),
   });
+
+  // La misma clave que usa la carta por dentro, así que esto no es otra
+  // petición: react-query devuelve la que ya está en memoria. La barra necesita
+  // los precios para decir cuánto lleva elegido.
+  const menuQuery = useQuery({
+    queryKey: ["public-menu", contextQuery.data?.restaurant.id],
+    enabled: Boolean(contextQuery.data?.restaurant.id),
+    retry: false,
+    queryFn: () => menu.publicMenu(contextQuery.data!.restaurant.id),
+  });
+  const menuProducts = menuQuery.data?.products ?? [];
 
   if (demo) return <GuestBillScreen demo />;
 
@@ -193,20 +217,44 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
 
   if (view === "menu") {
     return (
-      <GuestMenuView
-        restaurantId={context.restaurant.id}
-        branding={context.restaurant}
-        name={context.restaurant.name}
-        above={t("theMenu")}
-        back={
-          <button
-            onClick={() => go("landing")}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> {context.table.name}
-          </button>
-        }
-      />
+      <>
+        <GuestMenuView
+          restaurantId={context.restaurant.id}
+          branding={context.restaurant}
+          name={context.restaurant.name}
+          above={t("theMenu")}
+          cart={{ quantities: cart, bump: bumpCart }}
+          back={
+            <button
+              onClick={() => go("landing")}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" /> {context.table.name}
+            </button>
+          }
+        />
+
+        {/* La confirmación ocupa el sitio de la barra, no una pantalla aparte:
+            quien acaba de pedir suele querer seguir mirando la carta, y
+            sacarlo de ella para decirle "hecho" es devolverlo al principio. */}
+        {sent ? (
+          <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-5 pb-5 pt-3 backdrop-blur">
+            <div className="mx-auto w-full max-w-md">
+              <GuestOrderSent onMenu={() => setSent(false)} onBill={openBill} />
+            </div>
+          </div>
+        ) : (
+          <GuestOrderBar
+            quantities={cart}
+            products={menuProducts}
+            qrToken={token}
+            onSent={() => {
+              setCart({});
+              setSent(true);
+            }}
+          />
+        )}
+      </>
     );
   }
 

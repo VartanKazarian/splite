@@ -13,6 +13,7 @@ import { AGE_ATTENTION_MINUTES, toneOf } from "@/components/panel/tableStatus";
 import { FloorFilters, matchesFilter, type FloorFilter } from "@/components/panel/FloorFilters";
 import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
 import { AttentionList } from "@/components/panel/AttentionList";
+import { OrderTray } from "@/components/panel/OrderTray";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -37,6 +38,7 @@ import {
   formatMoney,
   menu as menuApi,
   newIdempotencyKey,
+  orders,
   payments,
   staffSession,
   tables as tablesApi,
@@ -123,6 +125,19 @@ function Dashboard() {
     refetchInterval: 30000,
   });
   const unresolvedCount = c2pQuery.data?.length ?? 0;
+
+  // Pedidos que la sala no ha mirado. Cuentan como avisos porque son
+  // exactamente eso: algo que ha pasado en una mesa y que alguien tiene que
+  // atender. El resumen y no la lista -- la bandeja de abajo trae las comandas
+  // enteras y esto sólo alimenta un número.
+  const ordersQuery = useQuery({
+    queryKey: ["orders", "summary"],
+    queryFn: () => orders.summary(),
+    enabled: ready && me.isSuccess,
+    retry: false,
+    refetchInterval: 20000,
+  });
+  const newOrders = ordersQuery.data?.pending ?? 0;
 
   // El plano no trae la fecha de apertura: la antigüedad sólo la da el listado de cuentas.
   const openBillsQuery = useQuery({
@@ -366,9 +381,12 @@ function Dashboard() {
     .sort((a, b) => (a.openBill!.openMinutes ?? 0) - (b.openBill!.openMinutes ?? 0))
     .at(-1);
 
+  // Tres cosas que esperan a una persona: dinero declarado sin verificar,
+  // cargos que el banco dejó en duda, y pedidos que la sala no ha mirado.
   const alerts =
     (snap?.claims.pending ?? pendingCount) +
-    (snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount);
+    (snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount) +
+    newOrders;
 
   return (
     <div className="min-h-screen">
@@ -482,6 +500,10 @@ function Dashboard() {
                 </span>
               </button>
             )}
+
+            {/* Encima de las mesas: es lo que acaba de pasar, y lo de abajo es
+                el estado. Desaparece sola cuando no hay nada. */}
+            <OrderTray onOpenTable={(tableId) => setSelectedId(tableId)} />
 
             <section aria-labelledby="live-tables-heading">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">

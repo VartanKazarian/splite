@@ -17,6 +17,7 @@ import {
 import { ErrorBox } from "@/routes/dashboard";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { MyTipsCard } from "@/components/MyTipsCard";
+import { FxRatesCard } from "@/components/panel/FxRatesCard";
 import { PanelHeader } from "@/components/PanelHeader";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { formatDateTime } from "../lib/dates";
@@ -57,6 +58,14 @@ function PaymentsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
+  const [tab, setTab] = useState<string>(() =>
+    typeof window === "undefined" ? "" : window.location.hash.replace("#", ""),
+  );
+  useEffect(() => {
+    const sync = () => setTab(window.location.hash.replace("#", ""));
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
 
   useEffect(() => {
     if (!staffSession.get()) navigate({ to: "/login" });
@@ -153,6 +162,15 @@ function PaymentsPage() {
     onError: fail,
   });
 
+  // Tres pestañas y el hash manda, igual que en Configuración: `/pagos#tasas`
+  // es a donde redirige la ruta vieja de Tasas.
+  const TABS = [
+    ["cobros", t("payTabCollections")],
+    ["propinas", t("payTabTips")],
+    ["tasas", t("fxRates")],
+  ] as const;
+  const current = TABS.some(([id]) => id === tab) ? tab : "cobros";
+
   if (!ready) return null;
 
   return (
@@ -167,259 +185,306 @@ function PaymentsPage() {
           title={t("payVerifyTitle")}
           meta={t("payVerifySub")}
           actions={
-            <button
-              onClick={refresh}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm hover:bg-secondary"
-            >
-              <RefreshCw className="h-4 w-4" /> {t("payRefresh")}
-            </button>
+            current === "cobros" ? (
+              <button
+                onClick={refresh}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm hover:bg-secondary"
+              >
+                <RefreshCw className="h-4 w-4" /> {t("payRefresh")}
+              </button>
+            ) : null
           }
         />
 
-        {/* Los movimientos, arriba del todo. Es la pregunta con la que se
+        {/* Tres pestañas, y no un solo rollo de 3.210 px. Movimiento, avisos y
+            C2P responden a "¿ha entrado ya ese cobro?"; las propinas son otra
+            pregunta y estaban en medio. Y la tasa, que era una parada entera de
+            la barra de arriba para dos números, cae aquí: es la misma cuenta.
+            Ver `FxRatesCard`. */}
+        <nav
+          aria-label={t("payVerifyTitle")}
+          className="mt-4 flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {TABS.map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-current={current === id ? "page" : undefined}
+              onClick={() => {
+                setTab(id);
+                window.history.replaceState(null, "", `#${id}`);
+                window.scrollTo({ top: 0 });
+              }}
+              className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs transition-colors ${
+                current === id
+                  ? "border-primary bg-primary/10 font-medium text-primary"
+                  : "border-border text-muted-foreground hover:border-primary"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {current === "cobros" && (
+          <>
+            {/* Los movimientos, arriba del todo. Es la pregunta con la que se
             entra aquí -- "¿ha entrado ya ese cobro?" -- y estaba en el panel de
             la sala, que responde a otra cosa: cómo está el comedor ahora, no
             qué acaba de pasar. */}
-        <div className="mt-6">
-          <ActivityFeed />
-        </div>
+            <div className="mt-6">
+              <ActivityFeed />
+            </div>
 
-        <section className="surface mt-6 p-6">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-xl">{t("payClaimsTitle")}</h2>
-            {summaryQuery.data && summaryQuery.data.pending > 0 && (
-              <p className="text-xs text-muted-foreground">
-                {t("payWaiting").replace("{n}", String(summaryQuery.data.pending))}
-                {summaryQuery.data.oldestPendingAgeSeconds != null &&
-                  t("payOldest").replace(
-                    "{age}",
-                    formatWait(summaryQuery.data.oldestPendingAgeSeconds, t("waitUnderMinute")),
-                  )}
-              </p>
-            )}
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">{t("payClaimsHint")}</p>
+            <section className="surface mt-6 p-6">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-xl">{t("payClaimsTitle")}</h2>
+                {summaryQuery.data && summaryQuery.data.pending > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("payWaiting").replace("{n}", String(summaryQuery.data.pending))}
+                    {summaryQuery.data.oldestPendingAgeSeconds != null &&
+                      t("payOldest").replace(
+                        "{age}",
+                        formatWait(summaryQuery.data.oldestPendingAgeSeconds, t("waitUnderMinute")),
+                      )}
+                  </p>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{t("payClaimsHint")}</p>
 
-          {claimsQuery.isError && <ErrorBox error={claimsQuery.error} fallback={t("apiDown")} />}
-          {claimsQuery.isSuccess && claimsQuery.data.length === 0 && (
-            <p className="mt-4 text-sm text-muted-foreground">{t("payNoClaims")}</p>
-          )}
-          <ul className="mt-4 space-y-3">
-            {(claimsQuery.data ?? []).map((claim: StaffPaymentClaim) => (
-              <li key={claim.id} className="rounded-lg border border-border p-4">
-                <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <span className="figure text-2xl">{formatMoney(claim.amountVes, "VES")}</span>
-                  <span className="rounded-full border border-amber-500/50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground">
-                    {t("payToVerify")}
-                  </span>
-                </div>
-                <dl className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+              {claimsQuery.isError && (
+                <ErrorBox error={claimsQuery.error} fallback={t("apiDown")} />
+              )}
+              {claimsQuery.isSuccess && claimsQuery.data.length === 0 && (
+                <p className="mt-4 text-sm text-muted-foreground">{t("payNoClaims")}</p>
+              )}
+              <ul className="mt-4 space-y-3">
+                {(claimsQuery.data ?? []).map((claim: StaffPaymentClaim) => (
+                  <li key={claim.id} className="rounded-lg border border-border p-4">
+                    <div className="flex flex-wrap items-baseline justify-between gap-3">
+                      <span className="figure text-2xl">{formatMoney(claim.amountVes, "VES")}</span>
+                      <span className="rounded-full border border-amber-500/50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground">
+                        {t("payToVerify")}
+                      </span>
+                    </div>
+                    <dl className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+                      <div>
+                        <dt className="inline">{t("payReference")}</dt>
+                        <dd className="inline figure text-foreground">
+                          {claim.declaredReference ?? "—"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="inline">{t("payPayerBank")}</dt>
+                        <dd className="inline">{claim.bankOrigin ?? "—"}</dd>
+                      </div>
+                      <div>
+                        <dt className="inline">{t("payPhone")}</dt>
+                        <dd className="inline">{claim.phoneOrigin ?? "—"}</dd>
+                      </div>
+                      <div>
+                        <dt className="inline">{t("payDeclared")}</dt>
+                        <dd className="inline">
+                          {formatDateTime(claim.declaredAt ?? claim.createdAt, lang) ?? "—"}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    {rejecting === claim.id ? (
+                      <div className="mt-3">
+                        <input
+                          autoFocus
+                          value={reason}
+                          maxLength={500}
+                          placeholder={t("payRejectReason")}
+                          onChange={(e) => setReason(e.target.value)}
+                          className="w-full rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
+                        />
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            disabled={rejectClaim.isPending}
+                            onClick={() => rejectClaim.mutate(claim.id)}
+                            className="rounded-full border border-destructive px-4 py-2 text-xs text-destructive disabled:opacity-40"
+                          >
+                            Rechazar aviso
+                          </button>
+                          <button
+                            onClick={() => setRejecting(null)}
+                            className="rounded-full border border-border px-4 py-2 text-xs"
+                          >
+                            {t("cancel")}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          disabled={confirmClaim.isPending}
+                          onClick={() => confirmClaim.mutate(claim.id)}
+                          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground disabled:opacity-40"
+                        >
+                          <Check className="h-3.5 w-3.5" /> {t("payConfirmArrived")}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setReason("");
+                            setRejecting(claim.id);
+                          }}
+                          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs"
+                        >
+                          <X className="h-3.5 w-3.5" /> {t("payNotThere")}
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section className="surface mt-6 p-6">
+              <h2 className="text-xl">{t("c2pUnresolvedTitle")}</h2>
+              <p className="mt-1 text-xs text-muted-foreground">{t("c2pUnresolvedHint")}</p>
+              {unresolvedQuery.isError && (
+                <ErrorBox error={unresolvedQuery.error} fallback={t("apiDown")} />
+              )}
+              {unresolvedQuery.isSuccess && unresolvedQuery.data.length === 0 && (
+                <p className="mt-4 text-sm text-muted-foreground">{t("c2pNoPending")}</p>
+              )}
+              <ul className="mt-4 space-y-3">
+                {(unresolvedQuery.data ?? []).map((c: C2PUnresolvedCharge) => {
+                  const res = resolutions[c.paymentId];
+                  return (
+                    <li key={c.paymentId} className="rounded-lg border border-border p-4">
+                      <div className="flex flex-wrap items-baseline justify-between gap-3">
+                        <span className="figure text-2xl">{formatMoney(c.amountVes, "VES")}</span>
+                        <span className="rounded-full border border-amber-500/50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground">
+                          {c.status === "IN_DOUBT" ? t("c2pInDoubt") : t("c2pAmbiguous")}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {c.payerBankName ?? c.payerBankCode} · teléfono ••••{c.payerPhoneLast4} ·
+                        factura {c.invoiceNumber}
+                      </p>
+                      {c.candidateReferences.length > 0 && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Movimientos que coinciden en monto: {c.candidateReferences.join(", ")}
+                        </p>
+                      )}
+                      {c.lastReason && (
+                        <p className="mt-1 text-xs text-muted-foreground">{c.lastReason}</p>
+                      )}
+
+                      <button
+                        disabled={resolveC2P.isPending}
+                        onClick={() => resolveC2P.mutate(c.paymentId)}
+                        className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs disabled:opacity-40"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" /> Preguntar al banco
+                      </button>
+
+                      {res && (
+                        <div className="mt-3 rounded-lg border border-border bg-secondary/60 p-3 text-xs">
+                          <p className="font-medium">
+                            {res.status === "SUCCEEDED"
+                              ? t("c2pSettled")
+                              : res.status === "FAILED"
+                                ? t("c2pNoDebit")
+                                : res.status === "IN_DOUBT"
+                                  ? t("c2pStillUnconfirmed")
+                                  : t("c2pNeedsRefund")}
+                          </p>
+                          {res.reason && <p className="mt-1 text-muted-foreground">{res.reason}</p>}
+                          {res.resolutionPending && (
+                            <p className="mt-1 text-muted-foreground">
+                              La ventana de liquidación no ha pasado. Vuelve a intentarlo en{" "}
+                              {res.retryAfterMinutes ?? 0} min.
+                            </p>
+                          )}
+                          {res.bankReference && (
+                            <p className="mt-1 text-muted-foreground">
+                              Referencia del banco: {res.bankReference}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          </>
+        )}
+
+        {current === "propinas" && (
+          <>
+            {/* Antes del informe del restaurante, y sin gate de rol: lo tuyo lo ves
+            seas quien seas, y es lo primero que busca un mesero al abrir esto. */}
+            <MyTipsCard from={todayFrom} to={todayTo} />
+
+            {tipsQuery.data && (
+              <section className="surface mt-6 p-6">
+                <h2 className="text-xl">{t("tipsToday")}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">{t("tipsTodayHint")}</p>
+                <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
                   <div>
-                    <dt className="inline">{t("payReference")}</dt>
-                    <dd className="inline figure text-foreground">
-                      {claim.declaredReference ?? "—"}
+                    <dt className="text-xs text-muted-foreground">Total</dt>
+                    <dd className="mt-1 figure">
+                      {formatMoney(tipsQuery.data.totalTipsVes, "VES")}
                     </dd>
                   </div>
                   <div>
-                    <dt className="inline">{t("payPayerBank")}</dt>
-                    <dd className="inline">{claim.bankOrigin ?? "—"}</dd>
+                    <dt className="text-xs text-muted-foreground">{t("tipsInTill")}</dt>
+                    <dd className="mt-1 figure">{formatMoney(tipsQuery.data.inTillVes, "VES")}</dd>
                   </div>
                   <div>
-                    <dt className="inline">{t("payPhone")}</dt>
-                    <dd className="inline">{claim.phoneOrigin ?? "—"}</dd>
+                    <dt className="text-xs text-muted-foreground">{t("tipsOwedToStaff")}</dt>
+                    <dd className="mt-1 figure">
+                      {formatMoney(tipsQuery.data.owedToStaffVes, "VES")}
+                    </dd>
                   </div>
                   <div>
-                    <dt className="inline">{t("payDeclared")}</dt>
-                    <dd className="inline">
-                      {formatDateTime(claim.declaredAt ?? claim.createdAt, lang) ?? "—"}
+                    <dt className="text-xs text-muted-foreground">{t("tipsUnclassified")}</dt>
+                    <dd className="mt-1 figure">
+                      {formatMoney(tipsQuery.data.unclassifiedVes, "VES")}
                     </dd>
                   </div>
                 </dl>
 
-                {rejecting === claim.id ? (
-                  <div className="mt-3">
-                    <input
-                      autoFocus
-                      value={reason}
-                      maxLength={500}
-                      placeholder={t("payRejectReason")}
-                      onChange={(e) => setReason(e.target.value)}
-                      className="w-full rounded-lg border border-input bg-secondary px-3 py-2 text-sm outline-none focus:border-ring"
-                    />
-                    <div className="mt-2 flex gap-2">
-                      <button
-                        disabled={rejectClaim.isPending}
-                        onClick={() => rejectClaim.mutate(claim.id)}
-                        className="rounded-full border border-destructive px-4 py-2 text-xs text-destructive disabled:opacity-40"
-                      >
-                        Rechazar aviso
-                      </button>
-                      <button
-                        onClick={() => setRejecting(null)}
-                        className="rounded-full border border-border px-4 py-2 text-xs"
-                      >
-                        {t("cancel")}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      disabled={confirmClaim.isPending}
-                      onClick={() => confirmClaim.mutate(claim.id)}
-                      className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground disabled:opacity-40"
-                    >
-                      <Check className="h-3.5 w-3.5" /> {t("payConfirmArrived")}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setReason("");
-                        setRejecting(claim.id);
-                      }}
-                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs"
-                    >
-                      <X className="h-3.5 w-3.5" /> {t("payNotThere")}
-                    </button>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Antes del informe del restaurante, y sin gate de rol: lo tuyo lo ves
-            seas quien seas, y es lo primero que busca un mesero al abrir esto. */}
-        <MyTipsCard from={todayFrom} to={todayTo} />
-
-        {tipsQuery.data && (
-          <section className="surface mt-6 p-6">
-            <h2 className="text-xl">{t("tipsToday")}</h2>
-            <p className="mt-1 text-xs text-muted-foreground">{t("tipsTodayHint")}</p>
-            <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-              <div>
-                <dt className="text-xs text-muted-foreground">Total</dt>
-                <dd className="mt-1 figure">{formatMoney(tipsQuery.data.totalTipsVes, "VES")}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">{t("tipsInTill")}</dt>
-                <dd className="mt-1 figure">{formatMoney(tipsQuery.data.inTillVes, "VES")}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">{t("tipsOwedToStaff")}</dt>
-                <dd className="mt-1 figure">{formatMoney(tipsQuery.data.owedToStaffVes, "VES")}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">{t("tipsUnclassified")}</dt>
-                <dd className="mt-1 figure">
-                  {formatMoney(tipsQuery.data.unclassifiedVes, "VES")}
-                </dd>
-              </div>
-            </dl>
-
-            {/* Lo que el backend calculaba y nadie enseñaba. La atribución se lee
+                {/* Lo que el backend calculaba y nadie enseñaba. La atribución se lee
                 por la cuenta en el momento de consultar, así que corregir quién
                 atendió una mesa mueve también estas cifras. */}
-            {(tipsQuery.data.byServer?.length ?? 0) > 0 && (
-              <div className="mt-6 border-t border-border pt-4">
-                <h3 className="text-sm">{t("tipsByWaiter")}</h3>
-                <ul className="mt-3 space-y-2 text-sm">
-                  {tipsQuery.data.byServer?.map((row) => (
-                    <li
-                      key={row.userId ?? "__unassigned__"}
-                      className="flex items-baseline justify-between gap-3"
-                    >
-                      <span className={row.userId ? "" : "text-muted-foreground"}>
-                        {row.email ?? t("tipsNoWaiter")}
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {row.payments} {plural(row.payments, "payment")}
-                        </span>
-                      </span>
-                      <span className="shrink-0 figure">{formatMoney(row.tipsVes, "VES")}</span>
-                    </li>
-                  ))}
-                </ul>
-                {tipsQuery.data.byServer?.some((r) => !r.userId) && (
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    Las cuentas sin mesero asignado se agrupan aparte. Puedes asignarlo desde el
-                    panel de la mesa, también después de cerrarla.
-                  </p>
+                {(tipsQuery.data.byServer?.length ?? 0) > 0 && (
+                  <div className="mt-6 border-t border-border pt-4">
+                    <h3 className="text-sm">{t("tipsByWaiter")}</h3>
+                    <ul className="mt-3 space-y-2 text-sm">
+                      {tipsQuery.data.byServer?.map((row) => (
+                        <li
+                          key={row.userId ?? "__unassigned__"}
+                          className="flex items-baseline justify-between gap-3"
+                        >
+                          <span className={row.userId ? "" : "text-muted-foreground"}>
+                            {row.email ?? t("tipsNoWaiter")}
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              {row.payments} {plural(row.payments, "payment")}
+                            </span>
+                          </span>
+                          <span className="shrink-0 figure">{formatMoney(row.tipsVes, "VES")}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {tipsQuery.data.byServer?.some((r) => !r.userId) && (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Las cuentas sin mesero asignado se agrupan aparte. Puedes asignarlo desde el
+                        panel de la mesa, también después de cerrarla.
+                      </p>
+                    )}
+                  </div>
                 )}
-              </div>
+              </section>
             )}
-          </section>
+          </>
         )}
 
-        <section className="surface mt-6 p-6">
-          <h2 className="text-xl">{t("c2pUnresolvedTitle")}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{t("c2pUnresolvedHint")}</p>
-          {unresolvedQuery.isError && (
-            <ErrorBox error={unresolvedQuery.error} fallback={t("apiDown")} />
-          )}
-          {unresolvedQuery.isSuccess && unresolvedQuery.data.length === 0 && (
-            <p className="mt-4 text-sm text-muted-foreground">{t("c2pNoPending")}</p>
-          )}
-          <ul className="mt-4 space-y-3">
-            {(unresolvedQuery.data ?? []).map((c: C2PUnresolvedCharge) => {
-              const res = resolutions[c.paymentId];
-              return (
-                <li key={c.paymentId} className="rounded-lg border border-border p-4">
-                  <div className="flex flex-wrap items-baseline justify-between gap-3">
-                    <span className="figure text-2xl">{formatMoney(c.amountVes, "VES")}</span>
-                    <span className="rounded-full border border-amber-500/50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground">
-                      {c.status === "IN_DOUBT" ? t("c2pInDoubt") : t("c2pAmbiguous")}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {c.payerBankName ?? c.payerBankCode} · teléfono ••••{c.payerPhoneLast4} ·
-                    factura {c.invoiceNumber}
-                  </p>
-                  {c.candidateReferences.length > 0 && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Movimientos que coinciden en monto: {c.candidateReferences.join(", ")}
-                    </p>
-                  )}
-                  {c.lastReason && (
-                    <p className="mt-1 text-xs text-muted-foreground">{c.lastReason}</p>
-                  )}
-
-                  <button
-                    disabled={resolveC2P.isPending}
-                    onClick={() => resolveC2P.mutate(c.paymentId)}
-                    className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs disabled:opacity-40"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" /> Preguntar al banco
-                  </button>
-
-                  {res && (
-                    <div className="mt-3 rounded-lg border border-border bg-secondary/60 p-3 text-xs">
-                      <p className="font-medium">
-                        {res.status === "SUCCEEDED"
-                          ? t("c2pSettled")
-                          : res.status === "FAILED"
-                            ? t("c2pNoDebit")
-                            : res.status === "IN_DOUBT"
-                              ? t("c2pStillUnconfirmed")
-                              : t("c2pNeedsRefund")}
-                      </p>
-                      {res.reason && <p className="mt-1 text-muted-foreground">{res.reason}</p>}
-                      {res.resolutionPending && (
-                        <p className="mt-1 text-muted-foreground">
-                          La ventana de liquidación no ha pasado. Vuelve a intentarlo en{" "}
-                          {res.retryAfterMinutes ?? 0} min.
-                        </p>
-                      )}
-                      {res.bankReference && (
-                        <p className="mt-1 text-muted-foreground">
-                          Referencia del banco: {res.bankReference}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+        {current === "tasas" && <FxRatesCard />}
       </main>
     </div>
   );

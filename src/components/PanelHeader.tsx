@@ -6,7 +6,6 @@ import {
   LayoutPanelTop,
   LogOut,
   Settings as SettingsIcon,
-  TrendingUp,
   UtensilsCrossed,
 } from "lucide-react";
 
@@ -44,7 +43,7 @@ import {
 export function PanelHeader({
   current,
 }: {
-  current: "dashboard" | "mesas" | "menu" | "tasas" | "pagos" | "settings";
+  current: "dashboard" | "mesas" | "menu" | "pagos" | "settings";
 }) {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -78,7 +77,6 @@ export function PanelHeader({
     { key: "dashboard", to: "/dashboard", icon: LayoutGrid, label: t("dashboard") },
     { key: "mesas", to: "/mesas", icon: LayoutPanelTop, label: t("tablesNav") },
     { key: "menu", to: "/menu", icon: UtensilsCrossed, label: t("manageMenu") },
-    { key: "tasas", to: "/tasas", icon: TrendingUp, label: t("fxRates") },
     { key: "pagos", to: "/pagos", icon: BadgeCheck, label: t("paymentsNav"), badge: pending },
   ] as const;
 
@@ -150,23 +148,21 @@ export function PanelHeader({
             </DropdownMenu>
           </div>
 
-          {/* Cinco destinos y un teléfono de 393 px.
-              Deslizándose, los cinco no cabían: "Pagos" -- el único que lleva
-              un contador de dinero esperando -- quedaba cortado contra el borde
-              derecho, y nada decía que hubiera una quinta parada. Un carrusel
-              sólo esconde bien lo que no importa.
-              Lo que sobraba era el icono: 16 px más 8 px de hueco por parada,
-              120 px en total, casi exactamente lo que faltaba -- y un icono de
-              16 px no distingue "Menú" de "Mesas" mejor que la palabra. Sin
-              ellos las cinco etiquetas miden 237 px en español y 294 en inglés,
-              donde caben 361. Desde `sm` vuelve el icono y con él el hueco.
-              Repartidas y no en cinco columnas iguales: a un quinto de 393 px
-              "Payments" más su contador no entra, y estrechar la tipografía
-              hasta que entrase habría encogido las otras cuatro para nada.
+          {/* Cuatro destinos, y por eso vuelven los iconos.
+              Con cinco no cabían: medí las etiquetas con la tipografía de
+              verdad y en inglés sumaban 420 px de los 361 que hay a 393 px de
+              ventana -- en castellano sí entraban, así que la barra habría
+              funcionado en un idioma y no en el otro. Sin ellos entraban las
+              cinco, y así estuvo.
+              Tasas se ha ido dentro de Pagos, que es donde se cuadra el
+              dinero, y con cuatro paradas el icono cabe en los dos idiomas:
+              Con `gap-1` y `px-0.5`, 268 px en castellano y 330 en inglés, que
+              es lo que hace falta para que también entre en un Android de 360. No es decoración -- es lo
+              que se reconoce sin leer cuando se mira el teléfono de pie en el
+              comedor.
               `flex-auto` en vez de un hueco entre ellas: lo que sobra se
-              reparte *dentro* de las paradas y no entre ellas, así que "Panel"
-              pasa de 40 px de ancho a 65 y el dedo no tiene dónde fallar.
-              Subrayado en vez de píldora rellena: cinco cápsulas verdes
+              reparte *dentro* de las paradas, así que ninguna baja de 44x44.
+              Subrayado en vez de píldora rellena: cuatro cápsulas verdes
               competían con el único botón verde que de verdad hace algo. */}
           <nav
             aria-label={t("dashboard")}
@@ -180,13 +176,13 @@ export function PanelHeader({
                   key={item.key}
                   to={item.to}
                   aria-current={active ? "page" : undefined}
-                  className={`inline-flex min-h-11 flex-auto items-center justify-center gap-1.5 whitespace-nowrap border-b-2 px-1 text-[13px] transition-colors sm:flex-none sm:shrink-0 sm:justify-start sm:gap-2 sm:px-3 sm:text-sm ${
+                  className={`inline-flex min-h-11 flex-auto items-center justify-center gap-1 whitespace-nowrap border-b-2 px-0.5 text-[13px] transition-colors sm:flex-none sm:shrink-0 sm:justify-start sm:gap-2 sm:px-3 sm:text-sm ${
                     active
                       ? "border-primary font-medium text-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Icon aria-hidden className="hidden h-4 w-4 sm:block" /> {item.label}
+                  <Icon aria-hidden className="h-4 w-4 shrink-0" /> {item.label}
                   {/* El contador de avisos por verificar viaja con la barra. Era
                       lo único que decía "hay dinero esperando" y sólo se veía
                       desde el panel de sala. */}

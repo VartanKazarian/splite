@@ -50,7 +50,18 @@ export function ActivityFeed() {
     refetchInterval: 30000,
   });
 
-  const rows: ActivityEntry[] = feed.data?.data ?? [];
+  /**
+   * El más reciente arriba.
+   *
+   * El servidor los manda del más viejo al más nuevo, y con razón: la última
+   * entrada es el cursor del siguiente sondeo, y esa promesa no debe depender
+   * de cómo elija pintarlos un cliente. Así que se le da la vuelta aquí.
+   *
+   * Y arriba el nuevo porque esto es un registro de lo que acaba de pasar, no
+   * una cola de trabajo. Al final de la lista se llega bajando; a lo que entró
+   * hace diez segundos hay que llegar sin hacer nada.
+   */
+  const rows: ActivityEntry[] = [...(feed.data?.data ?? [])].reverse();
 
   return (
     <section className="surface p-5">

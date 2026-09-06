@@ -521,6 +521,8 @@ const dict = {
     priceHint: "Entero en céntimos: 756710 = 7.567,10",
     noProducts: "Aún no hay productos",
     addToBill: "Añadir a la cuenta",
+    oneMoreOf: "Una unidad más de",
+    oneLessOf: "Una unidad menos de",
     lineAdded: "Producto añadido",
     lineRemoved: "Producto eliminado",
     remove: "Quitar",
@@ -540,10 +542,12 @@ const dict = {
     priceInputHint: "Escribe el precio como 1.250,50",
     edit: "Editar",
     cancel: "Cancelar",
+    close: "Cerrar",
     saved: "Cambios guardados",
     payHint: "Sólo si el cliente no paga desde su móvil",
     payStateWaiting: "Esperando el pago del cliente",
-    payStateClaims: "{n} aviso(s) de pago por verificar",
+    payStateClaims_one: "1 aviso de pago por verificar",
+    payStateClaims_other: "{n} avisos de pago por verificar",
     payStatePartial: "Pagada en parte · faltan {amount}",
     payStateSettled: "Pagada del todo",
     payStateVerify: "Verificar",
@@ -1233,6 +1237,8 @@ const dict = {
     priceHint: "Integer in cents: 756710 = 7.567,10",
     noProducts: "No products yet",
     addToBill: "Add to bill",
+    oneMoreOf: "One more of",
+    oneLessOf: "One fewer of",
     lineAdded: "Line added",
     lineRemoved: "Line removed",
     remove: "Remove",
@@ -1252,10 +1258,12 @@ const dict = {
     priceInputHint: "Type the price as 1.250,50",
     edit: "Edit",
     cancel: "Cancel",
+    close: "Close",
     saved: "Changes saved",
     payHint: "Only if the diner does not pay from their phone",
     payStateWaiting: "Waiting for the diner to pay",
-    payStateClaims: "{n} payment notice(s) to verify",
+    payStateClaims_one: "1 payment notice to verify",
+    payStateClaims_other: "{n} payment notices to verify",
     payStatePartial: "Partly paid · {amount} to go",
     payStateSettled: "Paid in full",
     payStateVerify: "Verify",
@@ -1452,7 +1460,7 @@ export type Key = keyof (typeof dict)["es"];
  * inglés queda igual de mal. Las dos formas están en el diccionario, así que
  * cada idioma elige la suya.
  */
-export type CountKey = "payment" | "bill";
+export type CountKey = "payment" | "bill" | "payStateClaims";
 
 const Ctx = createContext<{
   lang: Lang;

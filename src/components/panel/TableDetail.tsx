@@ -62,7 +62,7 @@ export function TableDetail({
   /** El panel deselecciona la mesa borrada; Mesas cierra su detalle. */
   onDeleted?: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, plural } = useI18n();
   const queryClient = useQueryClient();
 
   const me = useQuery({ queryKey: ["me"], queryFn: () => auth.me(), retry: false });
@@ -282,10 +282,14 @@ export function TableDetail({
               <X className="h-4 w-4" />
             </button>
           </div>
+        ) : // El nombre de la mesa no se repite: lo lleva la cabecera de la
+        // hoja, justo encima. Y si la mesa está libre tampoco hace falta
+        // decirlo aquí -- lo dice la píldora de la cabecera y lo repetía la
+        // línea de abajo, tres veces lo mismo en cuarenta píxeles.
+        bill ? (
+          <h3 className="text-lg">{t("openBill")}</h3>
         ) : (
-          <h3 className="text-lg">
-            {bill ? t("openBill") : t("tableFree")} · {table.name}
-          </h3>
+          <span />
         )}
 
         {/* Renombrar, anular y borrar bajan a un menú.
@@ -366,9 +370,7 @@ export function TableDetail({
 
       {!bill && (
         <div className="mt-3">
-          <p className="text-sm text-muted-foreground">
-            {t("tableFree")} · {t("oneOpenBill")}
-          </p>
+          <p className="text-sm text-muted-foreground">{t("oneOpenBill")}</p>
           <button
             disabled={openBill.isPending}
             onClick={() => openBill.mutate()}
@@ -477,7 +479,7 @@ export function TableDetail({
           >
             <span>
               {pendingClaims > 0
-                ? t("payStateClaims").replace("{n}", String(pendingClaims))
+                ? plural(pendingClaims, "payStateClaims").replace("{n}", String(pendingClaims))
                 : remainingVes === 0n && paidVes > 0n
                   ? t("payStateSettled")
                   : paidVes > 0n

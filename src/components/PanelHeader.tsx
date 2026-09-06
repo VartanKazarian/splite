@@ -163,6 +163,9 @@ export function PanelHeader({
               Repartidas y no en cinco columnas iguales: a un quinto de 393 px
               "Payments" más su contador no entra, y estrechar la tipografía
               hasta que entrase habría encogido las otras cuatro para nada.
+              `flex-auto` en vez de un hueco entre ellas: lo que sobra se
+              reparte *dentro* de las paradas y no entre ellas, así que "Panel"
+              pasa de 40 px de ancho a 65 y el dedo no tiene dónde fallar.
               Subrayado en vez de píldora rellena: cinco cápsulas verdes
               competían con el único botón verde que de verdad hace algo. */}
           <nav
@@ -177,7 +180,7 @@ export function PanelHeader({
                   key={item.key}
                   to={item.to}
                   aria-current={active ? "page" : undefined}
-                  className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap border-b-2 px-1 text-[13px] transition-colors sm:justify-start sm:gap-2 sm:px-3 sm:text-sm ${
+                  className={`inline-flex min-h-11 flex-auto items-center justify-center gap-1.5 whitespace-nowrap border-b-2 px-1 text-[13px] transition-colors sm:flex-none sm:shrink-0 sm:justify-start sm:gap-2 sm:px-3 sm:text-sm ${
                     active
                       ? "border-primary font-medium text-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground"

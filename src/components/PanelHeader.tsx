@@ -150,13 +150,24 @@ export function PanelHeader({
             </DropdownMenu>
           </div>
 
-          {/* En el móvil se desliza en lugar de partirse: el panel se usa de pie
-              en el comedor, y una cabecera alta deja la pantalla para nada.
+          {/* Cinco destinos y un teléfono de 393 px.
+              Deslizándose, los cinco no cabían: "Pagos" -- el único que lleva
+              un contador de dinero esperando -- quedaba cortado contra el borde
+              derecho, y nada decía que hubiera una quinta parada. Un carrusel
+              sólo esconde bien lo que no importa.
+              Lo que sobraba era el icono: 16 px más 8 px de hueco por parada,
+              120 px en total, casi exactamente lo que faltaba -- y un icono de
+              16 px no distingue "Menú" de "Mesas" mejor que la palabra. Sin
+              ellos las cinco etiquetas miden 237 px en español y 294 en inglés,
+              donde caben 361. Desde `sm` vuelve el icono y con él el hueco.
+              Repartidas y no en cinco columnas iguales: a un quinto de 393 px
+              "Payments" más su contador no entra, y estrechar la tipografía
+              hasta que entrase habría encogido las otras cuatro para nada.
               Subrayado en vez de píldora rellena: cinco cápsulas verdes
               competían con el único botón verde que de verdad hace algo. */}
           <nav
             aria-label={t("dashboard")}
-            className="-mx-4 mt-1 flex gap-1 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:hidden"
+            className="mt-1 flex justify-between overflow-x-auto [scrollbar-width:none] sm:justify-start sm:gap-1 [&::-webkit-scrollbar]:hidden"
           >
             {items.map((item) => {
               const active = item.key === current;
@@ -166,18 +177,18 @@ export function PanelHeader({
                   key={item.key}
                   to={item.to}
                   aria-current={active ? "page" : undefined}
-                  className={`inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 text-sm transition-colors ${
+                  className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap border-b-2 px-1 text-[13px] transition-colors sm:justify-start sm:gap-2 sm:px-3 sm:text-sm ${
                     active
                       ? "border-primary font-medium text-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Icon className="h-4 w-4" /> {item.label}
+                  <Icon aria-hidden className="hidden h-4 w-4 sm:block" /> {item.label}
                   {/* El contador de avisos por verificar viaja con la barra. Era
                       lo único que decía "hay dinero esperando" y sólo se veía
                       desde el panel de sala. */}
                   {"badge" in item && item.badge > 0 && (
-                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[11px] leading-none text-primary-foreground">
+                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] leading-none text-primary-foreground sm:text-[11px]">
                       {item.badge}
                     </span>
                   )}

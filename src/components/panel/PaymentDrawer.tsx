@@ -84,7 +84,10 @@ export function PaymentDrawer({
           <SheetDescription>{t("tillRetrySafe")}</SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-5 px-4 pb-6">
+        {/* Sin sangría propia: la hoja ya trae `p-6`, y el `px-4` que
+            había aquí encima dejaba el cuerpo 16 px más adentro que su
+            propio título. */}
+        <div className="mt-5 space-y-5">
           <div>
             <label
               htmlFor="till-amount"
@@ -133,7 +136,7 @@ export function PaymentDrawer({
                   type="button"
                   onClick={() => onMethodChange(value)}
                   aria-pressed={method === value}
-                  className={`min-h-11 rounded-xl border px-3 text-sm transition-colors ${
+                  className={`min-h-11 rounded-xl border px-2 text-[13px] transition-colors sm:px-3 sm:text-sm ${
                     method === value
                       ? "border-primary bg-primary/10 font-medium text-primary"
                       : "border-border text-muted-foreground hover:bg-secondary"
@@ -146,9 +149,13 @@ export function PaymentDrawer({
           </fieldset>
 
           <div className="rounded-xl border border-border bg-secondary/50 p-4">
+            {/* Si algo tiene que partirse aquí, que sea el rótulo: la cifra
+                se quedaba en "1.300,00" y un "Bs" suelto debajo. */}
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-sm text-muted-foreground">{t("pendingAfterPayment")}</span>
-              <span className="figure text-xl">
+              <span className="min-w-0 text-sm text-muted-foreground">
+                {t("pendingAfterPayment")}
+              </span>
+              <span className="figure shrink-0 whitespace-nowrap text-xl">
                 {over ? "—" : formatMoney(after.toString(), "VES")}
               </span>
             </div>

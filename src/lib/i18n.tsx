@@ -541,6 +541,8 @@ const dict = {
     edit: "Editar",
     cancel: "Cancelar",
     saved: "Cambios guardados",
+    guestDirectNote:
+      "Splite no cobra el pago: el dinero va directo del banco de tu teléfono a la cuenta del restaurante.",
     payTabCollections: "Cobros",
     payTabTips: "Propinas",
     guestErrRetry: "Algo salió mal. Intenta de nuevo.",
@@ -1245,6 +1247,8 @@ const dict = {
     edit: "Edit",
     cancel: "Cancel",
     saved: "Changes saved",
+    guestDirectNote:
+      "Splite does not take the payment: the money goes straight from your phone\u2019s bank to the restaurant\u2019s account.",
     payTabCollections: "Collections",
     payTabTips: "Tips",
     guestErrRetry: "Something went wrong. Try again.",

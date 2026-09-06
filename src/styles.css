@@ -146,6 +146,47 @@
   font-variant-numeric: tabular-nums;
 }
 
+/**
+ * La escala del dinero: tres pasos, y cada uno trae su propia cara.
+ *
+ * El dinero usaba ocho pasos de Tailwind repartidos por la aplicación --
+ * `xs sm base lg xl 2xl 3xl 4xl` -- y siete de ellos convivían en la cuenta
+ * del comensal. Ocho tamaños no son una jerarquía: son la ausencia de una.
+ *
+ * Van con la familia y las cifras tabulares dentro y no compuestas con
+ * `figure`, a propósito: así no existe la forma de poner un tamaño de dinero
+ * sin la cara de dinero, que es exactamente el fallo que había en dos sitios
+ * de la cuenta -- y los dos eran importes en bolívares.
+ *
+ * `figure` se queda para los números que no son dinero: recuentos, cantidades,
+ * la tasa dentro de una frase.
+ */
+@utility money-lg {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  /* 32 y no 36: a 393 px de ventana un importe de siete dígitos en bolívares
+     cabe en una línea a 32 y se parte a 36. Y nunca se parte -- un "Bs"
+     huérfano en la línea siguiente no es un importe, son dos trozos. */
+  font-size: 2rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+@utility money-md {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+@utility money-sm {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+}
+
 @utility surface {
   background-color: var(--color-card);
   border: 1px solid var(--color-border);

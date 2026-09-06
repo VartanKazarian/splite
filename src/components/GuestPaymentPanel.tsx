@@ -27,10 +27,13 @@ function CopyRow({
   label,
   display,
   copyValue,
+  lead,
 }: {
   label: string;
   display: string;
   copyValue: string;
+  /** El importe: una fila por tarjeta se lleva la cifra grande. */
+  lead?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
@@ -50,10 +53,17 @@ function CopyRow({
   };
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border py-2.5 last:border-b-0">
-      <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
-      <span className="flex items-center gap-2">
-        <span className="text-sm figure">{display}</span>
+    <div
+      className={`flex gap-3 border-b border-border py-2.5 last:border-b-0 ${
+        lead ? "flex-col" : "items-center justify-between"
+      }`}
+    >
+      <span className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className={`flex items-center gap-2 ${lead ? "justify-between" : ""}`}>
+        {/* El monto es lo que se teclea en el banco, y medía 14 px como el
+            código de la sucursal. Sube a la escala grande y se lleva la fila
+            entera; los otros tres datos se quedan como estaban. */}
+        <span className={lead ? "money-lg" : "money-md"}>{display}</span>
         <button
           type="button"
           onClick={copy}
@@ -302,15 +312,13 @@ export function GuestPaymentPanel({
             />
             <CopyRow label="RIF/CI" display={payee.holderId} copyValue={payee.holderId} />
             <CopyRow
+              lead
               label={splitParticipantId ? t("yourShare") : t("guestAmount")}
               display={formatMoney(dueVes, "VES")}
               copyValue={formatMinor(dueVes).replace(/\./g, "")}
             />
           </div>
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            Splite no cobra el pago: el dinero va directo del banco de tu teléfono a la cuenta del
-            restaurante.
-          </p>
+          <p className="mt-3 text-[11px] text-muted-foreground">{t("guestDirectNote")}</p>
         </div>
       )}
 

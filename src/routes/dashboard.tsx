@@ -11,7 +11,7 @@ import { MetricCard } from "@/components/panel/MetricCard";
 import { TableRow } from "@/components/panel/TableRow";
 import { AGE_ATTENTION_MINUTES, openMinutesOf, toneOf } from "@/components/panel/tableStatus";
 import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
-import { AttentionList } from "@/components/panel/AttentionList";
+import { ToAttend } from "@/components/panel/ToAttend";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { OrderTray } from "@/components/panel/OrderTray";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
@@ -104,17 +104,11 @@ function Dashboard() {
     refetchInterval: 8000,
   });
 
-  // Avisos de pago que esperan verificación. Sólo respalda a la instantánea de
-  // sala mientras carga: misma clave que el contador de la cabecera, así que
-  // las dos son una consulta y no hay dos sondeos contando lo mismo.
-  const claimsQuery = useQuery({
-    queryKey: ["payment-claims", "summary"],
-    queryFn: () => payments.claimsSummary(),
-    enabled: ready && me.isSuccess,
-    retry: false,
-    refetchInterval: 20000,
-  });
-  const pendingCount = claimsQuery.data?.pending ?? 0;
+  // El resumen de avisos de pago ya no se pide aquí. Lo alimentaba la tarjeta
+  // "Avisos", que ha desaparecido; la franja de "Por atender" cuenta los avisos
+  // por mesa, del mismo plano que ya dibuja la lista, y así puede además decir
+  // de qué mesa es cuando hay uno solo. El contador de la cabecera sigue con
+  // su propia consulta, que es de donde salía la clave compartida.
 
   // Cargos C2P que el banco dejó en duda: son los que exigen intervención humana.
   const c2pQuery = useQuery({
@@ -391,18 +385,21 @@ function Dashboard() {
     .sort((a, b) => (a.openBill!.openMinutes ?? 0) - (b.openBill!.openMinutes ?? 0))
     .at(-1);
 
-  // Tres cosas que esperan a una persona: dinero declarado sin verificar,
-  // cargos que el banco dejó en duda, y pedidos que la sala no ha mirado.
-  const alerts =
-    (snap?.claims.pending ?? pendingCount) +
-    (snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount) +
-    newOrders;
+  // Cargos que el banco dejó en duda. Del resumen del servidor cuando ha
+  // llegado, y del listado mientras tanto.
+  const inDoubt = snap
+    ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous
+    : unresolvedCount;
 
   return (
     <div className="min-h-screen">
       <PanelHeader current="dashboard" />
 
-      <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
+      {/* Una columna, y con el ancho de Menú y de Pagos. Eran dos, pero la
+          estrecha sólo llevaba la lista de "Atención" -- que ya no existe --, y
+          en un teléfono esa columna caía por debajo de todo, que es el último
+          sitio donde poner lo que hay que atender. */}
+      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
         <PanelIntro live={live} />
 
         {(me.isError || tablesQuery.isError) && (
@@ -427,8 +424,21 @@ function Dashboard() {
           <ConfigurationCard />
         </div>
 
-        <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-          {/* Lo operativo: cuánto se debe, cómo va el turno y las mesas. */}
+        {/* Lo primero que se mira, y sólo si existe. Ver `ToAttend`. */}
+        <div className="mt-6 space-y-6">
+          <ToAttend
+            orders={newOrders}
+            tables={tableList}
+            unresolvedC2P={inDoubt}
+            openedAtByBill={openedAtByBill}
+            onOrders={() =>
+              document
+                .getElementById("order-tray-heading")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            onOldest={oldestOpen ? () => setSelectedId(oldestOpen.id) : undefined}
+          />
+
           <div className="min-w-0 space-y-6">
             <PendingCollection
               outstandingVes={snap?.openBills.outstandingVes ?? null}
@@ -437,14 +447,15 @@ function Dashboard() {
               onOldest={oldestOpen ? () => setSelectedId(oldestOpen.id) : undefined}
             />
 
-            {/* Tres cifras de contexto. "C2P sin resolver: 0" era una casilla
-                permanente para un cero: ahora los avisos y los C2P sin
-                resolver se suman en una sola, y sin nada pendiente dice que
-                está todo al día en vez de subrayar el cero. */}
+            {/* Dos cifras de contexto, y ninguna pide nada: son el fondo del
+                turno. La tercera era "Avisos", que sí pedía cosas -- y las
+                sumaba de tres tipos que se resuelven en pantallas distintas
+                para luego enlazar a una sola. Eso es ahora la franja de
+                arriba, con una línea y un destino por tipo. */}
             {/* Las tres filas -- rótulo, cifra, apostilla -- se definen aquí y
                 no dentro de cada tarjeta: así una cifra no se hunde porque su
                 rótulo ocupe dos líneas. Ver `MetricCard`. */}
-            <div className="grid gap-3 sm:grid-cols-3 sm:grid-rows-[auto_auto_auto]">
+            <div className="grid gap-3 sm:grid-cols-2 sm:grid-rows-[auto_auto_auto]">
               <MetricCard
                 label={t("kpiOpenTables")}
                 value={
@@ -464,51 +475,48 @@ function Dashboard() {
                 hint={snap ? salesHint(snap.taken, t) : undefined}
                 loading={snapshot.isLoading && !snap}
               />
-              {/* Con avisos, la tarjeta lleva a la cola donde se atienden.
-                  Decía cuántos había y dejaba buscar la pantalla a mano. */}
-              <MetricCard
-                label={t("kpiAlerts")}
-                value={alerts > 0 ? String(alerts) : "✓"}
-                hint={alerts > 0 ? t("payStateVerify") : t("allClear")}
-                tone={alerts > 0 ? "attention" : "neutral"}
-                to={alerts > 0 ? "/pagos" : undefined}
-                loading={snapshot.isLoading && !snap}
-              />
             </div>
 
             {/* La antigüedad de la cuenta más vieja iba dentro de una frase
                 larga junto a los cobros del día; aquí es su propio dato, que
                 es como se lee de un vistazo. */}
             {/* La fila entera, y no sólo su texto: enseñaba el problema y no
-                llevaba a él. En ámbar a partir del mismo umbral con el que se
-                pinta la mesa en la lista, para que no digan dos cosas. */}
-            {snap?.openBills.oldestOpenedAt && (
-              <button
-                type="button"
-                disabled={!oldestOpen}
-                onClick={() => oldestOpen && setSelectedId(oldestOpen.id)}
-                className="flex w-full min-h-11 items-center justify-between gap-3 rounded-lg px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary disabled:pointer-events-none"
-              >
-                <span>{t("oldestBillLabel")}</span>
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className={`figure ${
-                      (oldestOpen?.openBill?.openMinutes ?? 0) >= AGE_ATTENTION_MINUTES
-                        ? "text-amber-700"
-                        : ""
-                    }`}
-                  >
-                    {relativeAge(snap.openBills.oldestOpenedAt)}
+                llevaba a él.
+                Y desaparece en cuanto esa cuenta cruza el umbral, porque a
+                partir de ahí la dice la franja de arriba con su nombre y su
+                mismo destino: "Mesa 3 lleva 26 h abierta · Abrir la cuenta"
+                doscientos píxeles más arriba, y aquí "Cuenta más antigua ·
+                26 h 1 min · Ir a la cuenta". Por debajo del umbral no está en
+                la franja -- no hay nada que atender -- y aquí sigue siendo el
+                contexto que era. */}
+            {snap?.openBills.oldestOpenedAt &&
+              (oldestOpen?.openBill?.openMinutes ?? 0) < AGE_ATTENTION_MINUTES && (
+                <button
+                  type="button"
+                  disabled={!oldestOpen}
+                  onClick={() => oldestOpen && setSelectedId(oldestOpen.id)}
+                  className="flex w-full min-h-11 items-center justify-between gap-3 rounded-lg px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary disabled:pointer-events-none"
+                >
+                  <span>{t("oldestBillLabel")}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className={`figure ${
+                        (oldestOpen?.openBill?.openMinutes ?? 0) >= AGE_ATTENTION_MINUTES
+                          ? "text-amber-700"
+                          : ""
+                      }`}
+                    >
+                      {relativeAge(snap.openBills.oldestOpenedAt)}
+                    </span>
+                    {oldestOpen && (
+                      <>
+                        <span className="text-primary">{t("goToBill")}</span>
+                        <ArrowRight aria-hidden className="h-3.5 w-3.5 text-primary" />
+                      </>
+                    )}
                   </span>
-                  {oldestOpen && (
-                    <>
-                      <span className="text-primary">{t("goToBill")}</span>
-                      <ArrowRight aria-hidden className="h-3.5 w-3.5 text-primary" />
-                    </>
-                  )}
-                </span>
-              </button>
-            )}
+                </button>
+              )}
 
             {/* Encima de las mesas: es lo que acaba de pasar, y lo de abajo es
                 el estado. Desaparece sola cuando no hay nada. */}
@@ -568,20 +576,6 @@ function Dashboard() {
                 </div>
               )}
             </section>
-          </div>
-
-          {/* Lo que no es del turno: avisos y el QR de la mesa elegida. Dar de
-              alta la sala se hacía también aquí, plegado al final; ahora hay
-              una sección de Mesas y tenerlo en dos sitios sólo servía para que
-              se desviaran. */}
-          <div className="min-w-0 space-y-6">
-            <AttentionList
-              tables={tableList}
-              unresolvedC2P={
-                snap ? snap.unresolvedC2P.inDoubt + snap.unresolvedC2P.ambiguous : unresolvedCount
-              }
-              openedAtByBill={openedAtByBill}
-            />
           </div>
         </div>
       </main>

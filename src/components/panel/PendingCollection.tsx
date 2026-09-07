@@ -26,27 +26,28 @@ import { Skeleton } from "@/components/ui/skeleton";
  * **Y una salida.** La cifra decía "la sala debe 2.750,00" y ahí se acababa:
  * para hacer algo con eso había que bajar a la lista y acordarse de cuál era
  * la mesa vieja. `onOldest` abre la cuenta que lleva más tiempo abierta, que
- * es por dónde se empieza. Sin cuentas abiertas no hay nada que gestionar, así
- * que el botón enseña las mesas libres, que es lo otro que se hace desde aquí.
+ * es por dónde se empieza.
+ *
+ * Con la sala vacía no hay botón. Lo hubo -- "Ver mesas libres", que filtraba
+ * la lista de abajo --, pero esa lista ya no trae mesas libres: desde que sólo
+ * enseña lo abierto, su propio hueco vacío dice que no hay nada y lleva a
+ * Mesas. Dos botones al mismo sitio a medio metro uno del otro no son dos
+ * salidas, son una repetida.
  */
 export function PendingCollection({
   outstandingVes,
   openBills,
   loading,
   onOldest,
-  onFree,
 }: {
   outstandingVes: string | null;
   openBills: number | null;
   loading: boolean;
   /** Abre la cuenta más antigua. Ausente si no se sabe cuál es. */
   onOldest?: (() => void) | undefined;
-  /** Enseña las mesas libres de la lista de abajo. */
-  onFree?: (() => void) | undefined;
 }) {
   const { t } = useI18n();
   const busy = (openBills ?? 0) > 0;
-  const action = busy ? onOldest : onFree;
 
   return (
     <section className="surface p-5 sm:p-6" aria-labelledby="pending-heading">
@@ -74,13 +75,13 @@ export function PendingCollection({
           <span />
         )}
 
-        {action && (
+        {busy && onOldest && (
           <button
             type="button"
-            onClick={action}
+            onClick={onOldest}
             className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
-            {busy ? t("manageOldest") : t("seeFreeTables")}
+            {t("manageOldest")}
             <ArrowRight aria-hidden className="h-4 w-4" />
           </button>
         )}

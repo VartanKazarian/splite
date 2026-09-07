@@ -491,10 +491,11 @@ export function TableDetail({
                 : remainingVes === 0n && paidVes > 0n
                   ? t("payStateSettled")
                   : paidVes > 0n
-                    ? t("payStatePartial").replace(
-                        "{amount}",
-                        formatMoney(bill.remainingVes, "VES"),
-                      )
+                    ? // Sin la cifra: "faltan 3.630,00 Bs" iba pegado debajo de
+                      // ese mismo importe escrito en el tamaño más grande de la
+                      // hoja. La franja dice en qué punto está el cobro; cuánto
+                      // falta lo dice el número de arriba.
+                      t("payStatePartial")
                     : t("payStateWaiting")}
             </span>
             {pendingClaims > 0 && (

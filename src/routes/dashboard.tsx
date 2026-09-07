@@ -9,10 +9,10 @@ import { PanelIntro } from "@/components/panel/PanelIntro";
 import { PendingCollection } from "@/components/panel/PendingCollection";
 import { MetricCard } from "@/components/panel/MetricCard";
 import { TableRow } from "@/components/panel/TableRow";
-import { AGE_ATTENTION_MINUTES, toneOf } from "@/components/panel/tableStatus";
-import { FloorFilters, matchesFilter, type FloorFilter } from "@/components/panel/FloorFilters";
+import { AGE_ATTENTION_MINUTES, openMinutesOf, toneOf } from "@/components/panel/tableStatus";
 import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
 import { AttentionList } from "@/components/panel/AttentionList";
+import { EmptyState } from "@/components/shell/EmptyState";
 import { OrderTray } from "@/components/panel/OrderTray";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -172,23 +172,33 @@ function Dashboard() {
     refetchInterval: 30000,
   });
 
-  const [floorFilter, setFloorFilter] = useState<FloorFilter>("ALL");
-
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
-  const visibleTables = useMemo(
-    () => tableList.filter((tb) => matchesFilter(tb, floorFilter)),
-    [tableList, floorFilter],
-  );
   const busyCount = tableList.filter((tb) => tb.openBill).length;
 
-  // Si se resuelve el último aviso mientras está puesto el filtro de alertas,
-  // la ficha desaparece y la lista se queda vacía sin decir por qué. Vuelve a
-  // "todas", que es de donde salió.
-  useEffect(() => {
-    if (floorFilter === "ALERT" && !tableList.some((tb) => toneOf(tb) === "attention")) {
-      setFloorFilter("ALL");
-    }
-  }, [floorFilter, tableList]);
+  /**
+   * Sólo las mesas que piden algo, y las que más piden primero.
+   *
+   * El panel pintaba el plano entero con sus fichas de filtro: catorce filas
+   * de las que nueve decían "Libre", 2.396 px de pantalla en un teléfono, y
+   * luego la sección de Mesas volvía a enseñar exactamente lo mismo con un
+   * buscador encima. Una mesa libre no pide nada -- ni cobrarla, ni mirarla,
+   * ni abrirla desde aquí -- así que aquí no está: el plano completo, con su
+   * búsqueda y sus filtros, vive en Mesas, y desde aquí se va con un enlace.
+   *
+   * El orden tampoco es el del plano. Primero lo que hay que atender (un pago
+   * declarado sin verificar, una cuenta que lleva doce horas abierta), y
+   * dentro de cada grupo la más vieja arriba: es el mismo criterio con el que
+   * la tarjeta de arriba manda a "la cuenta más antigua", y evita de paso que
+   * "Mesa 10" salga antes que "Mesa 2" por orden alfabético.
+   */
+  const openTables = useMemo(() => {
+    const urgency = (tb: (typeof tableList)[number]) => (toneOf(tb) === "attention" ? 0 : 1);
+    const age = (tb: (typeof tableList)[number]) =>
+      tb.openBill ? (openMinutesOf(tb.openBill, openedAtByBill.get(tb.openBill.id)) ?? 0) : 0;
+    return tableList
+      .filter((tb) => tb.openBill)
+      .sort((a, b) => urgency(a) - urgency(b) || age(b) - age(a));
+  }, [tableList, openedAtByBill]);
 
   /*
    * La mesa elegida, y sólo si de verdad la han elegido.
@@ -425,7 +435,6 @@ function Dashboard() {
               openBills={snap?.openBills.count ?? null}
               loading={snapshot.isLoading && !snap}
               onOldest={oldestOpen ? () => setSelectedId(oldestOpen.id) : undefined}
-              onFree={() => setFloorFilter("FREE")}
             />
 
             {/* Tres cifras de contexto. "C2P sin resolver: 0" era una casilla
@@ -510,7 +519,18 @@ function Dashboard() {
                 <h2 id="live-tables-heading" className="text-lg">
                   {t("liveTables")}
                 </h2>
-                <FloorFilters value={floorFilter} onChange={setFloorFilter} tables={tableList} />
+                {/* La salida al plano completo. Las fichas de filtro se han ido
+                    con él: filtrar una lista que ya sólo trae lo abierto es
+                    filtrar por lo único que hay. */}
+                {tableList.length > 0 && (
+                  <Link
+                    to="/mesas"
+                    className="inline-flex min-h-11 items-center gap-1.5 text-sm text-primary"
+                  >
+                    {t("allTablesLink").replace("{n}", String(tableList.length))}
+                    <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+                  </Link>
+                )}
               </div>
 
               {tablesQuery.isLoading ? (
@@ -521,9 +541,13 @@ function Dashboard() {
                     </div>
                   ))}
                 </div>
+              ) : openTables.length === 0 ? (
+                <div className="surface">
+                  <EmptyState title={t("noOpenTables")} hint={t("noOpenTablesHint")} />
+                </div>
               ) : (
                 <div className="surface divide-y divide-border overflow-hidden">
-                  {visibleTables.map((tb) => (
+                  {openTables.map((tb) => (
                     <Fragment key={tb.id}>
                       <TableRow
                         table={tb}
@@ -541,11 +565,6 @@ function Dashboard() {
                           la lista, la banda del detalle y el detalle. */}
                     </Fragment>
                   ))}
-                  {visibleTables.length === 0 && (
-                    <p className="px-4 py-6 text-sm text-muted-foreground">
-                      {t("noTablesInFilter")}
-                    </p>
-                  )}
                 </div>
               )}
             </section>

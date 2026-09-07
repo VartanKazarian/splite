@@ -890,7 +890,28 @@ export type TipsReport = {
    * que corregir quién atendió una mesa mueve las propinas con ella.
    */
   byServer?: TipsByServer[];
+  /**
+   * Las cuentas detrás de la fila sin dueño de `byServer`.
+   *
+   * Una cifra sin dueño no se puede corregir: dice cuánto y no de qué mesas. Y
+   * cuando se lee este informe, al cerrar el turno, esas cuentas ya están
+   * cerradas y no salen en ninguna otra pantalla -- el selector de "Atendida
+   * por" vive en la hoja de una mesa, y una mesa cerrada no tiene hoja.
+   */
+  unassigned?: UnassignedBill[];
   byMethod?: { method: string; payments: number; tipsVes: Money }[];
+};
+
+export type UnassignedBill = {
+  billId: string;
+  tableId: string | null;
+  /** Null si la mesa se borró después. La cuenta y su propina siguen siendo reales. */
+  tableName: string | null;
+  status: string;
+  payments: number;
+  tipsVes: Money;
+  billedVes: Money;
+  lastPaidAt: string;
 };
 
 export type PaymentClaimInput = {

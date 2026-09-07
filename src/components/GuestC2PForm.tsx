@@ -39,6 +39,8 @@ export function GuestC2PForm({
    * el cargo se pase del saldo. Antes no se mandaba, y la pantalla avisaba de
    * que la propina «va aparte» -- es decir, el comensal la elegía, la veía en
    * su cuenta y luego no se le cobraba.
+   *
+   * **En pantalla, sin embargo, no se separa.** Ver la casilla del importe.
    */
   tipVes?: string;
   demo: boolean;
@@ -72,7 +74,33 @@ export function GuestC2PForm({
   const [idNumber, setIdNumber] = useState("");
   const [phone, setPhone] = useState("");
   const [clave, setClave] = useState("");
-  const [amount, setAmount] = useState(() => formatMinor(maxVes || "0"));
+  /**
+   * Lo que el banco va a cobrar: la parte de la cuenta más la propina.
+   *
+   * **Ésta es la cifra que el comensal le pide a su banco**, y por eso es la
+   * que está en la casilla. La API parte el cargo en dos -- `amountVes` contra
+   * la cuenta y `tipVes` al lado, que es lo que impide que el cargo se pase
+   * del saldo --, pero eso es contabilidad nuestra, no algo que el comensal
+   * tenga que sumar.
+   *
+   * Aquí ponía la parte sin propina. Y justo encima, la guía del banco dice
+   * "la clave va atada al monto: pídela por este monto exacto". Con una cuenta
+   * de 33.835,15 y 3.383,51 de propina, el titular de la pantalla anterior
+   * decía 37.218,66, la casilla decía 33.835,15, y quien siguiera esa
+   * instrucción pedía la clave por un importe que no era el del cargo: el
+   * banco lo rechaza. La cifra de la casilla y la del cargo tienen que ser la
+   * misma, y ahora lo son.
+   */
+  const totalVes = (BigInt(maxVes || "0") + BigInt(tipVes || "0")).toString();
+  const [amount, setAmount] = useState(() => formatMinor(totalVes));
+  const [amountTouched, setAmountTouched] = useState(false);
+
+  // Se sigue al total mientras nadie haya escrito. Sin esto, cambiar la propina
+  // de 10% a 20% en la tarjeta de arriba -- que no desmonta este formulario --
+  // dejaba la casilla con el total viejo, que es el mismo fallo por otra vía.
+  useEffect(() => {
+    if (!amountTouched) setAmount(formatMinor(totalVes));
+  }, [totalVes, amountTouched]);
   const [result, setResult] = useState<C2PChargeResult | null>(null);
   const [error, setError] = useState<{ message: string; requestId?: string } | null>(null);
 
@@ -88,7 +116,12 @@ export function GuestC2PForm({
     [banks, bankCode],
   );
 
-  const amountMinor = parseMinorInput(amount) || "0";
+  // Lo tecleado es el total; contra la cuenta va lo que quede al descontar la
+  // propina, que es lo que el saldo admite y lo que espera la API.
+  const chargeMinor = parseMinorInput(amount) || "0";
+  const tipMinor = BigInt(tipVes || "0");
+  const billMinor =
+    BigInt(chargeMinor) > tipMinor ? (BigInt(chargeMinor) - tipMinor).toString() : "0";
   const idOk = /^[0-9]{6,9}$/.test(idNumber.trim());
   const phoneOk = /^(0412|0414|0416|0424|0426)[0-9]{7}$/.test(phone.replace(/\D/g, ""));
   const claveOk = /^[0-9]{4,16}$/.test(clave);
@@ -101,7 +134,7 @@ export function GuestC2PForm({
         return { paymentId: "demo", status: "SUCCEEDED", reason: null };
       }
       return guest.c2pCharge({
-        amountVes: amountMinor,
+        amountVes: billMinor,
         bankCode,
         idNumber: `${idType}${idNumber.trim()}`,
         phone: phone.replace(/\D/g, ""),
@@ -148,7 +181,7 @@ export function GuestC2PForm({
     idOk &&
     phoneOk &&
     claveOk &&
-    BigInt(amountMinor) > 0n;
+    BigInt(billMinor) > 0n;
 
   const field =
     "mt-2 min-h-11 w-full rounded-lg border border-input bg-secondary px-3 text-base outline-none focus:border-ring";
@@ -318,25 +351,29 @@ export function GuestC2PForm({
           id="c2p-amount"
           inputMode="decimal"
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e) => {
+            setAmountTouched(true);
+            setAmount(e.target.value);
+          }}
           className={field}
         />
         <p className="mt-1 text-[11px] text-muted-foreground">
-          {t("c2pMax").replace("{amount}", formatMoney(maxVes || "0", "VES"))}
+          {t("c2pMax").replace("{amount}", formatMoney(totalVes, "VES"))}
         </p>
-        {/* Lo que va a salir de la cuenta del comensal, dicho entero: la
-            casilla de arriba es lo de la cuenta y el banco cobra eso más la
-            propina, así que sin esta línea el cargo no cuadraría con lo que
-            puso en la pantalla anterior. */}
-        {BigInt(tipVes || "0") > 0n && (
+        {/* Cómo se reparte lo de la casilla, no una suma que hay que hacer: la
+            cifra de arriba es la del cargo y ésta dice qué parte es propina. */}
+        {tipMinor > 0n && (
           <p className="mt-1 text-[11px] text-muted-foreground">
             {t("c2pWithTip")
-              .replace("{bill}", formatMoney(amountMinor, "VES"))
               .replace("{tip}", formatMoney(tipVes, "VES"))
-              .replace(
-                "{total}",
-                formatMoney((BigInt(amountMinor) + BigInt(tipVes)).toString(), "VES"),
-              )}
+              .replace("{bill}", formatMoney(billMinor, "VES"))}
+          </p>
+        )}
+        {/* Bajar el importe por debajo de la propina no deja nada para la
+            cuenta. Se dice, en vez de dejar el botón apagado sin motivo. */}
+        {tipMinor > 0n && BigInt(billMinor) === 0n && (
+          <p className="mt-1 text-[11px] text-destructive">
+            {t("c2pBelowTip").replace("{tip}", formatMoney(tipVes, "VES"))}
           </p>
         )}
       </div>

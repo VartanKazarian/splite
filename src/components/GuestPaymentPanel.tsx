@@ -325,12 +325,12 @@ export function GuestPaymentPanel({
       {tab === "c2p" && (
         /*
           La propina va dentro del cargo, no aparte.
-          `maxVes` es lo que puede ir contra la cuenta -- por eso sigue siendo
-          la parte sin propina, que es lo que el saldo admite -- y `tipVes`
-          viaja al lado: el banco cobra la suma de los dos. Prefijar
-          parte+propina como importe era lo que hacía que el cargo se pasara
-          del saldo, y quitarla del todo dejaba al comensal eligiendo una
-          propina que nunca se le cobraba.
+          `maxVes` es el techo de lo que puede ir contra la cuenta -- la parte
+          sin propina, que es lo que el saldo admite -- y `tipVes` viaja al
+          lado: el banco cobra la suma de los dos. Lo que el formulario enseña
+          y pide es esa suma, que es la cifra por la que el comensal tiene que
+          pedirle la clave a su banco; el reparto en dos lo hace él antes de
+          llamar a la API.
         */
         <GuestC2PForm maxVes={billShareVes} tipVes={tipVes} demo={demo} />
       )}

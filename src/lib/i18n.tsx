@@ -346,6 +346,9 @@ const dict = {
     tipsInTill: "En caja",
     tipsOwedToStaff: "Debido al personal",
     tipsUnclassified: "Sin clasificar",
+    tipsFixHere: "Asígnalas aquí: la propina se va con la cuenta.",
+    tipsFixAsk: "Pídele a gerencia que las asigne: la propina se va con la cuenta.",
+    tipsBillNoTable: "Mesa borrada",
     tipsByWaiter: "Por mesero",
     // --- Panel operativo -------------------------------------------------
     greetMorning: "Buenos días",
@@ -1107,6 +1110,9 @@ const dict = {
     tipsInTill: "In the till",
     tipsOwedToStaff: "Owed to staff",
     tipsUnclassified: "Unclassified",
+    tipsFixHere: "Assign them here — the tip moves with the bill.",
+    tipsFixAsk: "Ask a manager to assign them — the tip moves with the bill.",
+    tipsBillNoTable: "Deleted table",
     tipsByWaiter: "By waiter",
     // --- Operational panel ------------------------------------------------
     greetMorning: "Good morning",

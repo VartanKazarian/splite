@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
+  auth,
   formatMoney,
   payments,
   staffSession,
@@ -17,6 +18,7 @@ import {
 import { ErrorBox } from "@/routes/dashboard";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { MyTipsCard } from "@/components/MyTipsCard";
+import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
 import { FxRatesCard } from "@/components/panel/FxRatesCard";
 import { PanelHeader } from "@/components/PanelHeader";
 import { PageHeader } from "@/components/shell/PageHeader";
@@ -115,6 +117,17 @@ function PaymentsPage() {
     retry: false,
     staleTime: 60000,
   });
+
+  // Quién puede corregir a quién se le atribuye una cuenta. La política la
+  // decide el servidor -- OWNER y MANAGER, porque esto mueve dinero entre
+  // personas --; aquí sólo se decide si se enseña el selector o se explica a
+  // quién pedírselo. Misma clave que el resto del panel: una consulta.
+  const me = useQuery({ queryKey: ["me"], queryFn: () => auth.me(), enabled: ready, retry: false });
+  const canAssign = canAssignServer(me.data?.user.role);
+
+  // Reasignar mueve las propinas de sitio, así que el informe se vuelve a pedir.
+  const refreshTips = () =>
+    queryClient.invalidateQueries({ queryKey: ["payment-tips-today", todayFrom] });
 
   const fail = (error: unknown) =>
     toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
@@ -471,11 +484,45 @@ function PaymentsPage() {
                         </li>
                       ))}
                     </ul>
-                    {tipsQuery.data.byServer?.some((r) => !r.userId) && (
-                      <p className="mt-3 text-xs text-muted-foreground">
-                        Las cuentas sin mesero asignado se agrupan aparte. Puedes asignarlo desde el
-                        panel de la mesa, también después de cerrarla.
-                      </p>
+                    {/* Y las cuentas que hay detrás de esa fila, para poder
+                        arreglarlas aquí.
+                        Antes había una frase que decía que se asignaba «desde
+                        el panel de la mesa, también después de cerrarla». Lo
+                        segundo es cierto en la API y falso en la pantalla: ese
+                        selector vive en la hoja de una mesa, y una cuenta
+                        cerrada libera la mesa y desaparece de todos los
+                        listados. Quien lee este informe lo lee al cerrar el
+                        turno, cuando ya están todas cerradas. */}
+                    {(tipsQuery.data.unassigned?.length ?? 0) > 0 && (
+                      <div className="mt-4 rounded-lg border border-border p-3">
+                        <p className="text-xs text-muted-foreground">
+                          {canAssign ? t("tipsFixHere") : t("tipsFixAsk")}
+                        </p>
+                        <ul className="mt-2 divide-y divide-border">
+                          {tipsQuery.data.unassigned?.map((row) => (
+                            <li
+                              key={row.billId}
+                              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2"
+                            >
+                              <span className="min-w-0 text-sm">
+                                {row.tableName ?? t("tipsBillNoTable")}
+                                <span className="ml-2 text-xs text-muted-foreground">
+                                  {formatDateTime(row.lastPaidAt, lang)}
+                                </span>
+                              </span>
+                              <span className="flex items-center gap-3">
+                                <span className="money-sm">{formatMoney(row.tipsVes, "VES")}</span>
+                                <BillServerPicker
+                                  billId={row.billId}
+                                  servedBy={null}
+                                  canAssign={canAssign}
+                                  onChanged={refreshTips}
+                                />
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 )}

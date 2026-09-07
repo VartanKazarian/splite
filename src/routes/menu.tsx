@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -243,6 +243,42 @@ function MenuPage() {
 
   const all = useMemo(() => products.data ?? [], [products.data]);
   const activeCount = all.filter((p) => p.active).length;
+
+  /**
+   * ¿Hay alguna foto en esta carta?
+   *
+   * El hueco de la foto se reservaba siempre, incluida la carta que no tiene
+   * ninguna -- que es como empiezan todas y como se quedan muchas: diez marcos
+   * de trazo discontinuo con un icono gris, uno por plato, diciendo que falta
+   * algo que nadie ha pedido. La regla es la misma que en la hoja de productos
+   * del mesero: la columna existe si la carta usa fotos. Con una sola foto
+   * vuelve, y entonces sí importa que los nombres empiecen todos en el mismo
+   * sitio.
+   */
+  const withPhotos = useMemo(() => all.some((p) => p.imageUrl), [all]);
+
+  /**
+   * El pliegue de "Montar la carta", abierto o cerrado según haga falta.
+   *
+   * Cerrado es lo correcto para una carta hecha: la moneda, las secciones y la
+   * importación se tocan al empezar y casi nunca después. Pero con la carta
+   * vacía eso deja lo único que hay que hacer -- importarla de una foto o de un
+   * PDF, que es la vía rápida -- plegada al final de la pantalla, debajo de una
+   * lista que dice "Aún no hay productos". Así que con cero productos se abre,
+   * y además sube por encima de la lista.
+   *
+   * Se siembra una vez, cuando llega la primera respuesta, y desde ahí manda
+   * quien mira: si se controlara con `all.length` a secas, importar la carta lo
+   * cerraría de golpe en mitad del gesto, y cerrarlo a mano no serviría de nada
+   * porque el siguiente render volvería a abrirlo.
+   */
+  const [setupOpen, setSetupOpen] = useState(false);
+  const setupSeeded = useRef(false);
+  useEffect(() => {
+    if (setupSeeded.current || !products.isSuccess) return;
+    setupSeeded.current = true;
+    setSetupOpen(all.length === 0);
+  }, [products.isSuccess, all.length]);
   const inactiveCount = all.length - activeCount;
   const updatedAt = useMemo(() => lastUpdated(all), [all]);
 
@@ -350,7 +386,7 @@ function MenuPage() {
             <p className="text-sm text-muted-foreground">{t("menuForbidden")}</p>
           </section>
         ) : (
-          <>
+          <div className="flex flex-col">
             <section className="surface mt-6 p-4">
               {/* Añadir un producto es lo que se viene a hacer aquí, así que
                   va junto a la lista y no dentro del pliegue de montaje. */}
@@ -446,81 +482,94 @@ function MenuPage() {
                 </section>
               )}
 
-              {/* Filters */}
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder={t("searchProduct")}
-                    aria-label={t("searchProduct")}
-                    className="min-h-11 w-full rounded-lg border border-input bg-secondary pl-9 pr-3 text-sm outline-none focus:border-ring"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  {(
-                    [
-                      ["ALL", t("filterAll")],
-                      ["ACTIVE", t("filterActive")],
-                      ["INACTIVE", t("filterInactive")],
-                    ] as [StatusFilter, string][]
-                  ).map(([value, label]) => (
-                    <button
-                      key={value}
-                      onClick={() => setStatus(value)}
-                      className={`min-h-11 flex-1 whitespace-nowrap rounded-full border px-4 text-xs transition-colors sm:flex-none ${
-                        status === value
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* Buscar y filtrar, sólo cuando hay algo que buscar. Con la
+                  carta vacía eran un campo y ocho fichas encima de un "Aún no
+                  hay productos": tres gestos ofrecidos sobre una lista que no
+                  existe, y justo en la pantalla donde hay una sola cosa que
+                  hacer. */}
+              {all.length > 0 && (
+                <>
+                  {/* Filters */}
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <div className="relative flex-1">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder={t("searchProduct")}
+                        aria-label={t("searchProduct")}
+                        className="min-h-11 w-full rounded-lg border border-input bg-secondary pl-9 pr-3 text-sm outline-none focus:border-ring"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      {(
+                        [
+                          ["ALL", t("filterAll")],
+                          ["ACTIVE", t("filterActive")],
+                          ["INACTIVE", t("filterInactive")],
+                        ] as [StatusFilter, string][]
+                      ).map(([value, label]) => (
+                        <button
+                          key={value}
+                          onClick={() => setStatus(value)}
+                          className={`min-h-11 flex-1 whitespace-nowrap rounded-full border px-4 text-xs transition-colors sm:flex-none ${
+                            status === value
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:bg-secondary"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              {/* Filtro por sección, en el orden de la carta */}
-              {(categoryRows.length > 0 || (categories.data?.uncategorisedCount ?? 0) > 0) && (
-                <div className="mt-2 flex flex-wrap gap-1.5 px-0.5">
-                  <button
-                    onClick={() => setCategoryFilter("ALL")}
-                    className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors ${
-                      categoryFilter === "ALL"
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:bg-secondary"
-                    }`}
-                  >
-                    {t("filterAllSections")}
-                  </button>
-                  {categoryRows.map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setCategoryFilter(cat.id === categoryFilter ? "ALL" : cat.id)}
-                      className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors ${
-                        categoryFilter === cat.id
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      <Tag className="h-2.5 w-2.5" />
-                      {cat.name}
-                    </button>
-                  ))}
-                  {(categories.data?.uncategorisedCount ?? 0) > 0 && (
-                    <button
-                      onClick={() => setCategoryFilter(categoryFilter === "NONE" ? "ALL" : "NONE")}
-                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
-                        categoryFilter === "NONE"
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      {UNCATEGORIZED}
-                    </button>
+                  {/* Filtro por sección, en el orden de la carta */}
+                  {(categoryRows.length > 0 || (categories.data?.uncategorisedCount ?? 0) > 0) && (
+                    <div className="mt-2 flex flex-wrap gap-1.5 px-0.5">
+                      <button
+                        onClick={() => setCategoryFilter("ALL")}
+                        className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors ${
+                          categoryFilter === "ALL"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        {t("filterAllSections")}
+                      </button>
+                      {categoryRows.map((cat) => (
+                        <button
+                          key={cat.id}
+                          onClick={() =>
+                            setCategoryFilter(cat.id === categoryFilter ? "ALL" : cat.id)
+                          }
+                          className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors ${
+                            categoryFilter === cat.id
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:bg-secondary"
+                          }`}
+                        >
+                          <Tag className="h-2.5 w-2.5" />
+                          {cat.name}
+                        </button>
+                      ))}
+                      {(categories.data?.uncategorisedCount ?? 0) > 0 && (
+                        <button
+                          onClick={() =>
+                            setCategoryFilter(categoryFilter === "NONE" ? "ALL" : "NONE")
+                          }
+                          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
+                            categoryFilter === "NONE"
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:bg-secondary"
+                          }`}
+                        >
+                          {UNCATEGORIZED}
+                        </button>
+                      )}
+                    </div>
                   )}
-                </div>
+                </>
               )}
 
               {products.isLoading && (
@@ -561,68 +610,79 @@ function MenuPage() {
                               errors={fieldsOf(update.error)}
                               onCancel={() => setEditing(null)}
                               onSave={(body) => update.mutate({ id: p.id, body })}
+                              onToggleActive={() =>
+                                update.mutate({ id: p.id, body: { active: !p.active } })
+                              }
+                              onDelete={() => remove.mutate(p.id)}
                             />
                           </li>
                         ) : (
                           <li
                             key={p.id}
-                            className="grid items-center gap-x-3 rounded-md px-2 py-1.5 transition-colors hover:bg-secondary/50 sm:grid-cols-[1fr_auto]"
+                            /* Dos columnas también en el teléfono. Con tres
+                               botones, la fila de acciones caía a su propia
+                               línea porque no cabían; con uno solo, ese salto
+                               dejaba un lápiz suelto debajo del precio y le
+                               costaba 44 px a cada plato. */
+                            className="grid grid-cols-[1fr_auto] items-center gap-x-3 rounded-md px-2 py-1.5 transition-colors hover:bg-secondary/50"
                           >
                             <div
                               className={`flex min-w-0 items-center gap-2.5 ${p.active ? "" : "text-muted-foreground"}`}
                             >
-                              {/* El hueco de la foto se reserva siempre. La
-                                  imagen sólo salía si el plato tenía una, así
-                                  que en una carta a medio fotografiar los
-                                  nombres empezaban en dos sitios distintos y la
-                                  lista quedaba con el margen izquierdo roto.
-                                  Además el hueco vacío se ve, que es la mitad
-                                  de recordar que ese plato no tiene foto. */}
-                              {p.imageUrl ? (
-                                <img
-                                  src={`${API_BASE_URL}${p.imageUrl}`}
-                                  alt=""
-                                  loading="lazy"
-                                  className="h-9 w-9 shrink-0 rounded-md object-cover"
-                                />
-                              ) : (
-                                <span
-                                  aria-hidden
-                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground/50"
-                                >
-                                  <ImageIcon className="h-4 w-4" />
-                                </span>
-                              )}
+                              {/* El hueco se reserva para que los nombres
+                                  empiecen todos en el mismo sitio en una carta
+                                  a medio fotografiar -- pero sólo si la carta
+                                  tiene alguna foto. Ver `withPhotos`. */}
+                              {withPhotos &&
+                                (p.imageUrl ? (
+                                  <img
+                                    src={`${API_BASE_URL}${p.imageUrl}`}
+                                    alt=""
+                                    loading="lazy"
+                                    className="h-9 w-9 shrink-0 rounded-md object-cover"
+                                  />
+                                ) : (
+                                  <span
+                                    aria-hidden
+                                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground/50"
+                                  >
+                                    <ImageIcon className="h-4 w-4" />
+                                  </span>
+                                ))}
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-1.5">
                                   <span className="text-sm font-medium">{p.name}</span>
-                                  <span
-                                    className={`rounded-full px-1.5 py-px text-[11px] leading-tight ${
-                                      p.active
-                                        ? "bg-primary/15 text-primary"
-                                        : "bg-secondary text-muted-foreground"
-                                    }`}
-                                  >
-                                    {p.active ? t("available") : t("unavailable")}
-                                  </span>
+                                  {/* Sólo lo que se sale de lo normal. Un
+                                      "Disponible" verde en los diez platos de
+                                      una carta entera no distingue nada: lo que
+                                      hay que ver de un vistazo es el que hoy no
+                                      se sirve. Los inactivos ya van además en
+                                      gris. */}
+                                  {!p.active && (
+                                    <span className="rounded-full bg-secondary px-1.5 py-px text-[11px] leading-tight text-muted-foreground">
+                                      {t("unavailable")}
+                                    </span>
+                                  )}
                                 </div>
                                 {p.description && (
                                   <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                                     {p.description}
                                   </p>
                                 )}
-                                <p className="money-sm mt-0.5 sm:hidden">
-                                  {formatMoney(p.priceMinorUnits, p.currency)}
-                                </p>
                               </div>
                             </div>
-                            {/* Editar, cambiar disponibilidad y borrar medían
-                                22, 24 y 22 px de alto, pegados unos a otros y
-                                con el que borra en el extremo. En el móvil esta
-                                fila cae en su propia línea, así que hay sitio
-                                de sobra para las tres a 44. */}
-                            <span className="mt-1 flex items-center gap-2 sm:mt-0 sm:justify-end">
-                              <span className="hidden figure text-sm sm:inline">
+                            {/* Un solo control por fila.
+                                Eran tres -- editar, desactivar y una papelera
+                                roja que borra de verdad --, los tres a 44 px y
+                                los tres siempre a la vista: treinta botones en
+                                una carta de diez platos, con el que destruye
+                                pesando lo mismo que el que corrige una errata.
+                                Lo que se viene a hacer aquí es cambiar un
+                                precio, así que eso se queda a un toque y las
+                                otras dos bajan al formulario de edición, que es
+                                donde además se ve qué plato se está tocando. */}
+                            <span className="flex items-center justify-end gap-3">
+                              <span className="money-sm">
                                 {formatMoney(p.priceMinorUnits, p.currency)}
                               </span>
                               <button
@@ -632,29 +692,6 @@ function MenuPage() {
                               >
                                 <Pencil className="h-4 w-4" />
                               </button>
-                              <button
-                                onClick={() =>
-                                  update.mutate({ id: p.id, body: { active: !p.active } })
-                                }
-                                className="min-h-11 whitespace-nowrap rounded-full border border-border px-4 text-xs transition-colors hover:bg-secondary"
-                              >
-                                {p.active ? t("deactivate") : t("activate")}
-                              </button>
-                              {/* La papelera borra de verdad. Antes desactivaba
-                                  -- lo mismo que el botón de al lado -- así que
-                                  el plato seguía en la lista y no había forma
-                                  de sacarlo nunca. El backend ya sabía hacerlo
-                                  (`?permanent=true`); sólo faltaba pedírselo. */}
-                              <ConfirmButton
-                                title={t("confirmDeleteProduct")}
-                                description={t("confirmDeleteProductBody")}
-                                confirmLabel={t("confirmDeleteProductCta")}
-                                onConfirm={() => remove.mutate(p.id)}
-                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-destructive transition-colors hover:bg-destructive/10"
-                                aria-label={`${t("remove")} ${p.name}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </ConfirmButton>
                             </span>
                           </li>
                         ),
@@ -671,7 +708,11 @@ function MenuPage() {
                 pantalla. Los productos, que es a lo que se entra, quedaban
                 debajo de todas ellas. Ahora van detrás de un pliegue y la
                 lista sale primero. */}
-            <details className="surface group mt-6 p-4">
+            <details
+              open={setupOpen}
+              onToggle={(event) => setSetupOpen(event.currentTarget.open)}
+              className={`surface group mt-6 p-4 ${setupOpen && all.length === 0 ? "order-first" : ""}`}
+            >
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm">
                 <span>{t("menuSetup")}</span>
                 <ChevronDown
@@ -741,7 +782,7 @@ function MenuPage() {
                 <MenuPdfCard />
               </div>
             </details>
-          </>
+          </div>
         )}
       </main>
     </div>
@@ -802,6 +843,8 @@ function EditRow({
   errors,
   onCancel,
   onSave,
+  onToggleActive,
+  onDelete,
 }: {
   product: Product;
   categories: MenuCategory[];
@@ -815,6 +858,10 @@ function EditRow({
     active?: boolean;
     categoryId?: string | null;
   }) => void;
+  /** Quitarlo de la carta sin borrarlo, o devolverlo. */
+  onToggleActive: () => void;
+  /** Borrarlo de verdad. Detrás de una confirmación, siempre. */
+  onDelete: () => void;
 }) {
   const { t } = useI18n();
   const [name, setName] = useState(product.name);
@@ -863,7 +910,12 @@ function EditRow({
           {field}: {message}
         </p>
       ))}
-      <div className="flex gap-2">
+      {/* Guardar y cancelar a la izquierda; a la derecha, y separadas, las dos
+          que cambian lo que ve un comensal. Aquí y no en la fila de la lista:
+          allí eran treinta botones siempre a la vista, y el que borra estaba a
+          un toque de distancia del que corrige una errata. Todas a 44 px --
+          medían 27 -- porque esto se usa de pie y con una mano. */}
+      <div className="flex flex-wrap items-center gap-2 pt-1">
         <button
           disabled={pending}
           onClick={() =>
@@ -876,16 +928,39 @@ function EditRow({
               categoryId: categoryId || null,
             })
           }
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-40"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground disabled:opacity-40"
         >
-          <Check className="h-3.5 w-3.5" /> {t("save")}
+          <Check className="h-4 w-4" /> {t("save")}
         </button>
         <button
           onClick={onCancel}
-          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-xs"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm"
         >
-          <X className="h-3.5 w-3.5" /> {t("cancel")}
+          <X className="h-4 w-4" /> {t("cancel")}
         </button>
+
+        <span className="ml-auto flex items-center gap-2">
+          <button
+            disabled={pending}
+            onClick={onToggleActive}
+            className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary disabled:opacity-40"
+          >
+            {product.active ? t("deactivate") : t("activate")}
+          </button>
+          {/* Borra de verdad: el backend lo hace con `?permanent=true`. Es lo
+              único de esta pantalla que no se puede deshacer, así que va detrás
+              de una confirmación que dice el nombre del plato. */}
+          <ConfirmButton
+            title={t("confirmDeleteProduct")}
+            description={t("confirmDeleteProductBody")}
+            confirmLabel={t("confirmDeleteProductCta")}
+            onConfirm={onDelete}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-destructive transition-colors hover:bg-destructive/10"
+            aria-label={`${t("remove")} ${product.name}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </ConfirmButton>
+        </span>
       </div>
     </div>
   );

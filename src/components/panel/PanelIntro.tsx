@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useI18n } from "@/lib/i18n";
 import { account, auth } from "@/lib/api";
+import { NameNudge } from "./NameNudge";
 
 /**
  * A quién saluda esto y de qué restaurante habla.
@@ -53,6 +54,9 @@ export function PanelIntro({ live }: { live: boolean }) {
 
   const name = greetingName(me.data?.user);
   const restaurant = accountQuery.data?.name;
+  // Con nombre puesto no hay nada que pedir; sin él, el saludo de aquí arriba
+  // es exactamente el sitio donde se está viendo el correo de alguien.
+  const asksName = me.isSuccess && !me.data.user.displayName?.trim();
 
   return (
     <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
@@ -66,6 +70,7 @@ export function PanelIntro({ live }: { live: boolean }) {
             {t("greetSub").replace("{name}", restaurant)}
           </p>
         )}
+        {asksName && <NameNudge email={me.data!.user.email} />}
       </div>
 
       <p

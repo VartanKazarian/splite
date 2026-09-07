@@ -210,6 +210,6 @@ function printQr(tableName: string, kicker: string, hint: string) {
   <h1 class="name">${name}</h1>
   <div class="qr">${svg}</div>
   <p class="hint">${hint}</p>
-</div><script>window.onload=function(){window.focus();window.print();}<\/script></body></html>`);
+</div><script>window.onload=function(){window.focus();window.print();}<\u002Fscript></body></html>`);
   win.document.close();
 }

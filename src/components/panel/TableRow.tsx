@@ -138,14 +138,11 @@ export function TableRow({
             <span className="figure">{formatAge(minutes)}</span>
           </>
         )}
-        {(bill.pendingClaims ?? 0) > 0 && (
-          <>
-            <span aria-hidden>·</span>
-            <span className="text-amber-700">
-              {t("claimsWaiting").replace("{n}", String(bill.pendingClaims))}
-            </span>
-          </>
-        )}
+        {/* Los avisos por verificar no se repiten aquí. La píldora de arriba
+            ya dice "1 sin verificar" -- y lo dice siempre, porque en `badgeOf`
+            los avisos ganan a cualquier otro estado --, así que esta línea
+            escribía en rojo, dos centímetros más abajo, exactamente lo mismo
+            que se acababa de leer. Ver `badgeOf`. */}
       </p>
     </button>
   );

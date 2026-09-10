@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, UtensilsCrossed } from "lucide-react";
+import { Check, HandPlatter, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
-import { ApiError, formatMoney, orders, type GuestOrder } from "@/lib/api";
+import { ApiError, auth, bills, formatMoney, orders, type GuestOrder } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
@@ -17,6 +17,17 @@ import { Skeleton } from "@/components/ui/skeleton";
  * Por eso el botón dice "Visto" y no "Aceptar". Aceptar sugiere que se puede
  * rechazar, y no se puede: el dinero ya está en la cuenta. Lo único que hace es
  * sacar el aviso de la bandeja y dejar escrito quién se hizo cargo.
+ *
+ * **Y el otro botón, "Lo atiendo yo".** Una cuenta que abrió el comensal
+ * pidiendo por el QR no tiene mesero -- no la abrió nadie de la casa -- y sus
+ * propinas acaban en el cubo "sin mesero" del informe. Éste es el único momento
+ * en que alguien de la sala mira esa mesa sabiendo quién va a atenderla, así
+ * que es donde se pregunta. Da el pedido por visto y se pone la cuenta a su
+ * nombre en un solo gesto, porque son la misma decisión.
+ *
+ * Sale sólo cuando de verdad falta: con la cuenta ya atribuida, el único botón
+ * es "Visto". Nadie le quita una mesa a nadie desde aquí -- el servidor sólo
+ * admite reclamar lo que no es de nadie, y sólo para uno mismo.
  *
  * Desaparece entera cuando no hay nada. Una tarjeta permanente que dice "no hay
  * pedidos" es una casilla para un cero, y el panel ya tiene su sitio para lo
@@ -35,16 +46,52 @@ export function OrderTray({ onOpenTable }: { onOpenTable?: (tableId: string) => 
     refetchInterval: 8000,
   });
 
+  // Quién está mirando, para poder ponerse una mesa a su nombre. Misma clave
+  // que el resto del panel: una consulta, no una más.
+  const me = useQuery({ queryKey: ["me"], queryFn: () => auth.me(), retry: false });
+
+  const settled = () => {
+    void queryClient.invalidateQueries({ queryKey: ["orders"] });
+    void queryClient.invalidateQueries({ queryKey: ["service-snapshot"] });
+  };
+
+  const fail = (error: unknown) =>
+    toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
+
   // El sonido no está aquí: lo lleva la cabecera del panel, que está en todas
   // las pantallas. Ver `useOrderChime`. Las dos comparten la misma consulta.
   const ack = useMutation({
     mutationFn: (id: string) => orders.ack(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["orders"] });
-      void queryClient.invalidateQueries({ queryKey: ["service-snapshot"] });
+    onSuccess: settled,
+    onError: fail,
+  });
+
+  /**
+   * Ponerse la mesa y dar el pedido por visto, en ese orden.
+   *
+   * Primero la atribución: si falla -- porque otro se adelantó por dos
+   * segundos --, el aviso se queda en la bandeja y se ve el motivo, en vez de
+   * desaparecer dejando la cuenta sin dueño igual que estaba.
+   */
+  const claim = useMutation({
+    mutationFn: async ({ orderId, billId }: { orderId: string; billId: string }) => {
+      await bills.setServer(billId, me.data!.user.id);
+      await orders.ack(orderId);
     },
-    onError: (error) =>
-      toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown")),
+    onSuccess: () => {
+      toast.success(t("orderMineDone"));
+      settled();
+      // La mesa cambia de dueño, así que el plano y esa cuenta se recargan.
+      void queryClient.invalidateQueries({ queryKey: ["floor"] });
+      void queryClient.invalidateQueries({ queryKey: ["bills", "OPEN"] });
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.code === "BILL_ALREADY_SERVED") {
+        settled();
+        return toast.error(t("orderMineTaken"));
+      }
+      return fail(error);
+    },
   });
 
   if (tray.isLoading) return <Skeleton className="h-24 w-full" />;
@@ -67,8 +114,11 @@ export function OrderTray({ onOpenTable }: { onOpenTable?: (tableId: string) => 
           <OrderRow
             key={order.id}
             order={order}
-            pending={ack.isPending}
+            pending={ack.isPending || claim.isPending}
             onAck={() => ack.mutate(order.id)}
+            {...(order.servedBy === null && order.billId && me.data
+              ? { onMine: () => claim.mutate({ orderId: order.id, billId: order.billId! }) }
+              : {})}
             {...(onOpenTable ? { onOpen: () => onOpenTable(order.tableId) } : {})}
           />
         ))}
@@ -81,11 +131,14 @@ function OrderRow({
   order,
   pending,
   onAck,
+  onMine,
   onOpen,
 }: {
   order: GuestOrder;
   pending: boolean;
   onAck: () => void;
+  /** Ausente cuando la cuenta ya tiene mesero, que es cuando no hay nada que pedir. */
+  onMine?: () => void;
   onOpen?: () => void;
 }) {
   const { t } = useI18n();
@@ -133,14 +186,30 @@ function OrderRow({
         </p>
       )}
 
-      <button
-        type="button"
-        disabled={pending}
-        onClick={onAck}
-        className="mt-2.5 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary disabled:opacity-40"
-      >
-        <Check aria-hidden className="h-4 w-4" /> {t("orderSeen")}
-      </button>
+      {/* "Lo atiendo yo" primero y en verde cuando la mesa no es de nadie: es
+          lo que hay que hacer, y "Visto" queda como la salida para quien sólo
+          está mirando la bandeja desde la caja. Con mesero ya puesto, "Visto"
+          vuelve a ser el único botón y recupera su sitio. */}
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        {onMine && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onMine}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+          >
+            <HandPlatter aria-hidden className="h-4 w-4" /> {t("orderMine")}
+          </button>
+        )}
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onAck}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary disabled:opacity-40"
+        >
+          <Check aria-hidden className="h-4 w-4" /> {t("orderSeen")}
+        </button>
+      </div>
     </li>
   );
 }

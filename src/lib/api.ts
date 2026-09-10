@@ -803,6 +803,11 @@ export type GuestOrder = {
   tableId: string;
   tableName: string;
   billId: string | null;
+  /**
+   * A quién está atribuida la cuenta, que en un pedido por QR suele ser nadie:
+   * la abrió el comensal. Null es el caso normal aquí, no un fallo.
+   */
+  servedBy: string | null;
   lineCount: number;
   items: { name: string; quantity: number; subtotalMinor: Money }[];
   createdAt: string;

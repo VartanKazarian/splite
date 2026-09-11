@@ -321,3 +321,39 @@
     animation: none;
   }
 }
+
+/*
+ * Aparecer al entrar en pantalla, sin una línea de JavaScript.
+ *
+ * Ligado al scroll con `animation-timeline: view()`, y no con un
+ * IntersectionObserver, por una razón que no es elegancia: la forma habitual
+ * -- pintar el elemento a `opacity: 0` y que JS le quite la clase -- deja la
+ * página **en blanco** si el script tarda o falla, y ésta es la página que
+ * tiene que cargar en el teléfono de alguien que nunca ha oído hablar de
+ * nosotros. Envuelto en `@supports`, donde el navegador no lo entiende no pasa
+ * nada en absoluto: el contenido se ve, que es exactamente lo que hace hoy.
+ *
+ * Y va dentro de `prefers-reduced-motion: no-preference`, así que quien pidió
+ * que nada se moviera recibe la página quieta, no una versión atenuada.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .marketing .reveal {
+      animation: marketing-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-timeline: view();
+      /* Termina a mitad de la entrada: si acabara al final, lo que se lee
+         estaría siempre a medio aparecer. */
+      animation-range: entry 0% entry 45%;
+    }
+
+    /*
+     * El escalonado de una rejilla. `--i` lo pone quien monta la tarjeta y
+     * retrasa su tramo, así que las tres entran una detrás de otra en vez de
+     * las tres a la vez. Con tope de 3 para que la cuarta de una fila no llegue
+     * tan tarde que parezca rota.
+     */
+    .marketing .reveal-item {
+      animation-range: entry calc(var(--i, 0) * 7%) entry calc(45% + var(--i, 0) * 7%);
+    }
+  }
+}

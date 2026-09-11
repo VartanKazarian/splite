@@ -1,22 +1,28 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
+  Banknote,
   Check,
   ClipboardList,
-  Clock,
+  HandCoins,
   KeyRound,
   Lock,
   QrCode as QrIcon,
   Receipt,
   RefreshCcw,
+  ScanLine,
   ShieldCheck,
   Smartphone,
   Utensils,
 } from "lucide-react";
+import { C2P_BANKS, money } from "@/components/marketing/format";
 import {
-  BillMockup,
+  C2PMockup,
   CountUp,
+  CurrencyToggle,
   DashboardMockup,
+  LiveSplitMockup,
   QrCardMockup,
   SplitMockup,
 } from "@/components/marketing/Mockups";
@@ -91,9 +97,10 @@ function Landing() {
       <main>
         <Hero />
         <Problem />
-        <Demo />
-        <ItemSplit />
         <HowItWorks />
+        <ItemSplit />
+        <GetPaid />
+        <OrderFromTable />
         <Benefits />
         <ForOwners />
         <Onboarding />
@@ -117,6 +124,9 @@ function Nav() {
         <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
           <a className="transition-colors hover:text-foreground" href="#como-funciona">
             Cómo funciona
+          </a>
+          <a className="transition-colors hover:text-foreground" href="#cobro">
+            Cómo cobras
           </a>
           <a className="transition-colors hover:text-foreground" href="#restaurantes">
             Para restaurantes
@@ -145,6 +155,14 @@ function Nav() {
 }
 
 function Hero() {
+  /*
+   * La moneda de todos los ejemplos de arriba, en estado y no en CSS, porque la
+   * comparte el mockup. Arranca en bolívares: es la moneda en la que se cobra
+   * de verdad en el salón, y abrir en dólares era la razón por la que esta
+   * página parecía de otro país.
+   */
+  const [currency, setCurrency] = useState<"USD" | "VES">("VES");
+
   return (
     <Section className="pt-12 md:pt-20">
       <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
@@ -156,26 +174,29 @@ function Hero() {
             <span className="text-primary">Tu equipo no divide la cuenta.</span>
           </h1>
           <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground md:text-[19px]">
-            Splite permite que cada comensal vea la cuenta, elija lo que consumió y pague su parte
-            desde su teléfono.
+            Tus clientes piden desde el QR de la mesa, cada quien elige lo que consumió y paga su
+            parte desde su banco. En bolívares o en dólares, a la tasa del día.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <PrimaryCta to="/registro">Quiero Splite en mi restaurante</PrimaryCta>
-            <GhostCta href="#como-funciona">Ver cómo funciona</GhostCta>
+            {/* La demo del comensal es el mejor activo que hay y estaba de
+                enlace de pie de página. Funciona, tiene números reales y
+                contesta en diez segundos lo que el texto tarda una pantalla. */}
+            <GhostCta href="/t?demo=1">Ver la demo</GhostCta>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            Sin app para tus clientes. Escanean, revisan y pagan.
+            Sin app para tus clientes. Escanean, piden y pagan.
           </p>
-          <p className="mt-2 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" /> Pagos integrados próximamente
-          </p>
+          <div className="mt-5">
+            <CurrencyToggle value={currency} onChange={setCurrency} />
+          </div>
         </div>
 
         <div className="rise flex items-end justify-center gap-4 lg:justify-end">
           <div className="hidden sm:block">
             <QrCardMockup />
           </div>
-          <BillMockup />
+          <LiveSplitMockup currency={currency} />
         </div>
       </div>
     </Section>
@@ -227,52 +248,6 @@ function Problem() {
   );
 }
 
-function Demo() {
-  return (
-    <Section id="producto">
-      <div className="max-w-2xl">
-        <Eyebrow>El producto</Eyebrow>
-        <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-          Splite hace que cobrar una mesa sea más sencillo.
-        </h2>
-      </div>
-      <div className="mt-10 grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-        <div className="flex justify-center">
-          <SplitMockup />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[
-            {
-              n: "01",
-              t: "Escanean",
-              d: "Un QR por mesa abre la cuenta directamente en el teléfono.",
-            },
-            {
-              n: "02",
-              t: "Eligen",
-              d: "Cada comensal selecciona lo que consumió o divide la cuenta como prefiera.",
-            },
-            {
-              n: "03",
-              t: "Liquidan",
-              d: "Cada persona cubre su parte y la mesa cierra sin que el equipo haga cuentas.",
-            },
-          ].map((s) => (
-            <article
-              key={s.n}
-              className="rounded-2xl border border-border bg-card p-6 transition-transform duration-200 hover:-translate-y-1"
-            >
-              <span className="text-[13px] font-semibold figure text-primary">{s.n}</span>
-              <h3 className="mt-3 text-xl">{s.t}</h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{s.d}</p>
-            </article>
-          ))}
-        </div>
-      </div>
-    </Section>
-  );
-}
-
 function ItemSplit() {
   return (
     <Section className="border-y border-border bg-secondary">
@@ -298,10 +273,10 @@ function ItemSplit() {
           </div>
           <div className="mt-4 space-y-2 text-[15px]">
             {[
-              { n: "Hamburguesa", p: "$18,00", who: "Carlos" },
-              { n: "Pizza", p: "$22,00", who: "Ana" },
-              { n: "Cervezas", p: "$12,00", who: "Carlos · Pedro" },
-              { n: "Papas", p: "$8,00", who: "Pedro" },
+              { n: "Hamburguesa", p: money(18, "VES"), who: "Carlos" },
+              { n: "Pizza", p: money(22, "VES"), who: "Ana" },
+              { n: "Cervezas", p: money(12, "VES"), who: "Carlos · Pedro" },
+              { n: "Papas", p: money(8, "VES"), who: "Pedro" },
             ].map((r) => (
               <div
                 key={r.n}
@@ -318,7 +293,7 @@ function ItemSplit() {
           <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
             <span className="text-sm text-muted-foreground">Subtotal</span>
             <span className="text-2xl font-semibold">
-              <CountUp to={60} prefix="$" />
+              <CountUp to={60 * 757.54} decimals={0} suffix=" Bs" />
             </span>
           </div>
         </div>
@@ -328,82 +303,231 @@ function ItemSplit() {
 }
 
 function HowItWorks() {
+  /*
+   * Una sola sección de «cómo funciona».
+   *
+   * Había dos, con los mismos tres pasos y casi las mismas palabras: ésta con
+   * iconos y otra llamada «El producto» con 01/02/03. Novecientos píxeles de
+   * scroll para leer lo mismo dos veces. Se queda una, con el mockup que de
+   * verdad se puede tocar.
+   */
   return (
     <Section id="como-funciona">
       <div className="max-w-2xl">
         <Eyebrow>Cómo funciona</Eyebrow>
         <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-          Escanear, elegir y liquidar. Nada más.
+          Piden, eligen y pagan. Tu equipo no hace cuentas.
         </h2>
       </div>
-      <div className="mt-10 grid gap-6 md:grid-cols-3">
-        {[
-          {
-            icon: QrIcon,
-            t: "Escanean",
-            d: "El comensal apunta la cámara al QR de la mesa y la cuenta abre en su navegador.",
-          },
-          {
-            icon: ClipboardList,
-            t: "Eligen",
-            d: "Marca los productos que consumió, divide en partes iguales o escribe un monto.",
-          },
-          {
-            icon: Receipt,
-            t: "Liquidan",
-            d: "Splite calcula servicio e IVA sobre lo que le toca a cada quien y registra su parte.",
-          },
-        ].map((s) => (
-          <article
-            key={s.t}
-            className="rounded-2xl border border-border bg-card p-6 transition-transform duration-200 hover:-translate-y-1"
-          >
-            <s.icon className="h-5 w-5 text-primary" />
-            <h3 className="mt-4 text-xl">{s.t}</h3>
-            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{s.d}</p>
-          </article>
-        ))}
+      <div className="mt-10 grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div className="flex justify-center">
+          <SplitMockup />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              icon: QrIcon,
+              t: "Escanean",
+              d: "Un QR por mesa abre la carta y la cuenta en el navegador. Sin descargar nada.",
+            },
+            {
+              icon: ClipboardList,
+              t: "Piden y eligen",
+              d: "Piden desde la carta y marcan lo que consumió cada quien, o dividen en partes iguales.",
+            },
+            {
+              icon: Receipt,
+              t: "Pagan",
+              d: "Cada persona paga su parte desde su banco. Servicio e IVA se calculan sobre lo que le toca.",
+            },
+          ].map((s2, i) => (
+            <article
+              key={s2.t}
+              style={{ "--i": i } as React.CSSProperties}
+              className="reveal reveal-item rounded-2xl border border-border bg-card p-6 transition-transform duration-200 hover:-translate-y-1"
+            >
+              <s2.icon className="h-5 w-5 text-primary" />
+              <h3 className="mt-4 text-xl">{s2.t}</h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{s2.d}</p>
+            </article>
+          ))}
+        </div>
       </div>
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <GhostCta href="/t?demo=1">Probar la vista del comensal</GhostCta>
+    </Section>
+  );
+}
+
+/**
+ * Cómo entra el dinero. La sección que faltaba.
+ *
+ * La página anterior remataba el asunto con un chip que decía «Pagos
+ * integrados próximamente» y una línea de «pasarela de pagos: próximamente».
+ * Las dos eran falsas: C2P de Mercantil está en producción y cobra de la cuenta
+ * del propio comensal, y los avisos de pago móvil se verifican desde el panel.
+ *
+ * Era el peor sitio posible para una promesa aplazada, porque «¿y cómo me
+ * pagan?» es la primera pregunta de cualquiera que mire esto en Venezuela.
+ */
+function GetPaid() {
+  return (
+    <Section id="cobro" className="border-y border-border bg-secondary">
+      <div className="grid gap-10 lg:grid-cols-[1fr_0.8fr] lg:items-center">
+        <div>
+          <Eyebrow>Cómo cobras</Eyebrow>
+          <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
+            El cobro entra desde el banco del comensal.
+          </h2>
+          <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground">
+            Con Clave 2 Pagos, tu cliente elige su banco, pide su clave y paga sin levantarse. No
+            hay que perseguir capturas de pantalla ni teclear referencias.
+          </p>
+
+          <div className="mt-7 grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                icon: Banknote,
+                t: `${C2P_BANKS} bancos`,
+                d: "Clave 2 Pagos, con las instrucciones de cada banco dentro de la app.",
+              },
+              {
+                icon: Smartphone,
+                t: "Pago móvil",
+                d: "El comensal avisa y tu equipo lo verifica desde el panel, mesa por mesa.",
+              },
+              {
+                icon: HandCoins,
+                t: "En caja",
+                d: "Efectivo, tarjeta o transferencia quedan registrados en la misma cuenta.",
+              },
+            ].map((c, i) => (
+              <article
+                key={c.t}
+                style={{ "--i": i } as React.CSSProperties}
+                className="reveal reveal-item rounded-2xl border border-border bg-card p-5"
+              >
+                <c.icon className="h-5 w-5 text-primary" />
+                <h3 className="mt-3 text-lg">{c.t}</h3>
+                <p className="mt-1.5 text-[14px] leading-relaxed text-muted-foreground">{c.d}</p>
+              </article>
+            ))}
+          </div>
+
+          <p className="mt-7 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/8 px-4 py-2 text-sm font-medium text-primary">
+            <Check className="h-4 w-4" /> Las propinas se atribuyen al mesero de la mesa
+          </p>
+        </div>
+
+        <div className="flex justify-center lg:justify-end">
+          <C2PMockup />
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+/**
+ * Pedir desde la mesa, que cambia de categoría el producto.
+ *
+ * Desde que el comensal puede pedir desde el QR, esto dejó de ser «pay at
+ * table» para ser «pide y paga». Es la diferencia entre una herramienta de
+ * cobro y una de sala, y no aparecía en ningún sitio de la página.
+ */
+function OrderFromTable() {
+  return (
+    <Section id="pedidos">
+      <div className="grid gap-10 lg:grid-cols-[0.85fr_1fr] lg:items-center">
+        <div className="order-2 lg:order-1">
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Bandeja de pedidos
+            </p>
+            <ul className="mt-4 space-y-2">
+              {[
+                { m: "Mesa 4", l: "3 tequeños · 2 cachapas", t: "hace 1 min", n: true },
+                { m: "Mesa 12", l: "1 pabellón · 2 cervezas", t: "hace 4 min", n: true },
+                { m: "Mesa 9", l: "2 papelón con limón", t: "hace 12 min", n: false },
+              ].map((o, i) => (
+                <li
+                  key={o.m}
+                  style={{ "--i": i } as React.CSSProperties}
+                  className="reveal reveal-item flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3"
+                >
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${o.n ? "bg-primary" : "bg-border"}`}
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">{o.m}</span>
+                    <span className="block truncate text-[13px] text-muted-foreground">{o.l}</span>
+                  </span>
+                  <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{o.t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="order-1 lg:order-2">
+          <Eyebrow>Pedidos desde la mesa</Eyebrow>
+          <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
+            El QR ya no solo enseña la cuenta. También toma el pedido.
+          </h2>
+          <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground">
+            El comensal pide desde la carta con fotos y las líneas entran en la cuenta al instante.
+            Tu equipo lo ve en una bandeja y da por visto lo que ya atendió.
+          </p>
+          <ul className="mt-6 grid gap-2 text-[15px]">
+            {[
+              "La carta se carga desde una foto o un PDF de la que ya tienes",
+              "Una mesa sin cuenta abre la suya con el primer pedido",
+              "Un mesero puede ponerse la mesa que no es de nadie",
+            ].map((x) => (
+              <li key={x} className="flex items-start gap-2 text-muted-foreground">
+                <Check className="mt-1 h-4 w-4 shrink-0 text-primary" /> {x}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </Section>
   );
 }
 
 function Benefits() {
+  /*
+   * Cuatro frases, no cuatro tarjetas.
+   *
+   * Esto eran cuatro fichas grandes con titular y párrafo, y hoy las cuatro
+   * dicen algo que la página ya ha *enseñado* más arriba: el reparto se ve
+   * funcionando en el hero, el cobro tiene su propia sección y la bandeja de
+   * pedidos está dibujada. Un beneficio escrito después de la demostración es
+   * un pie de foto, y un pie de foto no necesita una tarjeta.
+   */
   return (
     <Section className="border-y border-border bg-secondary">
-      <div className="max-w-2xl">
-        <Eyebrow>Beneficios</Eyebrow>
-        <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-          Más rápido para tu equipo. Más fácil para tus clientes.
-        </h2>
-      </div>
-      <div className="mt-10 grid gap-5 sm:grid-cols-2">
-        {[
-          {
-            t: "Menos tiempo cobrando",
-            d: "El cliente hace la división y reduce el trabajo manual del equipo.",
-          },
-          {
-            t: "Menos errores",
-            d: "Los importes se calculan automáticamente y cada pago queda registrado.",
-          },
-          {
-            t: "Mesas que cierran más fácil",
-            d: "Todos pueden pagar su parte sin esperar a que el mesero divida la cuenta.",
-          },
-          {
-            t: "Una experiencia moderna",
-            d: "El cliente usa su propio teléfono. No necesita descargar una aplicación.",
-          },
-        ].map((b) => (
-          <article key={b.t} className="rounded-2xl border border-border bg-card p-6">
-            <h3 className="text-xl">{b.t}</h3>
-            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{b.d}</p>
-          </article>
-        ))}
+      <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div className="reveal">
+          <Eyebrow>Beneficios</Eyebrow>
+          <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
+            Más rápido para tu equipo. Más fácil para tus clientes.
+          </h2>
+        </div>
+        <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          {[
+            ["Menos tiempo cobrando", "La división la hace el cliente."],
+            ["Menos errores", "Los importes se calculan en el servidor."],
+            ["Mesas que rotan antes", "Nadie espera a que el mesero divida."],
+            ["Sin instalar nada", "El cliente usa su propio teléfono."],
+          ].map(([t, d], i) => (
+            <li
+              key={t}
+              style={{ "--i": i % 2 } as React.CSSProperties}
+              className="reveal reveal-item border-l-2 border-primary/30 pl-4"
+            >
+              <p className="text-[16px] font-medium">{t}</p>
+              <p className="mt-0.5 text-[14px] leading-relaxed text-muted-foreground">{d}</p>
+            </li>
+          ))}
+        </ul>
       </div>
     </Section>
   );
@@ -421,28 +545,31 @@ function ForOwners() {
           <p className="mt-5 max-w-md text-[17px] leading-relaxed text-muted-foreground">
             Splite conecta la experiencia del comensal con la operación del restaurante.
           </p>
+          {/* Capacidades, no nombres de tabla. La lista anterior («Mesas»,
+              «Cuentas abiertas», «Ítems de la cuenta») era el esquema de la
+              base de datos puesto en una columna, y dejaba fuera todo lo que
+              se ha construido desde entonces: propinas, tasa, carta por foto,
+              informe de cierre, segundo factor. */}
           <ul className="mt-6 grid gap-2 text-[15px] sm:grid-cols-2">
             {[
-              "Mesas",
-              "Cuentas abiertas",
-              "Menú y productos",
-              "Ítems de la cuenta",
-              "Roles del personal",
-              "Códigos QR por mesa",
-              "Estado de los pagos",
-              "Cierre de la cuenta",
+              "Plano de sala con lo que debe cada mesa",
+              "Propinas repartidas por mesero",
+              "Tasa del día aplicada a toda la carta",
+              "Carta cargada desde una foto o un PDF",
+              "Avisos de pago verificados en el panel",
+              "Cierre de turno con lo cobrado y lo perdonado",
+              "Roles para dueño, encargado, caja y sala",
+              "Segundo factor para entrar al panel",
             ].map((x) => (
-              <li key={x} className="flex items-center gap-2 text-muted-foreground">
-                <Check className="h-4 w-4 shrink-0 text-primary" /> {x}
+              <li key={x} className="flex items-start gap-2 text-muted-foreground">
+                <Check className="mt-1 h-4 w-4 shrink-0 text-primary" /> {x}
               </li>
             ))}
           </ul>
           <div className="mt-8">
             <PrimaryCta to="/registro">Hablar con Splite</PrimaryCta>
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Integraciones POS y pasarela de pagos: próximamente.
-          </p>
+          <p className="mt-4 text-sm text-muted-foreground">Integraciones con POS: próximamente.</p>
         </div>
         <DashboardMockup />
       </div>
@@ -453,7 +580,7 @@ function ForOwners() {
 function Onboarding() {
   return (
     <Section className="border-y border-border bg-secondary">
-      <div className="max-w-2xl">
+      <div className="reveal max-w-2xl">
         <Eyebrow>Puesta en marcha</Eyebrow>
         <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
           Así funcionará tu restaurante con Splite.
@@ -470,10 +597,14 @@ function Onboarding() {
           {
             n: "04",
             t: "Deja que Splite haga el trabajo",
-            d: "Los clientes consultan y dividen la cuenta.",
+            d: "Tus clientes piden, dividen la cuenta y pagan desde su teléfono.",
           },
-        ].map((s) => (
-          <li key={s.n} className="rounded-2xl border border-border bg-card p-6">
+        ].map((s, i) => (
+          <li
+            key={s.n}
+            style={{ "--i": i } as React.CSSProperties}
+            className="reveal reveal-item rounded-2xl border border-border bg-card p-6"
+          >
             <span className="text-[13px] font-semibold figure text-primary">{s.n}</span>
             <h3 className="mt-3 text-lg">{s.t}</h3>
             <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{s.d}</p>
@@ -532,6 +663,16 @@ function Trust() {
       d: "Cada miembro del equipo ve solo lo suyo.",
     },
     { icon: Lock, t: "Sesiones seguras", d: "Sesiones de invitado limitadas a su mesa." },
+    {
+      icon: KeyRound,
+      t: "Segundo factor",
+      d: "El panel admite 2FA con la app de autenticación que ya usas.",
+    },
+    {
+      icon: Banknote,
+      t: "La clave nunca se guarda",
+      d: "La clave C2P se usa una vez y no tiene columna en la base de datos.",
+    },
     { icon: RefreshCcw, t: "QR revocables", d: "Puedes rotar el QR de una mesa cuando quieras." },
     { icon: ClipboardList, t: "Registro de actividad", d: "Cada cuenta y pago queda registrado." },
     {
@@ -542,7 +683,7 @@ function Trust() {
   ];
   return (
     <Section id="seguridad" className="border-y border-border bg-secondary">
-      <div className="max-w-2xl">
+      <div className="reveal max-w-2xl">
         <Eyebrow>Confianza</Eyebrow>
         <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
           Construido para manejar cuentas y pagos con precisión.
@@ -552,8 +693,12 @@ function Trust() {
         </p>
       </div>
       <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((i) => (
-          <article key={i.t} className="rounded-2xl border border-border bg-card p-6">
+        {items.map((i, idx) => (
+          <article
+            key={i.t}
+            style={{ "--i": idx % 3 } as React.CSSProperties}
+            className="reveal reveal-item rounded-2xl border border-border bg-card p-6"
+          >
             <i.icon className="h-5 w-5 text-primary" />
             <h3 className="mt-4 text-lg">{i.t}</h3>
             <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{i.d}</p>
@@ -576,12 +721,14 @@ function FinalCta() {
         </p>
         <div className="mx-auto mt-8 flex max-w-lg flex-col justify-center gap-3 sm:flex-row">
           <PrimaryCta to="/registro">Quiero probar Splite en mi restaurante</PrimaryCta>
-          <Link
-            to="/registro"
+          {/* Antes este botón también iba a /registro: dos llamadas idénticas
+              con dos textos distintos. El que no pide datos lleva a la demo. */}
+          <a
+            href="/t?demo=1"
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-border px-7 text-[15px] font-medium transition-colors hover:bg-secondary sm:w-auto"
           >
-            Hablar con el equipo
-          </Link>
+            Antes, ver la demo
+          </a>
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
           Te pedimos solo lo necesario: nombre, restaurante, contacto y tamaño del salón.
@@ -607,6 +754,11 @@ function Footer() {
             <li>
               <a className="hover:text-foreground" href="#como-funciona">
                 Cómo funciona
+              </a>
+            </li>
+            <li>
+              <a className="hover:text-foreground" href="#cobro">
+                Cómo cobras
               </a>
             </li>
             <li>

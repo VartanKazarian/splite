@@ -11,6 +11,7 @@ import {
   type C2PBankClave,
   type C2PChargeResult,
 } from "@/lib/api";
+import { demoBanks } from "@/lib/demo-banks";
 import { useI18n } from "@/lib/i18n";
 
 const ID_TYPES = ["V", "E", "J", "G", "P", "C"] as const;
@@ -55,25 +56,28 @@ export function GuestC2PForm({
     queryFn: () => guest.c2pBanks(),
   });
 
-  const banks: C2PBankClave[] = demo
-    ? [
-        {
-          bankCode: "0105",
-          bankName: "Mercantil",
-          ttlMinutes: 5,
-          ttlLabel: "5 minutos",
-          amountBound: true,
-          strategy: { when: "at_payment", reason: "La clave caduca rápido." },
-          channels: [{ channel: "SMS", text: "Envía CLAVE al 2383", shortCode: "2383" }],
-        },
-      ]
-    : (banksQuery.data ?? []);
-
   const [bankCode, setBankCode] = useState("");
   const [idType, setIdType] = useState<(typeof ID_TYPES)[number]>("V");
   const [idNumber, setIdNumber] = useState("");
   const [phone, setPhone] = useState("");
   const [clave, setClave] = useState("");
+
+  /*
+   * En demo, los 22 bancos de verdad y en español.
+   *
+   * Aquí había **un** banco escrito de memoria, y con tres datos mal: le daba a
+   * Mercantil el código corto 2383 -- que es del Banco del Tesoro -- y cinco
+   * minutos de vigencia, que son de Banplus. Lo suyo es 24024 y seis horas.
+   * Unas instrucciones de clave equivocadas no son un detalle: son un pago que
+   * no ocurre.
+   *
+   * Se recalcula con lo que el comensal va tecleando porque el cuerpo del SMS
+   * lleva dentro su tipo y número de documento, igual que en el flujo real.
+   */
+  const banks: C2PBankClave[] = useMemo(
+    () => (demo ? demoBanks(idType, idNumber.trim()) : (banksQuery.data ?? [])),
+    [demo, idType, idNumber, banksQuery.data],
+  );
   /**
    * Lo que el banco va a cobrar: la parte de la cuenta más la propina.
    *

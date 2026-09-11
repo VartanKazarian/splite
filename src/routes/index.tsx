@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -7,14 +7,14 @@ import {
   ClipboardList,
   HandCoins,
   KeyRound,
-  Lock,
+  Menu,
   QrCode as QrIcon,
   Receipt,
-  RefreshCcw,
   ScanLine,
   ShieldCheck,
   Smartphone,
   Utensils,
+  X,
 } from "lucide-react";
 import { C2P_BANKS, money } from "@/components/marketing/format";
 import {
@@ -100,9 +100,13 @@ function Landing() {
         <HowItWorks />
         <ItemSplit />
         <GetPaid />
+        {/* El panel, antes de los beneficios y no en octavo lugar. Quien firma
+            esto no es el comensal sino quien cuadra la caja al cerrar, y
+            enseñarle lo que recibe *él* después de cuatro secciones sobre lo
+            que recibe su cliente es dejarlo para cuando ya se ha ido. */}
+        <ForOwners />
         <OrderFromTable />
         <Benefits />
-        <ForOwners />
         <Onboarding />
         <Audiences />
         <Trust />
@@ -114,7 +118,27 @@ function Landing() {
   );
 }
 
+/** Los cuatro destinos de la página, en un sitio y no en dos. */
+const NAV = [
+  ["#como-funciona", "Cómo funciona"],
+  ["#cobro", "Cómo cobras"],
+  ["#restaurantes", "Para restaurantes"],
+  ["#seguridad", "Seguridad"],
+] as const;
+
 function Nav() {
+  /*
+   * En el teléfono no había navegación. Ninguna.
+   *
+   * Los enlaces vivían en un `hidden md:flex` y no existía nada que los
+   * sustituyera por debajo de esa anchura, así que quien llega desde un
+   * teléfono -- que es casi todo el mundo -- sólo podía recorrer la página
+   * hacia abajo. Las secciones de cobro y de seguridad, que son las que
+   * contestan las dos preguntas que traen a un dueño hasta aquí, eran
+   * inalcanzables salvo deslizando ocho mil píxeles.
+   */
+  const [open, setOpen] = useState(false);
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-3.5">
@@ -122,18 +146,11 @@ function Nav() {
           SPLITE
         </Link>
         <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
-          <a className="transition-colors hover:text-foreground" href="#como-funciona">
-            Cómo funciona
-          </a>
-          <a className="transition-colors hover:text-foreground" href="#cobro">
-            Cómo cobras
-          </a>
-          <a className="transition-colors hover:text-foreground" href="#restaurantes">
-            Para restaurantes
-          </a>
-          <a className="transition-colors hover:text-foreground" href="#seguridad">
-            Seguridad
-          </a>
+          {NAV.map(([href, label]) => (
+            <a key={href} className="transition-colors hover:text-foreground" href={href}>
+              {label}
+            </a>
+          ))}
         </nav>
         <div className="flex items-center gap-2">
           <Link
@@ -142,14 +159,53 @@ function Nav() {
           >
             Entrar
           </Link>
+          {/* La llamada principal se queda visible también con el menú
+              desplegado: es lo que ha venido a hacer quien pulsa. */}
           <Link
             to="/registro"
             className="inline-flex min-h-[40px] items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground"
           >
             Quiero Splite
           </Link>
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls="nav-movil"
+            aria-label={open ? "Cerrar menú" : "Abrir menú"}
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary md:hidden"
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
       </div>
+
+      {/* Se cierra al elegir: si no, el destino queda tapado por el propio menú. */}
+      {open && (
+        <nav id="nav-movil" className="border-t border-border bg-background md:hidden">
+          <ul className="mx-auto w-full max-w-6xl px-5 py-2">
+            {NAV.map(([href, label]) => (
+              <li key={href}>
+                <a
+                  href={href}
+                  onClick={() => setOpen(false)}
+                  className="flex min-h-12 items-center text-[15px] transition-colors hover:text-primary"
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+            <li>
+              <Link
+                to="/login"
+                className="flex min-h-12 items-center text-[15px] text-muted-foreground sm:hidden"
+              >
+                Entrar
+              </Link>
+            </li>
+          </ul>
+        </nav>
+      )}
     </header>
   );
 }
@@ -164,7 +220,7 @@ function Hero() {
   const [currency, setCurrency] = useState<"USD" | "VES">("VES");
 
   return (
-    <Section className="pt-12 md:pt-20">
+    <Section id="hero" className="pt-12 md:pt-20">
       <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="rise">
           <Eyebrow>Para restaurantes</Eyebrow>
@@ -204,32 +260,47 @@ function Hero() {
 }
 
 function Problem() {
-  const lines = [
+  /*
+   * El antes tenía voz y el después no tenía nada.
+   *
+   * Esta sección enseñaba las cinco frases que se oyen en una mesa de seis y
+   * paraba ahí, con una línea de texto diciendo que Splite lo arregla. Es medio
+   * argumento: el problema se veía y la solución había que imaginársela. Al
+   * ponerlos uno al lado del otro, la comparación la hace el ojo y no el
+   * párrafo -- que es justo lo que se le pide a una página que se lee de pie.
+   */
+  const antes = [
     "¿Cuánto me toca?",
     "Yo pagué las cervezas.",
     "¿Quién pagó el postre?",
-    "Falta cobrar $18.",
     "¿Puedes dividir la cuenta otra vez?",
   ];
+  const despues = ["Escanea el QR", "Elige lo que consumiste", "Paga tu parte", "Mesa cerrada"];
+
   return (
     <Section className="border-y border-border bg-secondary">
-      <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-        <div>
-          <Eyebrow>El problema</Eyebrow>
-          <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-            Dividir una cuenta no debería tomar más tiempo que comer.
-          </h2>
-          <p className="mt-5 max-w-md text-[17px] text-muted-foreground">
-            Todo esto termina en el mesero. Splite mueve esa parte del trabajo al teléfono del
-            cliente.
+      <div className="reveal max-w-2xl">
+        <Eyebrow>El problema</Eyebrow>
+        <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
+          Dividir una cuenta no debería tomar más tiempo que comer.
+        </h2>
+        <p className="mt-5 text-[17px] text-muted-foreground">
+          Con varios comensales en una mesa, dividir, calcular y cobrar se convierte en trabajo
+          extra para tu equipo. Splite lo mueve al teléfono del cliente.
+        </p>
+      </div>
+
+      {/* Dos columnas de igual peso: la comparación pierde la gracia si una de
+          las dos parece la nota al pie de la otra. En el teléfono se apilan,
+          y por eso el orden importa -- primero el ruido, después la salida. */}
+      <div className="mt-10 grid items-start gap-5 md:grid-cols-2">
+        <article className="reveal rounded-2xl border border-border bg-card p-6">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Antes</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Mesa de seis, y todo acaba en el mesero.
           </p>
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-6">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            Mesa de 6 personas
-          </p>
-          <ul className="mt-4 space-y-3">
-            {lines.map((l, i) => (
+          <ul className="mt-5 space-y-3">
+            {antes.map((l, i) => (
               <li
                 key={l}
                 className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[15px] ${
@@ -242,7 +313,37 @@ function Problem() {
               </li>
             ))}
           </ul>
-        </div>
+        </article>
+
+        <article
+          style={{ "--i": 1 } as React.CSSProperties}
+          className="reveal reveal-item rounded-2xl border border-primary/30 bg-card p-6"
+        >
+          <p className="text-[11px] uppercase tracking-[0.2em] text-primary">Con Splite</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            La misma mesa, sin que nadie eche cuentas.
+          </p>
+          <ol className="mt-5">
+            {despues.map((l, i) => (
+              <li key={l} className="flex items-start gap-3">
+                {/* La línea que une los pasos se dibuja aquí y no con un icono
+                    por fila: cuatro flechas sueltas son cuatro cosas que mirar,
+                    y lo que hay que leer son las cuatro palabras. */}
+                <span className="flex flex-col items-center self-stretch">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-semibold text-primary">
+                    {i + 1}
+                  </span>
+                  {i < despues.length - 1 && <span className="w-px flex-1 bg-primary/25" />}
+                </span>
+                <span
+                  className={`text-[15px] ${i === despues.length - 1 ? "font-medium" : ""} pb-5`}
+                >
+                  {l}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </article>
       </div>
     </Section>
   );
@@ -657,34 +758,40 @@ function Audiences() {
 }
 
 function Trust() {
+  /*
+   * Cuatro, no ocho.
+   *
+   * La lista había crecido hasta ocho tarjetas y una rejilla de ocho promesas
+   * de seguridad no se lee: se hojea, y entonces no vale ninguna. Se quedan las
+   * cuatro que contestan preguntas distintas -- dónde se calcula el dinero,
+   * quién puede ver qué, qué pasa con la clave del banco y qué impide cobrar
+   * dos veces -- y las dos que más pesan para quien te va a meter su flujo de
+   * caja: el segundo factor y que la clave no se guarda en ningún sitio.
+   *
+   * Las que salen no desaparecen del producto -- los QR se siguen pudiendo
+   * rotar y todo sigue quedando registrado --; salen de *esta* rejilla, que es
+   * un argumento de venta y no un inventario.
+   */
   const items = [
     {
       icon: ShieldCheck,
-      t: "Importes calculados en el backend",
+      t: "Los importes se calculan en el servidor",
       d: "Nada depende del teléfono del cliente.",
     },
     {
       icon: KeyRound,
-      t: "Control de acceso por roles",
-      d: "Cada miembro del equipo ve solo lo suyo.",
-    },
-    { icon: Lock, t: "Sesiones seguras", d: "Sesiones de invitado limitadas a su mesa." },
-    {
-      icon: KeyRound,
-      t: "Segundo factor",
-      d: "El panel admite 2FA con la app de autenticación que ya usas.",
+      t: "Roles y segundo factor",
+      d: "Cada quien ve lo suyo, y el panel admite 2FA.",
     },
     {
       icon: Banknote,
-      t: "La clave nunca se guarda",
+      t: "La clave del banco nunca se guarda",
       d: "La clave C2P se usa una vez y no tiene columna en la base de datos.",
     },
-    { icon: RefreshCcw, t: "QR revocables", d: "Puedes rotar el QR de una mesa cuando quieras." },
-    { icon: ClipboardList, t: "Registro de actividad", d: "Cada cuenta y pago queda registrado." },
     {
       icon: Check,
-      t: "Protección contra pagos duplicados",
-      d: "Claves de idempotencia en cada cobro.",
+      t: "Sin cobros duplicados",
+      d: "Cada cobro lleva su clave de idempotencia.",
     },
   ];
   return (
@@ -821,8 +928,37 @@ function Footer() {
 }
 
 function MobileStickyCta() {
+  /*
+   * No mientras la llamada del hero siga en pantalla.
+   *
+   * Las dos son el mismo botón con el mismo texto y el mismo destino, y en un
+   * teléfono aparecían pegadas: dos píldoras verdes idénticas, una encima de
+   * otra, nada más abrir la página. Una barra fija existe para traer de vuelta
+   * lo que ya no se ve; mientras se ve, sólo tapa medio palmo de pantalla.
+   *
+   * Arranca oculta y la descubre el propio hero al salir. Si el script no
+   * llega, no aparece nunca -- y no se pierde nada, porque el «Quiero Splite»
+   * de la barra de arriba está fijo y siempre visible.
+   */
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const hero = document.querySelector("#hero");
+    if (!hero) return;
+    const io = new IntersectionObserver(([e]) => setShow(!e?.isIntersecting), {
+      // Un pelo de margen: que reaparezca justo al perderse de vista, y no
+      // cuando ya se ha ido media pantalla.
+      rootMargin: "-72px 0px 0px 0px",
+    });
+    io.observe(hero);
+    return () => io.disconnect();
+  }, []);
+
   return (
-    <div className="sticky bottom-0 z-40 border-t border-border bg-background/95 px-5 py-3 backdrop-blur md:hidden">
+    <div
+      hidden={!show}
+      className="sticky bottom-0 z-40 border-t border-border bg-background/95 px-5 py-3 backdrop-blur md:hidden"
+    >
       <Link
         to="/registro"
         className="flex min-h-[48px] w-full items-center justify-center rounded-full bg-primary text-[15px] font-semibold text-primary-foreground"

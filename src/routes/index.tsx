@@ -24,8 +24,8 @@ import {
   DashboardMockup,
   LiveSplitMockup,
   QrCardMockup,
-  SplitMockup,
 } from "@/components/marketing/Mockups";
+import { TryDemo } from "@/components/marketing/TryDemo";
 
 const TITLE = "Splite — Pay at table para restaurantes modernos";
 const DESC =
@@ -318,10 +318,16 @@ function HowItWorks() {
         <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
           Piden, eligen y pagan. Tu equipo no hace cuentas.
         </h2>
+        <p className="mt-4 text-[17px] text-muted-foreground">
+          Pruébalo aquí mismo: es la pantalla que ve tu cliente.
+        </p>
       </div>
       <div className="mt-10 grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        {/* Aquí había un mockup que imitaba el reparto con precios a mano.
+            Ahora está la pantalla de verdad, en modo demo: si el producto
+            cambia, esto cambia con él, que es lo que una copia nunca hace. */}
         <div className="flex justify-center">
-          <SplitMockup />
+          <TryDemo />
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           {[

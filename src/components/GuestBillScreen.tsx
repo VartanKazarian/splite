@@ -45,10 +45,22 @@ function myShare(preview: SplitPreview, mode: SplitMode): string {
 export function GuestBillScreen({
   qr,
   demo = false,
+  embedded = false,
   onBack,
 }: {
   qr?: string;
   demo?: boolean;
+  /**
+   * Esta pantalla va dentro de otra cosa -- el marco de teléfono de la landing --
+   * y no ocupando la ventana.
+   *
+   * Lo único que cambia es el `min-h-screen` del contenedor: dentro de un marco
+   * de 640 px de alto, estirarse a la altura de la ventana deja medio kilómetro
+   * de vacío por debajo de la cuenta. Nada más se toca, y ésa es la idea: la
+   * demo de la landing tiene que ser **esta** pantalla y no una copia suya, o
+   * en tres meses enseñará un producto que ya no existe.
+   */
+  embedded?: boolean;
   /**
    * Vuelve a la pantalla de la mesa.
    *
@@ -345,7 +357,7 @@ export function GuestBillScreen({
     });
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-md px-5 pb-16">
+    <div className={`mx-auto w-full max-w-md px-5 pb-16 ${embedded ? "" : "min-h-screen"}`}>
       <header className="flex items-center justify-between py-5">
         {onBack && (
           <button

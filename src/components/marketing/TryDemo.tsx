@@ -50,12 +50,29 @@ export function TryDemo() {
   const [run, setRun] = useState(0);
 
   return (
-    <div className="w-full max-w-[400px]">
+    /*
+     * `min-w-0` no es decoración: los hijos de un flex o un grid traen
+     * `min-width: auto`, así que el ancho mínimo del contenido de la cuenta
+     * empujaba la celda y el marco se iba a 398 px dentro de una ventana de
+     * 393 -- la landing entera se desplazaba de lado en el teléfono. Medido al
+     * abrirse el reparto, que es cuando aparece la fila más ancha.
+     *
+     * Y `overflow-x-hidden` en el marco como red: recortar dos píxeles de una
+     * demo es infinitamente mejor que una página de venta que se mueve en
+     * horizontal bajo el pulgar.
+     *
+     * **El `-mx-5` en teléfono devuelve los 40 px del margen de la sección.**
+     * Sin eso el marco daba 351 px donde la pantalla del comensal está hecha
+     * para 390, y las filas del reparto salían con el precio cortado por la
+     * mitad: se leía "$15,0". Es un marco de teléfono; que ocupe el ancho de un
+     * teléfono es lo correcto, y el recorte era la prueba de que no lo hacía.
+     */
+    <div className="-mx-5 w-auto min-w-0 sm:mx-0 sm:w-full sm:max-w-[400px]">
       <div className="overflow-hidden rounded-[2rem] border border-border bg-background shadow-[0_30px_70px_-40px_rgba(20,20,20,0.55)]">
         {on ? (
-          <div className="h-[620px] overflow-y-auto overscroll-contain">
+          <div className="h-[620px] overflow-y-auto overflow-x-hidden overscroll-contain">
             <Suspense fallback={<Loading />}>
-              <GuestBillScreen key={run} demo embedded />
+              <GuestBillScreen key={run} demo embedded autoplay />
             </Suspense>
           </div>
         ) : (
@@ -68,8 +85,8 @@ export function TryDemo() {
             <div>
               <p className="text-lg font-semibold">La cuenta de un comensal</p>
               <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-                La misma pantalla que ve quien escanea el QR. Divide la cuenta, deja propina y llega
-                hasta el cobro.
+                La misma pantalla que ve quien escanea el QR. Se reparte sola una parte de la
+                cuenta, y puedes tomar el control cuando quieras.
               </p>
             </div>
             <button
@@ -77,7 +94,7 @@ export function TryDemo() {
               onClick={() => setOn(true)}
               className="min-h-11 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
             >
-              Probar la demo
+              Reproducir la demo
             </button>
             <p className="text-[12px] text-muted-foreground">
               Cuenta de ejemplo. No se cobra nada.
@@ -86,8 +103,16 @@ export function TryDemo() {
         )}
       </div>
 
+      {/* Que se puede interrumpir hay que decirlo: sin esto, una pantalla que
+          se mueve sola se lee como un vídeo y nadie intenta tocarla. */}
       {on && (
-        <div className="mt-3 flex justify-center">
+        <p className="mt-3 text-center text-[12px] text-muted-foreground">
+          Se reproduce sola · toca la pantalla para tomar el control
+        </p>
+      )}
+
+      {on && (
+        <div className="mt-1 flex justify-center">
           <button
             type="button"
             onClick={() => setRun((n) => n + 1)}

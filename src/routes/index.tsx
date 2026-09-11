@@ -326,7 +326,7 @@ function HowItWorks() {
         {/* Aquí había un mockup que imitaba el reparto con precios a mano.
             Ahora está la pantalla de verdad, en modo demo: si el producto
             cambia, esto cambia con él, que es lo que una copia nunca hace. */}
-        <div className="flex justify-center">
+        <div className="flex min-w-0 justify-center">
           <TryDemo />
         </div>
         <div className="grid gap-4 sm:grid-cols-3">

@@ -36,6 +36,26 @@ function toVes(minor: string, rate: string | null): string {
 }
 
 /** Lo que le toca a este comensal según el modo elegido. */
+/**
+ * Bajar el marco de la demo, y sólo el marco.
+ *
+ * A mano y no con `scrollIntoView`, que además del contenedor arrastra la
+ * página: una landing que se desplaza sola mientras alguien está leyendo otra
+ * cosa es peor que una demo que no se mueve.
+ */
+function scrollBoxOf(el: HTMLElement | null): HTMLElement | null {
+  let box: HTMLElement | null = el?.parentElement ?? null;
+  while (box && box.scrollHeight <= box.clientHeight) box = box.parentElement;
+  return box;
+}
+
+function scrollFrameTo(el: HTMLElement | null) {
+  const box = scrollBoxOf(el);
+  if (!el || !box) return;
+  const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 12;
+  box.scrollTo({ top, behavior: "smooth" });
+}
+
 function myShare(preview: SplitPreview, mode: SplitMode): string {
   if (mode === "EQUAL") return preview.allocations[0]?.amountVes ?? "0";
   const mineAlloc = preview.allocations.find((a) => a.participantId === "me");
@@ -46,6 +66,7 @@ export function GuestBillScreen({
   qr,
   demo = false,
   embedded = false,
+  autoplay = false,
   onBack,
 }: {
   qr?: string;
@@ -61,6 +82,16 @@ export function GuestBillScreen({
    * en tres meses enseñará un producto que ya no existe.
    */
   embedded?: boolean;
+  /**
+   * Reproducir sola una parte de la cuenta, como un vídeo.
+   *
+   * Sólo en la landing, y sólo con `demo`. Quien mira la página de venta no
+   * llega con ganas de trastear: llega a ver si esto le sirve, y una demo que
+   * exige descubrir dónde se toca se queda sin tocar. Esto le enseña lo que
+   * hace en seis segundos y **le deja el volante en cuanto roza la pantalla**,
+   * que es lo que un vídeo no puede hacer.
+   */
+  autoplay?: boolean;
   /**
    * Vuelve a la pantalla de la mesa.
    *
@@ -247,6 +278,80 @@ export function GuestBillScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canSplit, mode, diners, JSON.stringify(mine), amount, bill?.totalDue, bill?.remainingVes]);
 
+  /**
+   * El guion de la demo automática.
+   *
+   * Mueve el estado de esta pantalla, no clics simulados sobre sus botones:
+   * disparar eventos del DOM desde fuera ata la demo a los textos y a la
+   * disposición de los controles, y se rompe en silencio la primera vez que
+   * alguien renombra un botón. Aquí, si un paso deja de existir, no compila.
+   *
+   * Las líneas salen de `bill.items` y no de ids escritos a mano, por lo mismo:
+   * la cuenta de ejemplo puede cambiar y esto sigue señalando a dos platos.
+   *
+   * El reparto no hay que pedirlo: el efecto de arriba recalcula la parte sola
+   * en cuanto cambian `mode` o `mine`. El guion sólo toca lo que tocaría un
+   * dedo.
+   */
+  const autoplayRef = useRef<HTMLDivElement>(null);
+  const splitPanelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!autoplay || !demo || !bill) return;
+    const items = bill.items ?? [];
+    // Un plato de varias unidades y otro también, para que se vea que se
+    // reparten unidades y no líneas enteras.
+    const first = items.find((i) => i.quantity >= 2);
+    const second = items.find((i) => i !== first && i.quantity >= 2);
+    if (!first || !second) return;
+    const mineFinal = { [first.id]: 1, [second.id]: 2 };
+
+    // Quien pidió que nada se mueva recibe el final, no el recorrido.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setSplitOpen(true);
+      setMode("ITEMS");
+      setMine(mineFinal);
+      return;
+    }
+
+    const steps: [number, () => void][] = [
+      [700, () => setSplitOpen(true)],
+      // Bajar el marco hasta donde está pasando la cosa. Sin esto el reparto
+      // ocurre por debajo del borde y la demo parece que no hace nada.
+      [900, () => scrollFrameTo(splitPanelRef.current)],
+      [1600, () => setMode("ITEMS")],
+      [2500, () => setMine({ [first.id]: 1 })],
+      [3400, () => setMine(mineFinal)],
+      [4600, () => setTipPct(15)],
+    ];
+    const timers = steps.map(([at, run]) => setTimeout(run, at));
+
+    /*
+     * Cualquier gesto lo detiene donde esté.
+     *
+     * Es la diferencia con un vídeo, y no puede quedar a medias: si el guion
+     * siguiera corriendo bajo el dedo, cambiaría la selección que la persona
+     * acaba de hacer y parecería que la pantalla va por su cuenta.
+     */
+    const stop = () => timers.forEach(clearTimeout);
+    /*
+     * Los oyentes van en el marco, no en esta pantalla.
+     *
+     * Los eventos suben, no bajan: colgados aquí dentro, un toque en el borde
+     * del marco no los alcanzaba. Y sobre todo **la rueda tampoco**, así que
+     * quien desplazase el marco a mano se encontraba al guion desplazándolo de
+     * vuelta -- medido: el recorrido llegaba hasta el final peleando con el
+     * ratón. `wheel` y `touchmove` son gestos de una persona; `scroll` no vale,
+     * porque lo dispara el propio guion al bajar el marco y se cancelaría solo.
+     */
+    const el = scrollBoxOf(autoplayRef.current) ?? autoplayRef.current;
+    const events = ["pointerdown", "keydown", "wheel", "touchmove"] as const;
+    events.forEach((e) => el?.addEventListener(e, stop, { passive: true }));
+    return () => {
+      timers.forEach(clearTimeout);
+      events.forEach((e) => el?.removeEventListener(e, stop));
+    };
+  }, [autoplay, demo, bill]);
+
   const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : undefined);
 
   if (!demo && (sessionError || (!sessionReady && !qr))) {
@@ -357,7 +462,10 @@ export function GuestBillScreen({
     });
 
   return (
-    <div className={`mx-auto w-full max-w-md px-5 pb-16 ${embedded ? "" : "min-h-screen"}`}>
+    <div
+      ref={autoplayRef}
+      className={`mx-auto w-full max-w-md px-5 pb-16 ${embedded ? "" : "min-h-screen"}`}
+    >
       <header className="flex items-center justify-between py-5">
         {onBack && (
           <button
@@ -506,7 +614,7 @@ export function GuestBillScreen({
           )}
         </div>
       ) : (
-        <div className="surface mt-4 p-6">
+        <div ref={splitPanelRef} className="surface mt-4 p-6">
           {/* Pagarlo todo es lo que hace la mayoría, y ya es el modo por
               defecto: no necesita un botón compitiendo con los otros tres. Las
               cuatro opciones con el mismo peso obligaban a leerlas y decidir

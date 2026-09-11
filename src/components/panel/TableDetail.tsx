@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, CreditCard, MoreVertical, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, CreditCard, Minus, MoreVertical, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
@@ -18,6 +18,7 @@ import {
   tables as tablesApi,
   type FloorTable,
   type MenuCurrency,
+  type SettleReason,
   type TillPaymentMethod,
 } from "@/lib/api";
 import { AddProductsSheet } from "@/components/panel/AddProductsSheet";
@@ -112,8 +113,18 @@ export function TableDetail({
   // Anular no es cerrar: el servidor lo rechaza en cuanto ha entrado dinero
   // ("reversing it is a refund, not a status change") y sólo lo admite de un
   // dueño o un encargado. Se enseña cuando puede funcionar, y si no, no está.
-  const canVoid =
-    paidVes === 0n && (me.data?.user.role === "OWNER" || me.data?.user.role === "MANAGER");
+  const isManagement = me.data?.user.role === "OWNER" || me.data?.user.role === "MANAGER";
+  const canVoid = paidVes === 0n && isManagement;
+
+  /**
+   * Cerrarla con lo cobrado: para todo lo demás.
+   *
+   * Anular y cerrar no son lo mismo y por eso están las dos. Anular dice que
+   * esta cuenta no debió existir -- se abrió por error --, y por eso sólo cabe
+   * mientras no haya entrado nada. Cerrar dice que la mesa comió y que lo que
+   * falta no se va a cobrar, que es lo que pasa de verdad cuando algo sale mal.
+   */
+  const canSettle = isManagement;
 
   // Las líneas no vienen dentro de la cuenta: se piden aparte.
   const itemsQuery = useQuery({
@@ -204,6 +215,9 @@ export function TableDetail({
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [closeOpen, setCloseOpen] = useState(false);
+  const [settleOpen, setSettleOpen] = useState(false);
+  const [settleReason, setSettleReason] = useState<SettleReason>("WRITE_OFF");
+  const [settleNote, setSettleNote] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -239,6 +253,36 @@ export function TableDetail({
     onError: fail,
   });
 
+  /**
+   * Cerrarla con lo cobrado, y dejar escrito lo que se deja de cobrar.
+   *
+   * Es el final de toda mesa que no cuadra al céntimo, que son casi todas las
+   * que salen mal: la que se fue debiendo, la cortesía sobre una cuenta ya
+   * cobrada en parte, el plato devuelto después de pagar. Hasta que existió,
+   * ninguna de ésas se podía cerrar -- anular se rechaza en cuanto hay dinero
+   * dentro -- y la mesa se quedaba ocupada en el plano para siempre.
+   */
+  const settleBill = useMutation({
+    mutationFn: () =>
+      bills.settle(bill!.id, {
+        reason: settleReason,
+        ...(settleNote.trim() ? { note: settleNote.trim() } : {}),
+      }),
+    onSuccess: (result) => {
+      setSettleOpen(false);
+      setSettleNote("");
+      toast.success(
+        result.adjustment
+          ? t("settleDone").replace("{amount}", formatMoney(result.adjustment.amountVes, "VES"))
+          : t("billClosed"),
+      );
+      refreshBill();
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
+      queryClient.invalidateQueries({ queryKey: ["service-snapshot"] });
+    },
+    onError: fail,
+  });
+
   // La comanda entera en una llamada. Era un bucle de `await` con una petición
   // por producto: si la tercera fallaba, las dos primeras ya estaban en la
   // cuenta y nadie lo decía.
@@ -249,6 +293,21 @@ export function TableDetail({
       toast.success(t("lineAdded"));
       refreshBill();
     },
+    onError: fail,
+  });
+
+  /**
+   * Cambiar cuántas unidades lleva una línea.
+   *
+   * El servidor lo admitía desde siempre y el panel no lo usaba: para pasar de
+   * dos asados a uno había que borrar la línea y volver a añadirla, y con
+   * dinero ya aplicado ni eso -- borrarla bajaría el total por debajo de lo
+   * cobrado y el servidor lo rechaza.
+   */
+  const setLineQuantity = useMutation({
+    mutationFn: ({ itemId, quantity }: { itemId: string; quantity: number }) =>
+      bills.updateItem(bill!.id, itemId, quantity),
+    onSuccess: refreshBill,
     onError: fail,
   });
 
@@ -325,6 +384,13 @@ export function TableDetail({
               >
                 <Pencil className="h-4 w-4" /> {t("renameTable")}
               </DropdownMenuItem>
+              {bill && canSettle && (
+                <DropdownMenuItem className="cursor-pointer" onSelect={() => setSettleOpen(true)}>
+                  <Check className="h-4 w-4" /> {t("settleBill")}
+                </DropdownMenuItem>
+              )}
+              {/* Anular sigue abajo y en rojo: dice que esta cuenta no debió
+                  existir, y por eso sólo cabe mientras no haya entrado nada. */}
               {bill && canVoid && (
                 <DropdownMenuItem
                   className="cursor-pointer text-destructive"
@@ -356,6 +422,83 @@ export function TableDetail({
             <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={() => closeBill.mutate()}>
               {t("closeBill")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cerrar con lo cobrado.
+          El motivo se elige aquí y no se manda uno por defecto: es lo único que
+          distingue una rebaja acordada de una cortesía y de dinero que no se va
+          a cobrar, y son tres cosas distintas para quien lee el turno al final.
+          La cifra que se va a perdonar está escrita en el propio texto, porque
+          es la decisión que se está tomando. */}
+      <AlertDialog open={settleOpen} onOpenChange={setSettleOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("settleTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {remainingVes > 0n
+                ? t("settleBody")
+                    .replace("{paid}", formatMoney(bill?.amountPaidVes ?? "0", "VES"))
+                    .replace("{total}", formatMoney(bill?.totalDueVes ?? "0", "VES"))
+                    .replace("{missing}", formatMoney(remainingVes.toString(), "VES"))
+                : t("settleBodySquared")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {remainingVes > 0n && (
+            <div className="space-y-2">
+              {(
+                [
+                  ["WRITE_OFF", t("settleReasonWriteOff"), t("settleReasonWriteOffWhy")],
+                  ["COMP", t("settleReasonComp"), t("settleReasonCompWhy")],
+                  ["DISCOUNT", t("settleReasonDiscount"), t("settleReasonDiscountWhy")],
+                ] as [SettleReason, string, string][]
+              ).map(([value, label, why]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={settleReason === value}
+                  onClick={() => setSettleReason(value)}
+                  className={`flex w-full min-h-12 items-center gap-3 rounded-lg border px-3 text-left transition-colors ${
+                    settleReason === value
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:bg-secondary"
+                  }`}
+                >
+                  <span className="min-w-0">
+                    <span className="block text-sm">{label}</span>
+                    <span className="block text-[11px] text-muted-foreground">{why}</span>
+                  </span>
+                </button>
+              ))}
+
+              <label className="block pt-1">
+                <span className="text-xs text-muted-foreground">{t("settleNote")}</span>
+                <input
+                  value={settleNote}
+                  maxLength={280}
+                  placeholder={t("settleNotePlaceholder")}
+                  onChange={(event) => setSettleNote(event.target.value)}
+                  className="mt-1 min-h-11 w-full rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
+                />
+              </label>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={settleBill.isPending}
+              onClick={(event) => {
+                // Sin esto el diálogo se cierra antes de que la llamada vuelva,
+                // y un fallo se quedaría sin nadie a quien contárselo.
+                event.preventDefault();
+                settleBill.mutate();
+              }}
+            >
+              {settleBill.isPending ? t("loading") : t("settleBill")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -407,24 +550,58 @@ export function TableDetail({
             />
           </div>
 
+          {/* Cada línea con su cantidad, no sólo con una papelera. Cambiar de
+              dos asados a uno costaba borrar la línea y volver a añadirla -- y
+              con dinero ya aplicado ni eso: borrarla bajaría el total por
+              debajo de lo cobrado y el servidor lo rechaza.
+              El menos se convierte en papelera en la última unidad: es el mismo
+              sitio para el dedo y dice lo que va a pasar, en vez de sumar un
+              tercer botón a cada línea. */}
           <ul className="mt-2 space-y-2 text-sm">
-            {billItems.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-3">
-                <span>
-                  {item.quantity} × {item.name}
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="figure">{formatMoney(item.subtotalMinor, bill.currency)}</span>
-                  <button
-                    onClick={() => removeLine.mutate(item.id)}
-                    aria-label={t("remove")}
-                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-destructive"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              </li>
-            ))}
+            {billItems.map((item) => {
+              const busy = setLineQuantity.isPending || removeLine.isPending;
+              const last = item.quantity <= 1;
+              return (
+                <li key={item.id} className="flex items-center justify-between gap-3">
+                  <span className="min-w-0">{item.name}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="figure shrink-0">
+                      {formatMoney(item.subtotalMinor, bill.currency)}
+                    </span>
+                    <span className="inline-flex shrink-0 items-center rounded-full border border-border">
+                      <button
+                        disabled={busy}
+                        onClick={() =>
+                          last
+                            ? removeLine.mutate(item.id)
+                            : setLineQuantity.mutate({
+                                itemId: item.id,
+                                quantity: item.quantity - 1,
+                              })
+                        }
+                        aria-label={`${last ? t("remove") : t("oneLessOf")} ${item.name}`}
+                        className={`inline-flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-40 ${
+                          last ? "text-destructive" : ""
+                        }`}
+                      >
+                        {last ? <Trash2 className="h-3.5 w-3.5" /> : <Minus className="h-4 w-4" />}
+                      </button>
+                      <span className="figure w-6 text-center">{item.quantity}</span>
+                      <button
+                        disabled={busy || item.quantity >= 999}
+                        onClick={() =>
+                          setLineQuantity.mutate({ itemId: item.id, quantity: item.quantity + 1 })
+                        }
+                        aria-label={`${t("oneMoreOf")} ${item.name}`}
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-40"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
             {itemsQuery.isError && (
               <li>
                 <LoadFailed onRetry={() => void itemsQuery.refetch()} />

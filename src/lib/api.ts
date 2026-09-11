@@ -815,6 +815,17 @@ export type GuestOrder = {
   ageSeconds: number | null;
 };
 
+/** Rebaja acordada, cortesía de la casa, o dinero que no se va a cobrar. */
+export type SettleReason = "DISCOUNT" | "COMP" | "WRITE_OFF";
+
+export type BillAdjustment = {
+  id: string;
+  amountVes: Money;
+  reason: SettleReason;
+  note: string | null;
+  createdAt: string;
+};
+
 export type ServiceSnapshot = {
   asOf: string;
   since: string | null;
@@ -1547,9 +1558,23 @@ export const bills = {
       auth: "staff",
       body: { tableId, totalDueMinorUnits },
     }),
-  /** Cerrar una cuenta abierta sin pagos: el backend la anula (VOID) y libera la mesa. */
+  /** Anular una cuenta en la que no entró nada: el backend la marca VOID y libera la mesa. */
   void: (id: string) =>
     apiRequest<Bill>(`/api/v1/bills/${id}/void`, { method: "POST", auth: "staff" }),
+  /**
+   * Cerrarla con lo que de verdad entró, y decir por qué falta el resto.
+   *
+   * Para todo lo que no cuadra al céntimo: la mesa que se fue debiendo, la
+   * cortesía sobre una cuenta ya cobrada en parte, el plato devuelto después de
+   * pagar. Antes eso no se podía cerrar de ninguna manera -- anular se rechaza
+   * en cuanto hay dinero -- y la mesa se quedaba ocupada para siempre.
+   */
+  settle: (id: string, body: { reason: SettleReason; note?: string }) =>
+    apiRequest<{ bill: Bill; adjustment: BillAdjustment | null }>(`/api/v1/bills/${id}/settle`, {
+      method: "POST",
+      auth: "staff",
+      body,
+    }),
   items: (id: string) =>
     apiRequest<{ data: BillItem[] }>(`/api/v1/bills/${id}/items`, { auth: "staff" }).then(
       (r) => r.data,

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { demoBanks } from "@/lib/demo-banks";
+
 /**
  * Lo que no es un componente, fuera del fichero de componentes.
  *
@@ -18,8 +20,15 @@ import { useEffect, useState } from "react";
  */
 export const DEMO_RATE = 757.54;
 
-/** Cuántos bancos admiten C2P hoy. Sale de `c2pClaveGuide.js`: son 22 entradas. */
-export const C2P_BANKS = 22;
+/**
+ * Cuántos bancos admiten C2P hoy.
+ *
+ * Se cuenta de la misma lista que usa la demo, no se escribe. Un número suelto
+ * aquí y una lista allá se separan en cuanto entre un banco nuevo, y entonces
+ * la landing promete una cifra que la demo desmiente a dos secciones de
+ * distancia.
+ */
+export const C2P_BANKS = demoBanks().length;
 
 /** Bs con separadores venezolanos: miles con punto, decimales con coma. */
 export function bs(usd: number): string {

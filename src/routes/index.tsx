@@ -27,9 +27,16 @@ import {
 } from "@/components/marketing/Mockups";
 import { TryDemo } from "@/components/marketing/TryDemo";
 
-const TITLE = "Splite — Pay at table para restaurantes modernos";
+/*
+ * El orden de estas dos frases es la posición del producto.
+ *
+ * Primero el reparto, que es lo que se vende; el pedido va detrás, como lo que
+ * suma. «Pay at table» se va: es jerga en inglés en una página que se lee en
+ * Caracas, y además describe sólo la mitad de lo que hace esto.
+ */
+const TITLE = "Splite — Cada cliente paga lo suyo";
 const DESC =
-  "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.";
+  "Cada comensal ve la cuenta desde el QR de su mesa, elige lo que consumió y paga su parte desde su banco. Y desde el mismo QR también puede pedir. Tu equipo deja de dividir cuentas.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -229,9 +236,14 @@ function Hero() {
             <br />
             <span className="text-primary">Tu equipo no divide la cuenta.</span>
           </h1>
+          {/* El reparto primero. Esta frase abría por el pedido -- «tus
+              clientes piden desde el QR» --, que es lo que suma, no lo que se
+              vende. Quien llega buscando dejar de dividir cuentas tenía que
+              leer hasta la segunda línea para saber que había llegado. */}
           <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground md:text-[19px]">
-            Tus clientes piden desde el QR de la mesa, cada quien elige lo que consumió y paga su
-            parte desde su banco. En bolívares o en dólares, a la tasa del día.
+            Cada comensal ve la cuenta desde el QR de la mesa, elige lo que consumió y paga su parte
+            desde su banco. En bolívares o en dólares, a la tasa del día.{" "}
+            <span className="text-foreground">Y desde ahí mismo, también pide.</span>
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <PrimaryCta to="/registro">Quiero Splite en mi restaurante</PrimaryCta>
@@ -241,7 +253,7 @@ function Hero() {
             <GhostCta href="/t?demo=1">Ver la demo</GhostCta>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            Sin app para tus clientes. Escanean, piden y pagan.
+            Sin app para tus clientes. Escanean, dividen y pagan.
           </p>
           <div className="mt-5">
             <CurrencyToggle value={currency} onChange={setCurrency} />
@@ -435,12 +447,12 @@ function HowItWorks() {
             {
               icon: QrIcon,
               t: "Escanean",
-              d: "Un QR por mesa abre la carta y la cuenta en el navegador. Sin descargar nada.",
+              d: "Un QR por mesa abre la cuenta —y la carta— en el navegador. Sin descargar nada.",
             },
             {
               icon: ClipboardList,
-              t: "Piden y eligen",
-              d: "Piden desde la carta y marcan lo que consumió cada quien, o dividen en partes iguales.",
+              t: "Eligen lo suyo",
+              d: "Cada quien marca lo que consumió, o dividen la cuenta en partes iguales.",
             },
             {
               icon: Receipt,
@@ -574,9 +586,12 @@ function OrderFromTable() {
         </div>
 
         <div className="order-1 lg:order-2">
-          <Eyebrow>Pedidos desde la mesa</Eyebrow>
+          {/* «Y además» no es un adorno: es la posición. El reparto es lo que
+              se vende y esto es lo que viene encima, y decirlo así evita que
+              dos promesas grandes compitan por el mismo sitio. */}
+          <Eyebrow>Y además</Eyebrow>
           <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-            El QR ya no solo enseña la cuenta. También toma el pedido.
+            El mismo QR también toma el pedido.
           </h2>
           <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground">
             El comensal pide desde la carta con fotos y las líneas entran en la cuenta al instante.

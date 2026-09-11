@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { LoadFailed } from "@/components/shell/LoadFailed";
 import { TableRow } from "@/components/panel/TableRow";
+import { SwipeRow } from "@/components/panel/SwipeRow";
 import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
 import { FloorFilters, matchesFilter, type FloorFilter } from "@/components/panel/FloorFilters";
 import { toneOf } from "@/components/panel/tableStatus";
@@ -114,12 +115,49 @@ function Mesas() {
   const [newTableName, setNewTableName] = useState("");
   const createTable = useMutation({
     mutationFn: () => tablesApi.create(newTableName.trim()),
-    onSuccess: (table) => {
+    // Crear una mesa y nada más. Abría su hoja encima, y lo primero que ofrece
+    // esa hoja es "Abrir cuenta": quien está dando de alta el comedor tenía que
+    // cerrarla ocho veces para seguir creando mesas. Dar de alta una mesa y
+    // sentar gente en ella son dos gestos, y casi nunca el mismo día.
+    onSuccess: () => {
       setNewTableName("");
       setCreateOpen(false);
-      setSelectedId(table.id);
       toast.success(t("tableCreated"));
       queryClient.invalidateQueries({ queryKey: ["floor"] });
+      queryClient.invalidateQueries({ queryKey: ["service-snapshot"] });
+    },
+    onError: fail,
+  });
+
+  /**
+   * Borrar una mesa deslizándola, sin entrar en ella.
+   *
+   * `swipedId` vive aquí y no en cada fila para que sólo una pueda estar
+   * abierta: dos botones rojos a la vez es un dedo bajando por encima de los
+   * dos. Y se cierra sola en cuanto la lista cambia -- otro filtro, otra
+   * búsqueda, la mesa borrada --, porque una fila desplazada sobre una lista
+   * que ya no es la misma deja el botón encima de otra mesa.
+   */
+  const [swipedId, setSwipedId] = useState<string | null>(null);
+  // Al cambiar lo que se está mirando: la fila desplazada quedaría sobre otra
+  // mesa.
+  useEffect(() => setSwipedId(null), [filter, search]);
+  // Y si esa mesa desaparece de la lista -- se borró, o dejó de encajar en el
+  // filtro --, el botón se queda sin dueño.
+  //
+  // Esto no puede depender de la identidad de `tableList`: el plano se vuelve a
+  // pedir cada ocho segundos y React Query devuelve un array nuevo cada vez, así
+  // que la fila se cerraba sola a los pocos segundos de abrirla. Medido.
+  useEffect(() => {
+    if (swipedId && !tableList.some((tb) => tb.id === swipedId)) setSwipedId(null);
+  }, [tableList, swipedId]);
+  const removeTable = useMutation({
+    mutationFn: (tableId: string) => tablesApi.deactivate(tableId),
+    onSuccess: () => {
+      setSwipedId(null);
+      toast.success(t("tableDeleted"));
+      queryClient.invalidateQueries({ queryKey: ["floor"] });
+      queryClient.invalidateQueries({ queryKey: ["service-snapshot"] });
     },
     onError: fail,
   });
@@ -231,13 +269,31 @@ function Mesas() {
           ) : (
             <div className="surface divide-y divide-border overflow-hidden">
               {visible.map((tb) => (
-                <TableRow
+                /* Sólo las libres se pueden borrar, que es la regla que ya
+                   aplicaba el menú de la hoja: una mesa con cuenta abierta no
+                   se mueve y no descubre nada. Ver `SwipeRow`. */
+                <SwipeRow
                   key={tb.id}
-                  table={tb}
-                  selected={selected?.id === tb.id}
-                  onSelect={() => setSelectedId(selected?.id === tb.id ? null : tb.id)}
-                  fallbackOpenedAt={tb.openBill ? openedAtByBill.get(tb.openBill.id) : undefined}
-                />
+                  label={tb.name}
+                  disabled={Boolean(tb.openBill)}
+                  pending={removeTable.isPending}
+                  open={swipedId === tb.id}
+                  onOpenChange={(isOpen) => setSwipedId(isOpen ? tb.id : null)}
+                  onDelete={() => removeTable.mutate(tb.id)}
+                >
+                  <TableRow
+                    table={tb}
+                    selected={selected?.id === tb.id}
+                    // Con el botón de borrar asomado, el toque siguiente lo
+                    // guarda: es lo que espera quien se asomó y se arrepiente,
+                    // y abrir la mesa encima del botón rojo sería lo contrario.
+                    onSelect={() => {
+                      if (swipedId === tb.id) return setSwipedId(null);
+                      setSelectedId(selected?.id === tb.id ? null : tb.id);
+                    }}
+                    fallbackOpenedAt={tb.openBill ? openedAtByBill.get(tb.openBill.id) : undefined}
+                  />
+                </SwipeRow>
               ))}
               {visible.length === 0 && <EmptyState title={t("noTablesMatch")} />}
             </div>

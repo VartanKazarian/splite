@@ -6,10 +6,9 @@ import { ArrowRight } from "lucide-react";
 
 import { ConfigurationCard } from "@/components/panel/ConfigurationCard";
 import { PanelIntro } from "@/components/panel/PanelIntro";
-import { PendingCollection } from "@/components/panel/PendingCollection";
 import { MetricCard } from "@/components/panel/MetricCard";
 import { TableRow } from "@/components/panel/TableRow";
-import { AGE_ATTENTION_MINUTES, openMinutesOf, toneOf } from "@/components/panel/tableStatus";
+import { openMinutesOf, toneOf } from "@/components/panel/tableStatus";
 import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
 import { ToAttend } from "@/components/panel/ToAttend";
 import { EmptyState } from "@/components/shell/EmptyState";
@@ -440,22 +439,35 @@ function Dashboard() {
           />
 
           <div className="min-w-0 space-y-6">
-            <PendingCollection
-              outstandingVes={snap?.openBills.outstandingVes ?? null}
-              openBills={snap?.openBills.count ?? null}
-              loading={snapshot.isLoading && !snap}
-              onOldest={oldestOpen ? () => setSelectedId(oldestOpen.id) : undefined}
-            />
-
-            {/* Dos cifras de contexto, y ninguna pide nada: son el fondo del
-                turno. La tercera era "Avisos", que sí pedía cosas -- y las
-                sumaba de tres tipos que se resuelven en pantallas distintas
-                para luego enlazar a una sola. Eso es ahora la franja de
-                arriba, con una línea y un destino por tipo. */}
+            {/* Tres cifras de contexto, y ninguna pide nada: son el fondo del
+                turno. Lo que pide algo está arriba, en la franja, con una
+                línea y un destino por tipo.
+                "Pendiente de cobro" tenía tarjeta propia y un botón,
+                "Gestionar", que abría *una* mesa: con tres abiertas, cuál era
+                una decisión del panel y no de quien mira. Lo mismo hacía la
+                fila "Cuenta más antigua · Ir a la cuenta". Las dos se han ido;
+                la lista de abajo ya sale ordenada por urgencia, que es la
+                forma no arbitraria de decir por dónde empezar.
+                La cifra se queda, en fila con las otras dos: la tarjeta grande
+                repetía además "3 abiertas", que es lo que dice "Mesas ocupadas
+                3/8" justo debajo. */}
             {/* Las tres filas -- rótulo, cifra, apostilla -- se definen aquí y
                 no dentro de cada tarjeta: así una cifra no se hunde porque su
                 rótulo ocupe dos líneas. Ver `MetricCard`. */}
-            <div className="grid gap-3 sm:grid-cols-2 sm:grid-rows-[auto_auto_auto]">
+            <div className="grid gap-3 sm:grid-cols-3 sm:grid-rows-[auto_auto_auto]">
+              {/* La antigüedad de la cuenta más vieja sobrevive como apostilla
+                  de lo pendiente, que es a lo que se refiere. Dato, no
+                  destino. */}
+              <MetricCard
+                label={t("pendingCollection")}
+                value={snap ? formatMoney(snap.openBills.outstandingVes, "VES") : "—"}
+                hint={
+                  snap?.openBills.oldestOpenedAt
+                    ? t("oldestHint").replace("{age}", relativeAge(snap.openBills.oldestOpenedAt))
+                    : undefined
+                }
+                loading={snapshot.isLoading && !snap}
+              />
               <MetricCard
                 label={t("kpiOpenTables")}
                 value={
@@ -476,47 +488,6 @@ function Dashboard() {
                 loading={snapshot.isLoading && !snap}
               />
             </div>
-
-            {/* La antigüedad de la cuenta más vieja iba dentro de una frase
-                larga junto a los cobros del día; aquí es su propio dato, que
-                es como se lee de un vistazo. */}
-            {/* La fila entera, y no sólo su texto: enseñaba el problema y no
-                llevaba a él.
-                Y desaparece en cuanto esa cuenta cruza el umbral, porque a
-                partir de ahí la dice la franja de arriba con su nombre y su
-                mismo destino: "Mesa 3 lleva 26 h abierta · Abrir la cuenta"
-                doscientos píxeles más arriba, y aquí "Cuenta más antigua ·
-                26 h 1 min · Ir a la cuenta". Por debajo del umbral no está en
-                la franja -- no hay nada que atender -- y aquí sigue siendo el
-                contexto que era. */}
-            {snap?.openBills.oldestOpenedAt &&
-              (oldestOpen?.openBill?.openMinutes ?? 0) < AGE_ATTENTION_MINUTES && (
-                <button
-                  type="button"
-                  disabled={!oldestOpen}
-                  onClick={() => oldestOpen && setSelectedId(oldestOpen.id)}
-                  className="flex w-full min-h-11 items-center justify-between gap-3 rounded-lg px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary disabled:pointer-events-none"
-                >
-                  <span>{t("oldestBillLabel")}</span>
-                  <span className="flex items-center gap-1.5">
-                    <span
-                      className={`figure ${
-                        (oldestOpen?.openBill?.openMinutes ?? 0) >= AGE_ATTENTION_MINUTES
-                          ? "text-amber-700"
-                          : ""
-                      }`}
-                    >
-                      {relativeAge(snap.openBills.oldestOpenedAt)}
-                    </span>
-                    {oldestOpen && (
-                      <>
-                        <span className="text-primary">{t("goToBill")}</span>
-                        <ArrowRight aria-hidden className="h-3.5 w-3.5 text-primary" />
-                      </>
-                    )}
-                  </span>
-                </button>
-              )}
 
             {/* Encima de las mesas: es lo que acaba de pasar, y lo de abajo es
                 el estado. Desaparece sola cuando no hay nada. */}

@@ -24,7 +24,28 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { ApiError, bills, staffSession, tables as tablesApi } from "@/lib/api";
 
+type Search = { filtro?: FloorFilter };
+
+const FILTERS: FloorFilter[] = ["ALL", "BUSY", "FREE", "ALERT"];
+
+function isFilter(value: unknown): value is FloorFilter {
+  return typeof value === "string" && FILTERS.includes(value as FloorFilter);
+}
+
 export const Route = createFileRoute("/mesas")({
+  /*
+   * Con qué filtro abrir la sala.
+   *
+   * Existe porque el panel manda aquí desde sus avisos, y un aviso que dice
+   * "3 cuentas llevan más de 12 h abiertas" tiene que llegar a esas tres y no
+   * a las siete. Sin esto, el destino era la lista entera y había que volver a
+   * filtrar a mano justo después de que el panel dijera cuáles eran.
+   *
+   * Un valor que no reconocemos se ignora en vez de romper la pantalla: la URL
+   * la escribe cualquiera.
+   */
+  validateSearch: (search: Record<string, unknown>): Search =>
+    isFilter(search["filtro"]) ? { filtro: search["filtro"] } : {},
   head: () => ({
     meta: [
       { title: "Mesas — Splite" },
@@ -53,6 +74,8 @@ function Mesas() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // `search` ya es el texto del buscador en esta pantalla.
+  const { filtro: filterFromUrl } = Route.useSearch();
 
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -86,7 +109,12 @@ function Mesas() {
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
   const busyCount = tableList.filter((tb) => tb.openBill).length;
 
-  const [filter, setFilter] = useState<FloorFilter>("ALL");
+  // El filtro con el que se entra manda sólo al entrar: a partir de ahí las
+  // fichas son las que mandan, y una `key` en la URL que volviera a imponerse
+  // dejaría la pantalla sin poder cambiar de filtro.
+  const [filter, setFilter] = useState<FloorFilter>(
+    isFilter(filterFromUrl) ? filterFromUrl : "ALL",
+  );
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -94,10 +122,11 @@ function Mesas() {
   // la ficha desaparece y la lista se queda vacía sin decir por qué. Vuelve a
   // "todas", que es de donde salió.
   useEffect(() => {
+    if (!tablesQuery.isSuccess) return;
     if (filter === "ALERT" && !tableList.some((tb) => toneOf(tb) === "attention")) {
       setFilter("ALL");
     }
-  }, [filter, tableList]);
+  }, [filter, tableList, tablesQuery.isSuccess]);
 
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();

@@ -511,7 +511,22 @@ function MenuPage() {
                       ).map(([value, label]) => (
                         <button
                           key={value}
-                          onClick={() => setStatus(value)}
+                          aria-pressed={status === value}
+                          /*
+                           * Volver a pulsar la ficha puesta quita el filtro.
+                           *
+                           * No se podía: pulsar "Inactivos" con "Inactivos"
+                           * puesto no hacía nada, y para volver a verlo todo
+                           * había que acertar con "Todos" -- que es otra ficha
+                           * y no dice "quitar". Las fichas de sección de
+                           * debajo sí se apagaban al segundo toque, así que la
+                           * misma fila de arriba enseñaba a hacer algo que no
+                           * funcionaba. "Todos" ya es no filtrar, así que
+                           * apagarla es quedarse donde está.
+                           */
+                          onClick={() =>
+                            setStatus(value === status && value !== "ALL" ? "ALL" : value)
+                          }
                           className={`min-h-11 flex-1 whitespace-nowrap rounded-full border px-4 text-xs transition-colors sm:flex-none ${
                             status === value
                               ? "border-primary bg-primary/10 text-primary"

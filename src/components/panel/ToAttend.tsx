@@ -35,7 +35,6 @@ export function ToAttend({
   unresolvedC2P,
   openedAtByBill,
   onOrders,
-  onOldest,
 }: {
   /** Pedidos que la sala no ha dado por vistos. */
   orders: number;
@@ -44,13 +43,11 @@ export function ToAttend({
   openedAtByBill: Map<string, string>;
   /** Baja a la bandeja de pedidos, que está en esta misma pantalla. */
   onOrders: () => void;
-  /** Abre la cuenta más antigua. Ausente si no se sabe cuál es. */
-  onOldest?: (() => void) | undefined;
 }) {
   const { t } = useI18n();
 
-  /** Dónde se atiende cada tipo. Dos son otra pantalla; dos, un gesto de ésta. */
-  type Where = "orders" | "payments" | "tables" | "oldest";
+  /** Dónde se atiende cada tipo. Tres son otra pantalla; una, un gesto de ésta. */
+  type Where = "orders" | "payments" | "tables";
   const rows: { key: string; text: string; cta: string; action: Where }[] = [];
 
   // Los pedidos primero: son lo más reciente y lo único con un plato esperando
@@ -121,8 +118,17 @@ export function ToAttend({
           : t("attentionOldBills")
               .replace("{n}", String(old.length))
               .replace("{age}", formatAge(AGE_ATTENTION_MINUTES)),
-      cta: onOldest ? t("attentionGoBill") : t("attentionGoTables"),
-      action: onOldest ? "oldest" : "tables",
+      /*
+       * A la sala, no a una cuenta.
+       *
+       * Esta línea abría *una* cuenta -- la más antigua -- diciendo "3 cuentas
+       * llevan más de 12 h abiertas". Con tres mesas viejas, cuál de ellas se
+       * abría era una decisión del panel y no de quien mira, y las otras dos
+       * desaparecían del camino. El aviso nombra un grupo; el destino tiene
+       * que ser ese grupo.
+       */
+      cta: t("attentionGoTables"),
+      action: "tables",
     });
   }
 
@@ -158,15 +164,14 @@ export function ToAttend({
                   {inner}
                 </Link>
               ) : row.action === "tables" ? (
-                <Link to="/mesas" className={className}>
+                // Filtrada a las que tienen cuenta abierta: son de las que
+                // habla el aviso, y llegar a la lista entera obliga a volver a
+                // filtrar a mano lo que el panel acaba de señalar.
+                <Link to="/mesas" search={{ filtro: "BUSY" as const }} className={className}>
                   {inner}
                 </Link>
               ) : (
-                <button
-                  type="button"
-                  onClick={row.action === "orders" ? onOrders : onOldest}
-                  className={className}
-                >
+                <button type="button" onClick={onOrders} className={className}>
                   {inner}
                 </button>
               )}

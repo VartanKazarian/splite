@@ -376,14 +376,6 @@ function Dashboard() {
   // encendido sobre cifras congeladas.
   const live = tablesQuery.isSuccess && !tablesQuery.isError;
 
-  // La mesa por la que se empieza: la que lleva más tiempo con la cuenta
-  // abierta. El resumen del servidor trae la fecha pero no de qué mesa es, y
-  // el plano ya está aquí -- así que se busca aquí y no se pide otra vez.
-  const oldestOpen = tableList
-    .filter((tb) => tb.openBill)
-    .sort((a, b) => (a.openBill!.openMinutes ?? 0) - (b.openBill!.openMinutes ?? 0))
-    .at(-1);
-
   // Cargos que el banco dejó en duda. Del resumen del servidor cuando ha
   // llegado, y del listado mientras tanto.
   const inDoubt = snap
@@ -435,7 +427,6 @@ function Dashboard() {
                 .getElementById("order-tray-heading")
                 ?.scrollIntoView({ behavior: "smooth", block: "start" })
             }
-            onOldest={oldestOpen ? () => setSelectedId(oldestOpen.id) : undefined}
           />
 
           <div className="min-w-0 space-y-6">

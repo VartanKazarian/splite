@@ -81,6 +81,23 @@ function CopyRow({
   );
 }
 
+/**
+ * Cada campo del formulario, y la frase que explica qué se espera de él.
+ *
+ * Las claves son los nombres que manda el servidor en `details.fieldPaths`, no
+ * los `id` del formulario: son lo único que no cambia cuando alguien reescribe
+ * una etiqueta.
+ */
+const FIELD_PROBLEMS: Record<string, string> = {
+  amountVes: "guestErrBadAmount",
+  amount: "guestErrBadAmount",
+  reference: "guestErrBadReference",
+  phoneOrigin: "guestErrBadPhone",
+  bankOrigin: "guestErrBadBank",
+  idOrigin: "guestErrBadId",
+  tipVes: "guestErrBadTip",
+};
+
 type ClaimError = {
   code?: string;
   message: string;
@@ -121,9 +138,41 @@ function toClaimError(error: unknown, t: (k: never) => string): ClaimError {
     case "OPEN_BILL_NOT_FOUND":
       return { ...base, message: say("c2pErrClosed") };
     case "VALIDATION_FAILED": {
-      const raw = details["fields"];
-      const fields = Array.isArray(raw) ? raw.map(String) : [];
-      return { ...base, message: say("guestErrFields"), fields };
+      /*
+       * Qué casilla está mal, y por qué, en castellano.
+       *
+       * Esto leía `details.fields`, que son los mensajes de Joi, y los
+       * comparaba con nombres de campo: `fields.includes("reference")` nunca
+       * era cierto porque la lista trae frases enteras en inglés. El resultado
+       * era "Revisa los datos." sin ninguna casilla marcada -- cinco casillas
+       * delante y ninguna pista de cuál --, que es justo lo que se veía al
+       * escribir un teléfono que no es venezolano.
+       *
+       * `fieldPaths` viene del validador y nombra el campo pase lo que pase con
+       * la redacción del mensaje. `fields` se sigue leyendo de respaldo, por si
+       * la respuesta viene de un servidor anterior a ese añadido.
+       */
+      const paths = details["fieldPaths"];
+      const fields = Array.isArray(paths)
+        ? paths.map(String)
+        : Array.isArray(details["fields"])
+          ? (details["fields"] as unknown[]).map(String)
+          : [];
+
+      const named = fields.map((f) => FIELD_PROBLEMS[f]).filter(Boolean) as string[];
+      return {
+        ...base,
+        // Una casilla mal: se dice cuál y qué se espera. Varias: se dice
+        // cuántas y se marcan todas, porque cuatro frases seguidas en un aviso
+        // rojo no se leen.
+        message:
+          named.length === 1
+            ? say(named[0]!)
+            : named.length > 1
+              ? say("guestErrFieldsN").replace("{n}", String(named.length))
+              : say("guestErrFields"),
+        fields,
+      };
     }
     case "GUEST_SESSION_INVALID":
     case "GUEST_SESSION_MISSING":
@@ -480,9 +529,14 @@ export function GuestPaymentPanel({
                       Usar ese monto
                     </button>
                   )}
+                  {/* "Referencia: 078ba826-..." se leía como si la referencia
+                      que acababa de escribir hubiera sido sustituida por eso.
+                      Es el número con el que el personal puede buscar qué pasó,
+                      y así lo dice ahora. */}
                   {error.requestId && (
-                    <p className="mt-2 font-mono text-[11px] text-muted-foreground">
-                      Referencia: {error.requestId}
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      {t("guestErrIncidentCode")}{" "}
+                      <span className="font-mono">{error.requestId.slice(0, 8)}</span>
                     </p>
                   )}
                 </div>

@@ -681,6 +681,23 @@ export const guest = {
     }),
 
   /**
+   * En qué quedó un pago que declaró este comensal.
+   *
+   * Sin esta lectura el teléfono no tenía forma de enterarse de que se lo
+   * confirmaron: el aviso se guardaba en memoria con estado PENDING y ahí se
+   * quedaba. La pantalla prometía la factura «cuando el restaurante confirme» y
+   * no existía el camino por el que cumplirlo.
+   */
+  paymentStatus: (paymentId: string) =>
+    apiRequest<{
+      id: string;
+      status: PaymentClaim["status"];
+      amountVes: Money;
+      billClosed: boolean;
+      invoiced: boolean;
+    }>(`/api/v1/guest/payments/${paymentId}`, { auth: "guest" }),
+
+  /**
    * El correo del comensal, con la finalidad separada del dato.
    *
    * `marketingConsent` sólo va en `true` si marcó una casilla vacía. Dar el

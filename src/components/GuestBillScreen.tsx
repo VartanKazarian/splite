@@ -23,6 +23,8 @@ import {
 
 import { GuestError } from "@/components/GuestError";
 import { GuestPaymentPanel } from "@/components/GuestPaymentPanel";
+import { GuestInvoiceOffer } from "@/components/GuestInvoiceOffer";
+import { recallPayment } from "@/lib/guest-payment";
 import { demoBill, demoSplit } from "@/lib/demo-bill";
 
 /** Referencia visual en Bs de un importe cotizado, a la tasa congelada de la cuenta. */
@@ -454,10 +456,29 @@ export function GuestBillScreen({
   }
 
   if (!bill) {
+    /*
+     * Dos situaciones muy distintas caen aquí, y decirles lo mismo era
+     * desconcertante.
+     *
+     * Quien escanea una mesa sin cuenta necesita saber precisamente eso. Pero
+     * quien **acaba de pagar** también acaba aquí -- confirmar el cobro cierra
+     * la cuenta -- y leer «Sin cuenta abierta» después de pagar parece que algo
+     * salió mal. Si este teléfono declaró un pago, es la segunda.
+     */
+    const justPaid = !demo && recallPayment() !== null;
     return (
       <Shell {...(onBack ? { onBack } : {})}>
-        <h1 className="text-3xl">{t("noOpenBill")}</h1>
-        <p className="mt-3 text-sm text-muted-foreground">{t("oneOpenBill")}</p>
+        <h1 className="text-3xl">{justPaid ? t("paidThanks") : t("noOpenBill")}</h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          {justPaid ? t("paidThanksBody") : t("oneOpenBill")}
+        </p>
+        {/*
+          Aquí cae justamente quien acaba de que le confirmen el pago: confirmar
+          cierra la cuenta, y sin cuenta abierta esta pantalla es lo único que
+          queda. Si la factura no se ofreciera aquí, la promesa de pedirla
+          «cuando el restaurante confirme» no tendría dónde cumplirse.
+        */}
+        {!demo && <GuestInvoiceOffer />}
       </Shell>
     );
   }
@@ -1076,6 +1097,11 @@ export function GuestBillScreen({
           )}
         </div>
       )}
+
+      {/* Fuera del panel de pago a propósito: el panel se desmonta en cuanto la
+          cuenta no debe nada, que es justo cuando la factura pasa a poder
+          pedirse. Vivía dentro y por eso desaparecía al confirmarse el cobro. */}
+      {!demo && <GuestInvoiceOffer />}
 
       {/* Cierra la rama de "hay algo que pagar": sin nada en la cuenta no se
           enseñan ni las formas de dividir ni el panel de pago. */}

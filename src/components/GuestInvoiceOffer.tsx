@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { guest, ApiError, type RequestInvoiceResult } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { recallPayment } from "@/lib/guest-payment";
 
 /**
  * «¿Necesitas factura?», al final y junto al recibo.
@@ -21,19 +22,33 @@ import { useI18n } from "@/lib/i18n";
  * fallido**. El cobro ya está hecho. Lo que puede quedar pendiente es el
  * documento, y el texto lo dice con esas palabras.
  */
-export function GuestInvoiceOffer({
-  paymentId,
-  paymentSettled,
-}: {
-  paymentId: string | null;
-  /**
-   * Si el cobro ya está confirmado. Un aviso de pago móvil queda pendiente de
-   * que alguien lo verifique, y el backend no factura un cobro que aún no
-   * entró -- produciría un documento que quizá haya que compensar mañana.
-   */
-  paymentSettled: boolean;
-}) {
+export function GuestInvoiceOffer() {
   const { t } = useI18n();
+  /*
+   * El pago sale de `sessionStorage` y su estado del servidor, no de lo que le
+   * pasen por props.
+   *
+   * Antes venía del panel de pago, y eso lo ataba a dos cosas que desaparecen
+   * justo cuando la factura empieza a poder pedirse: el panel se desmonta
+   * cuando la cuenta no debe nada, y la pantalla entera deja de cargar cuando
+   * la cuenta se cierra. La promesa «podrás pedirla cuando confirmen» era
+   * incumplible por construcción.
+   */
+  const paymentId = recallPayment();
+
+  const payment = useQuery({
+    queryKey: ["guest-payment", paymentId],
+    queryFn: () => guest.paymentStatus(paymentId as string),
+    enabled: Boolean(paymentId),
+    // Mientras el cobro esté por verificar se vuelve a preguntar solo: quien
+    // está en la mesa esperando no debería tener que recargar para enterarse.
+    refetchInterval: (query) =>
+      query.state.data && query.state.data.status !== "PENDING" ? false : 8000,
+    retry: false,
+  });
+
+  const settled = payment.data?.status === "SUCCEEDED";
+  const alreadyInvoiced = payment.data?.invoiced === true;
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [name, setName] = useState("");
@@ -100,7 +115,11 @@ export function GuestInvoiceOffer({
     },
   });
 
-  if (!paymentId || dismissed) return null;
+  // Sin pago recordado no hay nada que ofrecer. Y si ya tiene factura tampoco:
+  // ofrecerla otra vez invitaría a pedir un segundo documento del mismo cobro.
+  if (!paymentId || dismissed || alreadyInvoiced) return null;
+  // Hasta saber en qué quedó, no se promete nada.
+  if (payment.isPending || payment.isError) return null;
 
   if (result?.status === "ISSUED" && result.invoice) {
     return (
@@ -130,7 +149,7 @@ export function GuestInvoiceOffer({
       <p className="font-display text-xl">{t("invoiceAskTitle")}</p>
       <p className="mt-1 text-sm text-muted-foreground">{t("invoiceAskBody")}</p>
 
-      {!paymentSettled ? (
+      {!settled ? (
         // Sin cobro confirmado no hay nada que facturar todavía. Se dice, en
         // vez de ofrecer un botón que sólo puede fallar.
         <p className="mt-3 text-sm text-muted-foreground">{t("invoiceWaitForPayment")}</p>

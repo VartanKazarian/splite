@@ -1,8 +1,52 @@
 import { useMutation } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { Check, Send } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, formatMoney, guest, guestSession, type PublicProduct } from "@/lib/api";
+
+/**
+ * Una barra pegada abajo, y el hueco que se reserva para ella.
+ *
+ * Fija quiere decir fuera del flujo, así que no empuja nada: la carta seguía
+ * midiendo lo mismo con barra que sin ella y la barra se echaba encima del
+ * final. Medido en un teléfono de 393x852 con la carta hasta el fondo: 109 px
+ * de barra sobre 40 px de respiro, y el botón "Añadir" del último plato --
+ * Papelón con limón -- quedaba **entero** debajo. El último plato de la carta
+ * no se podía pedir.
+ *
+ * El hueco se mide de la propia barra en vez de escribir su altura a mano
+ * porque esa altura cambia sola: la fila de unidades aparece y desaparece, y
+ * un error de envío añade otra línea. Un número fijo acierta hoy y vuelve a
+ * tapar el último plato la primera vez que alguien toque el contenido.
+ */
+export function FixedBottomBar({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setHeight(el.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <>
+      {/* El hueco. Va antes para quedarse al final del flujo de la página. */}
+      <div aria-hidden style={{ height }} />
+      <div
+        ref={ref}
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur"
+      >
+        {children}
+      </div>
+    </>
+  );
+}
 
 /**
  * La barra de "lo que llevo pedido", pegada abajo mientras se lee la carta.
@@ -65,7 +109,7 @@ export function GuestOrderBar({
   if (units === 0) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur">
+    <FixedBottomBar>
       <div className="mx-auto w-full max-w-md px-5 pb-5 pt-3">
         {send.isError && (
           <p className="mb-2 text-[11px] text-destructive">
@@ -90,7 +134,7 @@ export function GuestOrderBar({
           {send.isPending ? t("loading") : t("guestSendOrder")}
         </button>
       </div>
-    </div>
+    </FixedBottomBar>
   );
 }
 

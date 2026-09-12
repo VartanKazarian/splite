@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { guest, ApiError, type RequestInvoiceResult } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
-import { recallPayment } from "@/lib/guest-payment";
+import { useRememberedPayment } from "@/lib/guest-payment";
 
 /**
  * «¿Necesitas factura?», al final y junto al recibo.
@@ -34,7 +34,7 @@ export function GuestInvoiceOffer() {
    * la cuenta se cierra. La promesa «podrás pedirla cuando confirmen» era
    * incumplible por construcción.
    */
-  const paymentId = recallPayment();
+  const paymentId = useRememberedPayment();
 
   const payment = useQuery({
     queryKey: ["guest-payment", paymentId],

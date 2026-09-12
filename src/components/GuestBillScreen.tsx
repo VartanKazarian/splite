@@ -24,6 +24,7 @@ import {
 import { GuestError } from "@/components/GuestError";
 import { GuestPaymentPanel } from "@/components/GuestPaymentPanel";
 import { GuestInvoiceOffer } from "@/components/GuestInvoiceOffer";
+import { GuestReceipt } from "@/components/GuestReceipt";
 import { recallPayment } from "@/lib/guest-payment";
 import { demoBill, demoSplit } from "@/lib/demo-bill";
 
@@ -479,6 +480,9 @@ export function GuestBillScreen({
           «cuando el restaurante confirme» no tendría dónde cumplirse.
         */}
         {!demo && <GuestInvoiceOffer />}
+        {/* Debajo de la oferta: primero la acción que caduca -- pedir factura --
+            y después el recibo, que es el registro y no se va a ninguna parte. */}
+        {!demo && <GuestReceipt />}
       </Shell>
     );
   }
@@ -1102,6 +1106,7 @@ export function GuestBillScreen({
           cuenta no debe nada, que es justo cuando la factura pasa a poder
           pedirse. Vivía dentro y por eso desaparecía al confirmarse el cobro. */}
       {!demo && <GuestInvoiceOffer />}
+      {!demo && <GuestReceipt />}
 
       {/* Cierra la rama de "hay algo que pagar": sin nada en la cuenta no se
           enseñan ni las formas de dividir ni el panel de pago. */}

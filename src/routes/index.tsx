@@ -33,9 +33,9 @@ import { TryDemo } from "@/components/marketing/TryDemo";
  * suma. «Pay at table» se va: es jerga en inglés en una página que se lee en
  * Caracas, y además describe sólo la mitad de lo que hace esto.
  */
-const TITLE = "Splite — Cada cliente paga lo suyo";
+const TITLE = "Splite — El QR que divide la cuenta y cobra por mesa";
 const DESC =
-  "Cada comensal ve la cuenta desde el QR de su mesa, elige lo que consumió y paga su parte desde su banco. Y desde el mismo QR también puede pedir. Tu equipo deja de dividir cuentas.";
+  "Con un QR por mesa, cada comensal ve la cuenta, elige lo que consumió y paga su parte desde su banco. Tu equipo deja de dividir cuentas.";
 
 export const Route = createFileRoute("/")({
   head: () => ({

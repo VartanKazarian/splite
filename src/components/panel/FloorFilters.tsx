@@ -69,7 +69,13 @@ export function FloorFilters({
           <button
             key={chip.value}
             type="button"
-            onClick={() => onChange(chip.value)}
+            /*
+             * Volver a pulsar la ficha puesta quita el filtro, igual que las
+             * fichas de sección del menú. Sin esto había que acertar con "Ver
+             * todas" para salir de un filtro, que es otra ficha y no dice
+             * "quitar". "Ver todas" ya es no filtrar: apagarla no hace nada.
+             */
+            onClick={() => onChange(chip.value === value && value !== "ALL" ? "ALL" : chip.value)}
             aria-pressed={on}
             className={`min-h-11 shrink-0 whitespace-nowrap rounded-full px-3 text-xs transition-colors ${
               on

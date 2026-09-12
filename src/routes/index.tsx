@@ -74,6 +74,22 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
+/*
+ * Una sola promesa, escrita una sola vez.
+ *
+ * Había **siete** textos distintos apuntando a `/registro` -- «Quiero Splite»,
+ * «Quiero Splite en mi restaurante», «Hablar con Splite», «Para mi
+ * restaurante», «Quiero probar Splite en mi restaurante», «Contacto» y
+ * «Solicitar acceso» -- y **cuatro** apuntando a la demo. Once etiquetas para
+ * dos destinos. Quien recorre la página no lee siete ofertas: lee que no
+ * terminamos de decidir qué le estamos pidiendo, y cada variante le obliga a
+ * comprobar si va al mismo sitio que la anterior.
+ */
+const CTA_PRIMARY = "Quiero Splite en mi restaurante";
+/** Baja a la demo que se puede tocar, sin sacar a nadie de la página. */
+const CTA_SECONDARY = "Ver cómo funciona";
+const DEMO_ANCHOR = "#como-funciona";
+
 function PrimaryCta({ to, children }: { to: string; children: React.ReactNode }) {
   return (
     <Link
@@ -246,11 +262,10 @@ function Hero() {
             <span className="text-foreground">Y desde ahí mismo, también pide.</span>
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <PrimaryCta to="/registro">Quiero Splite en mi restaurante</PrimaryCta>
-            {/* La demo del comensal es el mejor activo que hay y estaba de
-                enlace de pie de página. Funciona, tiene números reales y
-                contesta en diez segundos lo que el texto tarda una pantalla. */}
-            <GhostCta href="/t?demo=1">Ver la demo</GhostCta>
+            <PrimaryCta to="/registro">{CTA_PRIMARY}</PrimaryCta>
+            {/* Baja a la demo empotrada en vez de sacar a nadie a otra ruta:
+                el mejor activo de la página está dentro de la página. */}
+            <GhostCta href={DEMO_ANCHOR}>{CTA_SECONDARY} →</GhostCta>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
             Sin app para tus clientes. Escanean, dividen y pagan.
@@ -689,7 +704,7 @@ function ForOwners() {
             ))}
           </ul>
           <div className="mt-8">
-            <PrimaryCta to="/registro">Hablar con Splite</PrimaryCta>
+            <PrimaryCta to="/registro">{CTA_PRIMARY}</PrimaryCta>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">Integraciones con POS: próximamente.</p>
         </div>
@@ -848,14 +863,12 @@ function FinalCta() {
           Deja que tus clientes hagan esa parte.
         </p>
         <div className="mx-auto mt-8 flex max-w-lg flex-col justify-center gap-3 sm:flex-row">
-          <PrimaryCta to="/registro">Quiero probar Splite en mi restaurante</PrimaryCta>
-          {/* Antes este botón también iba a /registro: dos llamadas idénticas
-              con dos textos distintos. El que no pide datos lleva a la demo. */}
+          <PrimaryCta to="/registro">{CTA_PRIMARY}</PrimaryCta>
           <a
-            href="/t?demo=1"
+            href={DEMO_ANCHOR}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-border px-7 text-[15px] font-medium transition-colors hover:bg-secondary sm:w-auto"
           >
-            Antes, ver la demo
+            {CTA_SECONDARY} →
           </a>
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
@@ -909,11 +922,7 @@ function Footer() {
         <div>
           <p className="text-sm font-semibold">Empresa</p>
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li>
-              <Link className="hover:text-foreground" to="/registro">
-                Contacto
-              </Link>
-            </li>
+            {/* Eran dos entradas con dos nombres y el mismo destino. */}
             <li>
               <Link className="hover:text-foreground" to="/registro">
                 Solicitar acceso
@@ -978,7 +987,7 @@ function MobileStickyCta() {
         to="/registro"
         className="flex min-h-[48px] w-full items-center justify-center rounded-full bg-primary text-[15px] font-semibold text-primary-foreground"
       >
-        Quiero Splite en mi restaurante
+        {CTA_PRIMARY}
       </Link>
     </div>
   );

@@ -4,6 +4,7 @@ import { Check, Copy } from "lucide-react";
 
 import { GuestC2PForm } from "@/components/GuestC2PForm";
 import { useI18n } from "@/lib/i18n";
+import { GuestInvoiceOffer } from "./GuestInvoiceOffer";
 
 import {
   ApiError,
@@ -417,6 +418,15 @@ export function GuestPaymentPanel({
                 <span>{t("outstanding")}</span>
                 <span className="figure">{formatMoney(bill.remainingVes ?? "0", "VES")}</span>
               </div>
+              {/*
+                La factura va aquí y no antes: junto al recibo, con el dinero ya
+                movido. Antes de pagar convertiría una cena en un trámite, y la
+                mayoría no la necesita.
+              */}
+              <GuestInvoiceOffer
+                paymentId={claim.id}
+                paymentSettled={claim.status === "SUCCEEDED"}
+              />
             </div>
           ) : sessionDead ? (
             <p className="text-sm text-muted-foreground">{error?.message}</p>

@@ -171,6 +171,43 @@ export function GuestBillScreen({
   /** Si el comensal ha abierto las formas de dividir. Cerrado = pagarlo todo. */
   const [splitOpen, setSplitOpen] = useState(false);
 
+  /*
+   * El pago, en tres actos.
+   *
+   * Todo esto vivía en un solo scroll: la cuenta, el reparto, la propina y el
+   * formulario del banco, siempre dibujados. El comensal que bajaba a mirar su
+   * cuenta se encontraba un selector de banco y una casilla de clave **antes de
+   * haber decidido qué le tocaba pagar**, y la propina se pedía a media
+   * pantalla, antes de que nadie se hubiera comprometido a nada.
+   *
+   * Ahora cada decisión tiene su pantalla y la cifra viaja abajo, anclada:
+   *
+   *   1. qué pagas   2. propina   3. cómo pagas
+   *
+   * Se guarda en `sessionStorage` a propósito. La clave de C2P se pide al banco
+   * por SMS: el comensal sale del navegador, abre los mensajes y vuelve -- y si
+   * al volver la pestaña se ha recargado, sin esto aparecería en el paso 1 con
+   * la clave ya caducada en la mano.
+   */
+  const [step, setStep] = useState<1 | 2 | 3>(() => {
+    if (demo) return 1;
+    try {
+      const saved = Number(sessionStorage.getItem("splite:paystep"));
+      return saved === 2 || saved === 3 ? saved : 1;
+    } catch {
+      return 1;
+    }
+  });
+  useEffect(() => {
+    if (demo) return;
+    try {
+      sessionStorage.setItem("splite:paystep", String(step));
+    } catch {
+      /* Modo privado o almacenamiento bloqueado: el paso simplemente no
+         sobrevive a una recarga, que es como estaba antes. */
+    }
+  }, [step, demo]);
+
   const demoBillData = useMemo(() => (demo ? demoBill() : null), [demo]);
   const bill = demo ? demoBillData : (billQuery.data ?? null);
   const rateStr = bill?.fxRateVesPerUnit ?? bill?.fxRate ?? null;
@@ -312,6 +349,9 @@ export function GuestBillScreen({
       setMine(mineFinal);
       return;
     }
+    // El guion también avanza de paso: desde que la propina vive en el paso 2,
+    // ponerla sin cambiar de pantalla dejaba el último tiempo de la demo
+    // ocurriendo donde nadie lo ve.
 
     const steps: [number, () => void][] = [
       [700, () => setSplitOpen(true)],
@@ -321,7 +361,8 @@ export function GuestBillScreen({
       [1600, () => setMode("ITEMS")],
       [2500, () => setMine({ [first.id]: 1 })],
       [3400, () => setMine(mineFinal)],
-      [4600, () => setTipPct(15)],
+      [4600, () => setStep(2)],
+      [5300, () => setTipPct(15)],
     ];
     const timers = steps.map(([at, run]) => setTimeout(run, at));
 
@@ -452,6 +493,24 @@ export function GuestBillScreen({
       ? parseMinorInput(tipCustom) || "0"
       : ((shareMinor * BigInt(tipPct)) / 100n).toString();
 
+  /*
+   * Lo que lleva escrito la barra flotante.
+   *
+   * Antes de que llegue el primer cálculo del servidor no hay parte: se enseña
+   * lo que queda de la cuenta, que es lo que se pagaría con "Pagar todo" -- el
+   * modo por defecto -- y nunca un cero, que parecería que no hay nada que
+   * cobrar.
+   */
+  const dockShare = preview ? shareMinor : outstanding;
+  /*
+   * En el paso 1 la propina todavía no se ha preguntado.
+   *
+   * Sumarla ahí -- el valor por defecto es 10% -- ponía "Pagar la cuenta ·
+   * 990,00" en la barra mientras "Tu parte" decía 900,00 dos centímetros más
+   * arriba. Dos cifras distintas para lo mismo en la misma pantalla.
+   */
+  const dockTotal = step === 1 ? dockShare : dockShare + BigInt(tipMinor || "0");
+
   const setMineQty = (itemId: string, qty: number, max: number) =>
     setMine((prev) => {
       const next = { ...prev };
@@ -483,7 +542,11 @@ export function GuestBillScreen({
         </p>
       )}
 
-      <div className="surface p-6">
+      {/* Sin nada que cobrar no hay recorrido que seguir: si otro comensal
+          salda la cuenta mientras tú estás en el paso del banco, la cuenta
+          se vuelve a enseñar en vez de quedarse escondida detrás de un paso
+          que ya no lleva a ningún sitio. */}
+      <div className={`surface p-6 ${step === 1 || nothingToPay ? "" : "hidden"}`}>
         <h1 className="text-3xl">{t("yourBill")}</h1>
         <p className="mt-1 text-xs text-muted-foreground">
           {t("quotedIn")} {t(`currency${bill.currency}` as never)}
@@ -555,19 +618,36 @@ export function GuestBillScreen({
             billIsEmpty ? "hidden" : ""
           }`}
         >
-          {partlyPaid && (
-            <div className="mb-3 flex flex-col gap-1 text-sm text-muted-foreground">
-              <MoneyRow label={t("total")} amount={bill.totalDueVes} currency="VES" />
-              <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
-            </div>
-          )}
-
           <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
             {partlyPaid ? t("outstanding") : t("totalPayable")}
           </span>
           <span className="money-xl">
             {formatMoney(partlyPaid ? bill.remainingVes : bill.totalDueVes, "VES")}
           </span>
+
+          {/* Con cobros hechos, quien llega el tercero necesita dos cifras: lo
+              que queda, para saber cuánto puede pagar, y lo que era la cuenta,
+              para entender por qué no coincide con lo que vio en la mesa. La
+              original va tachada -- tachado es lo ya cobrado -- y en pequeño,
+              porque no es la que se paga. */}
+          {partlyPaid && (
+            <>
+              <span className="mt-1 text-[12px] text-muted-foreground">
+                {t("billWas").replace("{amount}", formatMoney(bill.totalDueVes ?? "0", "VES"))}
+              </span>
+              <div aria-hidden className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{
+                    width: `${
+                      (Number(paidSoFar) / Math.max(1, Number(BigInt(bill.totalDueVes ?? "0")))) *
+                      100
+                    }%`,
+                  }}
+                />
+              </div>
+            </>
+          )}
 
           {/* El equivalente en la moneda de la carta acompaña al total, no al
               pendiente: convertir un saldo parcial a dólares es un número que
@@ -614,12 +694,12 @@ export function GuestBillScreen({
           )}
         </div>
       ) : (
-        <div ref={splitPanelRef} className="surface mt-4 p-6">
+        <div ref={splitPanelRef} className={`surface mt-4 p-6 ${step === 3 ? "hidden" : ""}`}>
           {/* Pagarlo todo es lo que hace la mayoría, y ya es el modo por
               defecto: no necesita un botón compitiendo con los otros tres. Las
               cuatro opciones con el mismo peso obligaban a leerlas y decidir
               antes de poder hacer nada. Dividir sigue estando a un toque. */}
-          {!splitOpen ? (
+          {step !== 1 ? null : !splitOpen ? (
             <button
               onClick={() => setSplitOpen(true)}
               className="w-full rounded-full border border-border px-4 py-3 text-sm transition-colors hover:bg-secondary"
@@ -647,7 +727,7 @@ export function GuestBillScreen({
             </div>
           )}
 
-          {mode === "EQUAL" && (
+          {step === 1 && mode === "EQUAL" && (
             <div className="mt-5">
               <p className="text-xs uppercase tracking-widest text-muted-foreground">
                 {t("howManyDiners")}
@@ -670,7 +750,7 @@ export function GuestBillScreen({
             </div>
           )}
 
-          {mode === "ITEMS" && (
+          {step === 1 && mode === "ITEMS" && (
             <div className="mt-5 space-y-2">
               <p className="text-xs text-muted-foreground">{t("selectYourItems")}</p>
               {(bill.items ?? []).map((item) => {
@@ -757,7 +837,7 @@ export function GuestBillScreen({
             </div>
           )}
 
-          {mode === "CUSTOM" && (
+          {step === 1 && mode === "CUSTOM" && (
             <div className="mt-5">
               <p className="text-xs uppercase tracking-widest text-muted-foreground">
                 {t("yourAmount")}
@@ -820,7 +900,9 @@ export function GuestBillScreen({
                   </div>
                 </>
               )}
-              <div className="mt-5 border-t border-border pt-4">
+              {/* La propina se pregunta cuando ya hay una cifra, no a media
+                  pantalla y antes de que nadie se haya comprometido a pagar. */}
+              <div className={`mt-5 border-t border-border pt-4 ${step === 2 ? "" : "hidden"}`}>
                 <p className="text-xs uppercase tracking-widest text-muted-foreground">
                   {t("tipTitle")}
                 </p>
@@ -891,14 +973,16 @@ export function GuestBillScreen({
                   </div>
                 )}
               </div>
-              <p className="mt-3 text-[11px] text-muted-foreground">{t("guestNoPay")}</p>
+              {step === 1 && (
+                <p className="mt-3 text-[11px] text-muted-foreground">{t("changeUntilPaid")}</p>
+              )}
 
               {/* Sólo cuando de verdad se está dividiendo. Con "Pagar todo"
                   -- que ahora es el camino por defecto y no una opción que se
                   elige -- un botón llamado "Confirmar división" aparecía sin
                   que nadie hubiera dividido nada. Pagar la cuenta entera no
                   necesita guardar ningún reparto: lo hace el panel de pago. */}
-              {!demo && !activeSplit && mode !== "FULL" && (
+              {step === 1 && !demo && !activeSplit && mode !== "FULL" && (
                 <div className="mt-4 border-t border-border pt-4">
                   <button
                     disabled={confirmSplit.isPending}
@@ -960,7 +1044,7 @@ export function GuestBillScreen({
 
       {/* Cierra la rama de "hay algo que pagar": sin nada en la cuenta no se
           enseñan ni las formas de dividir ni el panel de pago. */}
-      {!nothingToPay && (
+      {!nothingToPay && step === 3 && (
         <GuestPaymentPanel
           bill={bill}
           demo={demo}
@@ -972,6 +1056,58 @@ export function GuestBillScreen({
               }
             : {})}
         />
+      )}
+
+      {/* ---------------------------------------------------------------
+          La barra flotante.
+          `sticky` y no `fixed`: esta misma pantalla vive dentro del marco de
+          teléfono de la landing, y un elemento fijo ahí dentro se ancla a la
+          ventana del navegador y se escapa del marco. Pegada al fondo del
+          contenedor que hace scroll, funciona en los dos sitios.
+          --------------------------------------------------------------- */}
+      {!nothingToPay && (
+        <div className="sticky bottom-0 z-10 -mx-5 mt-4 bg-gradient-to-t from-background from-65% to-transparent px-5 pb-4 pt-6">
+          {step < 3 && (
+            <button
+              type="button"
+              onClick={() => setStep(step === 1 ? 2 : 3)}
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground shadow-[0_12px_26px_-14px] shadow-primary transition-opacity hover:opacity-95"
+            >
+              <span>
+                {step === 1
+                  ? mode === "FULL"
+                    ? t("payTheBill")
+                    : t("payMyShare")
+                  : t("stepContinue")}
+              </span>
+              <span aria-hidden className="opacity-50">
+                ·
+              </span>
+              <span className="money-md">{formatMoney(dockTotal.toString(), "VES")}</span>
+            </button>
+          )}
+          {step > 1 && (
+            <button
+              type="button"
+              onClick={() => setStep(step === 2 ? 1 : 2)}
+              className={`min-h-11 w-full rounded-full border border-border text-[13px] text-muted-foreground transition-colors hover:bg-secondary ${
+                step < 3 ? "mt-2" : ""
+              }`}
+            >
+              {step === 2 ? t("backToBill") : t("backToTip")}
+            </button>
+          )}
+          {step === 1 && (
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              {partlyPaid
+                ? t("overRemaining").replace(
+                    "{amount}",
+                    formatMoney(bill.remainingVes ?? "0", "VES"),
+                  )
+                : t("nobodyElseCommitted")}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

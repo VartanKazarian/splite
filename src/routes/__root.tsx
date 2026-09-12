@@ -79,25 +79,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Splite — Pay at table para restaurantes modernos" },
+      { title: "Splite — El QR que divide la cuenta y cobra por mesa" },
       {
         name: "description",
         content:
-          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+          "Con un QR por mesa, cada comensal ve la cuenta, elige lo que consumió y paga su parte desde su banco. Tu equipo deja de dividir cuentas.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "Splite — Pay at table para restaurantes modernos" },
-      { name: "twitter:title", content: "Splite — Pay at table para restaurantes modernos" },
+      { property: "og:title", content: "Splite — El QR que divide la cuenta y cobra por mesa" },
+      { name: "twitter:title", content: "Splite — El QR que divide la cuenta y cobra por mesa" },
       {
         property: "og:description",
         content:
-          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+          "Con un QR por mesa, cada comensal ve la cuenta, elige lo que consumió y paga su parte desde su banco. Tu equipo deja de dividir cuentas.",
       },
       {
         name: "twitter:description",
         content:
-          "Simplifica el cobro en tu restaurante con un QR por mesa. Los comensales dividen la cuenta y pagan desde el móvil mientras tu equipo se enfoca en la experiencia.",
+          "Con un QR por mesa, cada comensal ve la cuenta, elige lo que consumió y paga su parte desde su banco. Tu equipo deja de dividir cuentas.",
       },
       { name: "google-site-verification", content: "xcKZYGfBHKsmRvI-POFUilb7g1rWM8oe8-WafMDgmT4" },
     ],

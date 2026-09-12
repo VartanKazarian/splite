@@ -157,6 +157,15 @@ export function GuestBillScreen({
 
   const [mode, setMode] = useState<SplitMode>("FULL");
   const [diners, setDiners] = useState(2);
+  /**
+   * Cómo te llamas, para que la mesa sepa quién ha pagado.
+   *
+   * Opcional a propósito y sin pedirlo dos veces: sin nombre la lista dice
+   * «Comensal 2», que funciona. El valor de ponerlo es para los demás -- ver
+   * quién falta sin preguntar en voz alta -- así que el campo es una línea y no
+   * un paso.
+   */
+  const [myName, setMyName] = useState("");
   // itemId -> unidades que paga este comensal
   const [mine, setMine] = useState<Record<string, number>>({});
   const [amount, setAmount] = useState("");
@@ -216,17 +225,22 @@ export function GuestBillScreen({
   /** El cuerpo del reparto: idéntico para la previsualización y para acordarlo. */
   const buildSplitBody = (): SplitPreviewRequest => {
     const remaining = BigInt(bill?.remainingVes ?? bill?.totalDueVes ?? "0");
-    if (mode === "FULL") return { mode, participants: [{ id: "me" }] };
+    const me = { id: "me", ...(myName.trim() ? { name: myName.trim() } : {}) };
+    if (mode === "FULL") return { mode, participants: [me] };
     if (mode === "EQUAL") {
       return {
         mode,
-        participants: Array.from({ length: Math.max(2, diners) }, (_, i) => ({ id: `p${i + 1}` })),
+        // A partes iguales, sólo se conoce el nombre de quien está mirando:
+        // los demás siguen siendo «Comensal N» hasta que cada uno escanee.
+        participants: Array.from({ length: Math.max(2, diners) }, (_, i) =>
+          i === 0 ? { ...me, id: "p1" } : { id: `p${i + 1}` },
+        ),
       };
     }
     if (mode === "ITEMS") {
       return {
         mode,
-        participants: [{ id: "me" }, { id: "others" }],
+        participants: [me, { id: "others" }],
         claims: (bill?.items ?? []).flatMap((item) => {
           const qty = mine[item.id] ?? 0;
           const rest = Math.max(0, (item.quantity ?? 1) - qty);
@@ -242,7 +256,7 @@ export function GuestBillScreen({
     return {
       mode,
       participants: [
-        { id: "me", amountVes: cents.toString() },
+        { ...me, amountVes: cents.toString() },
         { id: "others", amountVes: rest.toString() },
       ],
     };
@@ -984,6 +998,27 @@ export function GuestBillScreen({
                   necesita guardar ningún reparto: lo hace el panel de pago. */}
               {step === 1 && !demo && !activeSplit && mode !== "FULL" && (
                 <div className="mt-4 border-t border-border pt-4">
+                  {/*
+                    El nombre va aquí y no en un paso propio: es una línea
+                    opcional justo antes de acordar el reparto, que es el
+                    momento en que empieza a servir para algo. Sin él la lista
+                    dice «Comensal 2» y funciona igual -- el valor es para los
+                    demás, que ven quién ha pagado sin preguntarlo en voz alta.
+                  */}
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground">
+                    {t("yourNameOptional")}
+                    <input
+                      value={myName}
+                      onChange={(e) => setMyName(e.target.value)}
+                      maxLength={80}
+                      autoComplete="given-name"
+                      placeholder={t("yourNamePlaceholder")}
+                      className="mt-1 min-h-[44px] w-full rounded-lg border border-border bg-transparent px-3 text-base"
+                    />
+                  </label>
+                  <p className="mb-4 mt-1.5 text-[11px] text-muted-foreground">
+                    {t("yourNameWhy")}
+                  </p>
                   <button
                     disabled={confirmSplit.isPending}
                     onClick={() => confirmSplit.mutate()}

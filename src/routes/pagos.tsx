@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
 import {
+  account,
   ApiError,
   auth,
   formatMoney,
@@ -20,6 +21,7 @@ import { ActivityFeed } from "@/components/ActivityFeed";
 import { MyTipsCard } from "@/components/MyTipsCard";
 import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
 import { FxRatesCard } from "@/components/panel/FxRatesCard";
+import { FiscalPanel } from "@/components/panel/FiscalPanel";
 import { PanelHeader } from "@/components/PanelHeader";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { formatDateTime } from "../lib/dates";
@@ -123,6 +125,14 @@ function PaymentsPage() {
   // personas --; aquí sólo se decide si se enseña el selector o se explica a
   // quién pedírselo. Misma clave que el resto del panel: una consulta.
   const me = useQuery({ queryKey: ["me"], queryFn: () => auth.me(), enabled: ready, retry: false });
+  // La cuenta, sólo por sus capacidades de plan. Comparte `queryKey` con el
+  // resto del panel, así que no añade una petición: reusa la que ya hay.
+  const accountQuery = useQuery({
+    queryKey: ["account"],
+    queryFn: () => account.get(),
+    enabled: ready,
+    retry: false,
+  });
   const canAssign = canAssignServer(me.data?.user.role);
 
   // Reasignar mueve las propinas de sitio, así que el informe se vuelve a pedir.
@@ -177,10 +187,17 @@ function PaymentsPage() {
 
   // Tres pestañas y el hash manda, igual que en Configuración: `/pagos#tasas`
   // es a donde redirige la ruta vieja de Tasas.
+  // Facturación sólo aparece si el plan la incluye. No se esconde por vergüenza
+  // -- una pestaña que contesta 403 al pulsarla es peor que una que no está --
+  // y se lee de `plan.capabilities` en vez de codificar aquí la tabla de
+  // precios, que sería mantenerla dos veces.
+  const canInvoice = accountQuery.data?.plan?.capabilities?.["fiscalInvoicing"] === true;
+
   const TABS = [
     ["cobros", t("payTabCollections")],
     ["propinas", t("payTabTips")],
     ["tasas", t("fxRates")],
+    ...(canInvoice ? ([["facturacion", t("fiscalTab")]] as const) : []),
   ] as const;
   const current = TABS.some(([id]) => id === tab) ? tab : "cobros";
 
@@ -532,6 +549,8 @@ function PaymentsPage() {
         )}
 
         {current === "tasas" && <FxRatesCard />}
+
+        {current === "facturacion" && <FiscalPanel />}
       </main>
     </div>
   );

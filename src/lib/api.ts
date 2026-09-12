@@ -661,6 +661,42 @@ export const guest = {
       auth: "guest",
     }),
 
+  /**
+   * «¿Necesitas factura?», después de pagar.
+   *
+   * Un cuerpo con sólo `paymentId` es una petición completa: consumidor final.
+   * No es un atajo ni un formulario a medio llenar -- es el caso mayoritario, y
+   * el backend lo trata como tal.
+   *
+   * Contesta 202 y `invoice: null` cuando el documento no llegó a existir. Eso
+   * **no** significa que el pago fallara: por eso la respuesta trae
+   * `paymentUnaffected`, y por eso quien lo pinte no debe hablar de un cobro
+   * rechazado.
+   */
+  requestInvoice: (body: RequestInvoiceInput) =>
+    apiRequest<RequestInvoiceResult>("/api/v1/guest/bill/invoice", {
+      method: "POST",
+      body,
+      auth: "guest",
+    }),
+
+  /**
+   * El correo del comensal, con la finalidad separada del dato.
+   *
+   * `marketingConsent` sólo va en `true` si marcó una casilla vacía. Dar el
+   * correo para que llegue la factura no consiente publicidad -- son dos
+   * cosas, y mandarlo siempre en true las convertiría en una.
+   *
+   * Devuelve lo que quedó guardado y no lo que se pidió: si había una baja
+   * previa vuelve `false`, porque volver a dejar el correo no es volver a
+   * decir que sí.
+   */
+  saveContact: (body: GuestContactInput) =>
+    apiRequest<{ email: string; marketingConsent: boolean; withdrawn: boolean }>(
+      "/api/v1/guest/bill/contact",
+      { method: "POST", body, auth: "guest" },
+    ),
+
   endSession: async () => {
     await apiRequest<void>("/api/v1/guest/sessions", { method: "DELETE", auth: "guest" }).catch(
       () => undefined,
@@ -1110,7 +1146,21 @@ export type Account = {
     tier: "TRIAL" | "STARTER" | "PRO" | "ENTERPRISE";
     trialEndsAt: string | null;
     trialDaysRemaining: number | null;
+    /**
+     * Lo que este escalón incluye, un booleano por capacidad.
+     *
+     * Se lee en vez de codificar aquí la tabla de precios: un botón que
+     * contesta 403 es peor experiencia que un botón que no se ofrece, y una
+     * copia de la tabla en el frontend es la misma tabla mantenida dos veces.
+     *
+     * Ojo: un `false` significa «no entra en este plan», que no siempre es lo
+     * mismo que «la API lo va a rechazar» -- ver `entitlements.js` en el
+     * backend.
+     */
+    capabilities?: Record<string, boolean>;
   };
+  /** A quién se le factura: a cada comensal, o a la mesa. */
+  fiscalInvoicePolicy?: "PER_DINER" | "SINGLE_BILL";
   createdAt?: string;
 };
 
@@ -1823,3 +1873,125 @@ export function newIdempotencyKey(): string {
     ? crypto.randomUUID()
     : `key-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
 }
+
+/* ------------------------------------------------------------ facturación */
+
+export type FiscalTax = {
+  taxCategory: "TAXABLE" | "EXEMPT" | "EXONERATED" | "NON_TAXABLE";
+  vatBps: number;
+  baseMinor: Money;
+  vatMinor: Money;
+};
+
+export type FiscalLine = {
+  position: number;
+  description: string;
+  /** Milésimas: 338 es 0,338 de un plato. Entero en cadena, como el dinero. */
+  quantityMilli: string;
+  unitPriceMinor: Money;
+  taxCategory: FiscalTax["taxCategory"];
+  vatBps: number;
+  baseMinor: Money;
+  vatMinor: Money;
+};
+
+export type FiscalInvoice = {
+  id: string;
+  billId: string;
+  paymentId: string | null;
+  documentType: "INVOICE" | "CREDIT_NOTE" | "DEBIT_NOTE";
+  compensatesId: string | null;
+  /** Los pone la imprenta digital autorizada. Nunca se construyen aquí. */
+  documentNumber: string;
+  controlNumber: string;
+  provider: string;
+  lineBasis: "ITEMISED" | "PRORATED" | "AGGREGATE";
+  currency: "VES";
+  subtotalMinor: Money;
+  vatMinor: Money;
+  serviceMinor: Money;
+  totalMinor: Money;
+  /** Nulo es consumidor final: una respuesta completa, no un dato que falte. */
+  customer: { name: string | null; taxId: string | null; email: string | null } | null;
+  issuedAt: string;
+  lines?: FiscalLine[];
+  taxes?: FiscalTax[];
+};
+
+export type FiscalRequestRow = {
+  id: string;
+  billId: string;
+  paymentId: string | null;
+  documentType: FiscalInvoice["documentType"];
+  status: "PENDING" | "SENT" | "ISSUED" | "FAILED" | "UNCERTAIN";
+  provider: string | null;
+  attempts: number;
+  lastErrorCode: string | null;
+  lastAttemptAt: string | null;
+  createdAt: string;
+  invoiceId: string | null;
+};
+
+export type GuestContactInput = {
+  email: string;
+  name?: string;
+  /** Sólo true si marcó una casilla que estaba vacía. Nunca por defecto. */
+  marketingConsent?: boolean;
+};
+
+export type RequestInvoiceInput = {
+  paymentId: string;
+  name?: string;
+  taxId?: string;
+  email?: string;
+};
+
+export type RequestInvoiceResult = {
+  status: "ISSUED" | "UNCERTAIN" | "FAILED";
+  requestId: string;
+  invoice: FiscalInvoice | null;
+  /** Siempre true, y conviene decirlo: el cobro sigue en pie pase lo que pase. */
+  paymentUnaffected: boolean;
+};
+
+/**
+ * Facturación, para el panel.
+ *
+ * Las lecturas no las cierra el plan y nunca deben cerrarse: el deber de
+ * conservar una factura emitida sobrevive a la suscripción.
+ */
+export const fiscalInvoices = {
+  list: (params: { limit?: number; offset?: number } = {}) =>
+    apiRequest<{ data: FiscalInvoice[]; limit: number; offset: number }>(
+      `/api/v1/fiscal/invoices?${new URLSearchParams(
+        Object.entries(params).map(([k, v]) => [k, String(v)]),
+      )}`,
+      { auth: "staff" },
+    ),
+
+  get: (id: string) =>
+    apiRequest<FiscalInvoice>(`/api/v1/fiscal/invoices/${id}`, { auth: "staff" }),
+
+  /** La cola. `status=UNCERTAIN` es la consulta que importa. */
+  requests: (params: { status?: FiscalRequestRow["status"]; limit?: number } = {}) =>
+    apiRequest<{ data: FiscalRequestRow[]; limit: number; offset: number }>(
+      `/api/v1/fiscal/requests?${new URLSearchParams(
+        Object.entries(params).map(([k, v]) => [k, String(v)]),
+      )}`,
+      { auth: "staff" },
+    ),
+
+  /**
+   * Preguntarle al proveedor qué pasó. **No reintenta la emisión**: consulta por
+   * la clave de idempotencia, que es la única acción segura sobre algo que
+   * quizá ya se emitió.
+   */
+  resolve: (id: string) =>
+    apiRequest<{
+      requestId: string;
+      status: FiscalRequestRow["status"];
+      stillUnknown: boolean;
+      unchanged: boolean;
+      invoice: FiscalInvoice | null;
+    }>(`/api/v1/fiscal/requests/${id}/resolve`, { method: "POST", auth: "staff" }),
+};

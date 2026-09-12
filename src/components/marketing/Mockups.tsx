@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, QrCode as QrIcon, Users, Wifi } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, QrCode as QrIcon, Users, Wifi } from "lucide-react";
 
 import { DEMO_RATE, money, useReducedMotion } from "./format";
 
@@ -120,18 +120,46 @@ export function DashboardMockup() {
       </div>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        {[
-          { t: "Mesa 12", s: "Cuenta abierta", a: "57.200,00 Bs", p: "2 de 4 pagaron", on: true },
-          { t: "Mesa 7", s: "Cuenta abierta", a: "31.210,00 Bs", p: "1 de 2 pagaron", on: true },
-          { t: "Mesa 3", s: "Cuenta abierta", a: "97.230,00 Bs", p: "Sin pagos", on: false },
-          { t: "Mesa 9", s: "Libre", a: "—", p: "QR activo", on: false },
-        ].map((c) => (
+        {/* Una de las cuatro llega con pedido nuevo. El plano enseñaba cuatro
+            mesas debiendo dinero y ninguna pidiendo, que es justo la mitad del
+            producto que más ha cambiado: desde que se pide por el QR, lo que
+            interrumpe a alguien en sala son los platos por aceptar. */}
+        {(
+          [
+            {
+              t: "Mesa 12",
+              s: "Cuenta abierta",
+              a: "57.200,00 Bs",
+              p: "2 de 4 pagaron",
+              tone: "open",
+            },
+            {
+              t: "Mesa 7",
+              s: "Cuenta abierta",
+              a: "31.210,00 Bs",
+              p: "1 de 2 pagaron",
+              tone: "open",
+            },
+            {
+              t: "Mesa 3",
+              s: "Pedido nuevo",
+              a: "97.230,00 Bs",
+              p: "2 platos por aceptar",
+              tone: "new",
+            },
+            { t: "Mesa 9", s: "Libre", a: "—", p: "QR activo", tone: "idle" },
+          ] as const
+        ).map((c) => (
           <div key={c.t} className="rounded-xl border border-border bg-background p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-semibold">{c.t}</span>
               <span
-                className={`rounded-full px-2 py-0.5 text-[10px] ${
-                  c.on ? "bg-primary/12 text-primary" : "bg-secondary text-muted-foreground"
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${
+                  c.tone === "open"
+                    ? "bg-primary/12 text-primary"
+                    : c.tone === "new"
+                      ? "bg-amber-500/12 text-amber-600 dark:text-amber-400"
+                      : "bg-secondary text-muted-foreground"
                 }`}
               >
                 {c.s}
@@ -139,7 +167,12 @@ export function DashboardMockup() {
             </div>
             <p className="mt-3 text-lg font-semibold figure">{c.a}</p>
             <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <Users className="h-3 w-3" /> {c.p}
+              {c.tone === "new" ? (
+                <ClipboardList className="h-3 w-3 shrink-0" />
+              ) : (
+                <Users className="h-3 w-3 shrink-0" />
+              )}{" "}
+              {c.p}
             </p>
           </div>
         ))}
@@ -158,6 +191,38 @@ export function QrCardMockup() {
         <QrIcon className="h-16 w-16 text-foreground" strokeWidth={1.2} />
       </div>
       <p className="mt-4 text-[11px] text-muted-foreground">Escanea para ver tu cuenta</p>
+    </div>
+  );
+}
+
+/**
+ * La misma tarjeta de mesa, tumbada, para cuando no caben las dos cosas.
+ *
+ * `QrCardMockup` mide 220px y el teléfono 264: uno al lado del otro no entran
+ * en una pantalla de 393, y por eso la tarjeta vivía en un `hidden sm:block`.
+ * El efecto era que la página explicaba un producto que empieza escaneando un
+ * QR y, en el teléfono, no enseñaba ningún QR. Esta versión mide lo que mide el
+ * teléfono y se apila encima, con la flecha que dice qué pasa después.
+ */
+export function QrTableStrip({ className = "" }: { className?: string }) {
+  return (
+    <div className={`w-[264px] max-w-full ${className}`}>
+      <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-[0_18px_45px_-40px_rgba(20,20,20,0.6)]">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-border bg-background">
+          <QrIcon className="h-8 w-8 text-foreground" strokeWidth={1.2} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Casa 72</p>
+          <p className="text-[15px] font-semibold tracking-tight">Mesa 12</p>
+          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+            Escanea para ver tu cuenta
+          </p>
+        </div>
+      </div>
+      {/* Decorativa: lo que dice ya lo dicen las dos tarjetas que une. */}
+      <div className="flex justify-center py-1.5" aria-hidden="true">
+        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+      </div>
     </div>
   );
 }
@@ -398,8 +463,15 @@ export function CurrencyToggle({
           </button>
         ))}
       </div>
+      {/* En dólares, el pie tiene que decir en qué se cobra. Enseñar la cuenta
+          entera en $ sin más da a entender que el dinero entra en dólares, y no
+          entra: la liquidación es siempre en bolívares. */}
       <span className="text-xs text-muted-foreground">
-        Ejemplo · tasa BCV {DEMO_RATE.toFixed(2).replace(".", ",")}
+        {value === "USD" ? (
+          <>Carta en $ · se cobra en Bs a {DEMO_RATE.toFixed(2).replace(".", ",")}</>
+        ) : (
+          <>Ejemplo · tasa BCV {DEMO_RATE.toFixed(2).replace(".", ",")}</>
+        )}
       </span>
     </div>
   );

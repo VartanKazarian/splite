@@ -22,6 +22,7 @@ import {
   DashboardMockup,
   LiveSplitMockup,
   QrCardMockup,
+  QrTableStrip,
 } from "@/components/marketing/Mockups";
 import { TryDemo } from "@/components/marketing/TryDemo";
 
@@ -280,9 +281,16 @@ function Hero() {
               clientes piden desde el QR» --, que es lo que suma, no lo que se
               vende. Quien llega buscando dejar de dividir cuentas tenía que
               leer hasta la segunda línea para saber que había llegado. */}
+          {/* Aquí decía «en bolívares o en dólares, a la tasa del día», y eso
+              era falso: lo que puede estar en dólares es el precio de la
+              carta, nunca el cobro. Splite liquida siempre en bolívares
+              -- `003_ves_settlement.sql` lo impone en la base de datos --, así
+              que la frase prometía una forma de cobro que no existe. La regla,
+              dicha entera, vive ahora en la sección de cobro; el hero no es
+              sitio para hablar de monedas. */}
           <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground md:text-[19px]">
             Cada comensal ve la cuenta desde el QR de la mesa, elige lo que consumió y paga su parte
-            desde su banco. En bolívares o en dólares, a la tasa del día.{" "}
+            desde su banco.{" "}
             <span className="text-foreground">Y desde ahí mismo, también pide.</span>
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -299,7 +307,13 @@ function Hero() {
           </div>
         </div>
 
-        <div className="rise flex items-end justify-center gap-4 lg:justify-end">
+        {/* En el teléfono no había QR. `QrCardMockup` mide 220px y vivía en un
+            `hidden sm:block`, así que por debajo de 640px la página contaba una
+            historia que empieza escaneando y no enseñaba el escaneo -- en el
+            único aparato donde esa historia ocurre de verdad. Debajo de ese
+            ancho entra la versión estrecha, apilada sobre el teléfono. */}
+        <div className="rise flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:justify-center lg:justify-end">
+          <QrTableStrip className="sm:hidden" />
           <div className="hidden sm:block">
             <QrCardMockup />
           </div>
@@ -478,6 +492,12 @@ function GetPaid() {
           <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground">
             Con Clave 2 Pagos, tu cliente elige su banco, pide su clave y paga sin levantarse. No
             hay que perseguir capturas de pantalla ni teclear referencias.
+          </p>
+          {/* La moneda, dicha donde toca y sin ambigüedad. */}
+          <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+            Pon los precios en bolívares o en dólares, como los tengas en la carta.{" "}
+            <span className="text-foreground">El cobro es siempre en bolívares</span>, a la tasa del
+            día.
           </p>
 
           <div className="mt-7 grid gap-4 sm:grid-cols-3">
@@ -664,7 +684,13 @@ function ForOwners() {
           <div className="mt-8">
             <PrimaryCta to="/registro">{CTA_PRIMARY}</PrimaryCta>
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">Integraciones con POS: próximamente.</p>
+          {/* «Integraciones con POS: próximamente», solo, se lee como un hueco.
+              Lo que de verdad importa a quien ya tiene caja montada es que no
+              hay que tocarla, y eso es cierto justamente porque no hay
+              integración: Splite no habla con ningún TPV. */}
+          <p className="mt-4 text-sm text-muted-foreground">
+            Funciona al margen del TPV que ya tienes. Integraciones con POS: próximamente.
+          </p>
         </div>
         <DashboardMockup />
       </div>

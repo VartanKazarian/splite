@@ -13,13 +13,11 @@ import {
   ScanLine,
   ShieldCheck,
   Smartphone,
-  Utensils,
   X,
 } from "lucide-react";
-import { C2P_BANKS, money } from "@/components/marketing/format";
+import { C2P_BANKS } from "@/components/marketing/format";
 import {
   C2PMockup,
-  CountUp,
   CurrencyToggle,
   DashboardMockup,
   LiveSplitMockup,
@@ -62,11 +60,30 @@ function Section({
   className?: string;
 }) {
   return (
-    <section id={id} className={`scroll-mt-20 px-5 py-16 md:py-24 ${className}`}>
+    <section id={id} className={`scroll-mt-20 px-5 py-20 md:py-32 ${className}`}>
       <div className="mx-auto w-full max-w-6xl">{children}</div>
     </section>
   );
 }
+
+/*
+ * Tres tamaños de titular, no uno.
+ *
+ * Nueve de los once encabezados de sección medían exactamente lo mismo
+ * (`md:text-[44px]`), así que la página era once bloques del mismo peso y no
+ * había forma de saber cuál importaba. La jerarquía la hace la tipografía; si
+ * todo grita, no se oye nada.
+ *
+ *   lg  los tres momentos que sostienen el argumento -- por qué lo necesitas,
+ *       cómo entra el dinero, qué recibe tu restaurante
+ *   md  los que explican
+ *   sm  los de apoyo, que acompañan y no compiten
+ */
+const H2 = {
+  lg: "mt-4 text-[32px] leading-[1.08] md:text-[52px]",
+  md: "mt-4 text-[28px] leading-tight md:text-[40px]",
+  sm: "mt-4 text-[24px] leading-tight md:text-[32px]",
+} as const;
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
@@ -121,7 +138,15 @@ function Landing() {
         <Hero />
         <Problem />
         <HowItWorks />
-        <ItemSplit />
+        {/* Aquí vivía «Cada persona paga lo que realmente consumió», cuyo
+            titular era un calco del H1 y cuyo contenido era una lista estática
+            de nombres. La página ya enseña el reparto dos veces y funcionando:
+            el hero se reparte solo y esta misma sección lleva la pantalla real
+            del comensal. Una tercera explicación del mismo concepto no añade
+            nada; quita aire.
+
+            Y con ella «Para restaurantes / Para comensales», dos tarjetas que
+            sólo repetían llamadas que ya están en el hero y en el cierre. */}
         <GetPaid />
         {/* El panel, antes de los beneficios y no en octavo lugar. Quien firma
             esto no es el comensal sino quien cuadra la caja al cerrar, y
@@ -131,7 +156,6 @@ function Landing() {
         <OrderFromTable />
         <Benefits />
         <Onboarding />
-        <Audiences />
         <Trust />
         <FinalCta />
       </main>
@@ -247,7 +271,7 @@ function Hero() {
       <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="rise">
           <Eyebrow>Para restaurantes</Eyebrow>
-          <h1 className="mt-4 text-[36px] leading-[1.05] md:text-[58px]">
+          <h1 className="mt-4 text-[40px] leading-[1.03] md:text-[64px]">
             Cada cliente paga lo suyo.
             <br />
             <span className="text-primary">Tu equipo no divide la cuenta.</span>
@@ -308,9 +332,7 @@ function Problem() {
     <Section className="border-y border-border bg-secondary">
       <div className="reveal max-w-2xl">
         <Eyebrow>El problema</Eyebrow>
-        <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-          Dividir una cuenta no debería tomar más tiempo que comer.
-        </h2>
+        <h2 className={H2.lg}>Dividir una cuenta no debería tomar más tiempo que comer.</h2>
         <p className="mt-5 text-[17px] text-muted-foreground">
           Con varios comensales en una mesa, dividir, calcular y cobrar se convierte en trabajo
           extra para tu equipo. Splite lo mueve al teléfono del cliente.
@@ -376,60 +398,6 @@ function Problem() {
   );
 }
 
-function ItemSplit() {
-  return (
-    <Section className="border-y border-border bg-secondary">
-      <div className="grid gap-10 lg:grid-cols-[1fr_0.85fr] lg:items-center">
-        <div>
-          <Eyebrow>Reparto por producto</Eyebrow>
-          <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-            Cada persona paga lo que realmente consumió.
-          </h2>
-          <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground">
-            ¿Uno pidió la pizza y otro tomó dos cervezas? Cada persona selecciona sus productos.
-            Splite calcula automáticamente cuánto corresponde a cada uno.
-          </p>
-          <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/8 px-4 py-2 text-sm font-medium text-primary">
-            <Check className="h-4 w-4" /> Sin dividir todo en partes iguales
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Mesa 12</p>
-            <span className="text-[11px] text-muted-foreground">Casa 72</span>
-          </div>
-          <div className="mt-4 space-y-2 text-[15px]">
-            {[
-              { n: "Hamburguesa", p: money(18, "VES"), who: "Carlos" },
-              { n: "Pizza", p: money(22, "VES"), who: "Ana" },
-              { n: "Cervezas", p: money(12, "VES"), who: "Carlos · Pedro" },
-              { n: "Papas", p: money(8, "VES"), who: "Pedro" },
-            ].map((r) => (
-              <div
-                key={r.n}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate">{r.n}</p>
-                  <p className="truncate text-xs text-primary">{r.who}</p>
-                </div>
-                <span className="figure text-muted-foreground">{r.p}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
-            <span className="text-sm text-muted-foreground">Subtotal</span>
-            <span className="text-2xl font-semibold">
-              <CountUp to={60 * 757.54} decimals={0} suffix=" Bs" />
-            </span>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
 function HowItWorks() {
   /*
    * Una sola sección de «cómo funciona».
@@ -443,9 +411,7 @@ function HowItWorks() {
     <Section id="como-funciona">
       <div className="max-w-2xl">
         <Eyebrow>Cómo funciona</Eyebrow>
-        <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-          Piden, eligen y pagan. Tu equipo no hace cuentas.
-        </h2>
+        <h2 className={H2.md}>Piden, eligen y pagan. Tu equipo no hace cuentas.</h2>
         <p className="mt-4 text-[17px] text-muted-foreground">
           Pruébalo aquí mismo: es la pantalla que ve tu cliente.
         </p>
@@ -508,9 +474,7 @@ function GetPaid() {
       <div className="grid gap-10 lg:grid-cols-[1fr_0.8fr] lg:items-center">
         <div>
           <Eyebrow>Cómo cobras</Eyebrow>
-          <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-            El cobro entra desde el banco del comensal.
-          </h2>
+          <h2 className={H2.lg}>El cobro entra desde el banco del comensal.</h2>
           <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground">
             Con Clave 2 Pagos, tu cliente elige su banco, pide su clave y paga sin levantarse. No
             hay que perseguir capturas de pantalla ni teclear referencias.
@@ -605,9 +569,7 @@ function OrderFromTable() {
               se vende y esto es lo que viene encima, y decirlo así evita que
               dos promesas grandes compitan por el mismo sitio. */}
           <Eyebrow>Y además</Eyebrow>
-          <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-            El mismo QR también toma el pedido.
-          </h2>
+          <h2 className={H2.md}>El mismo QR también toma el pedido.</h2>
           <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground">
             El comensal pide desde la carta con fotos y las líneas entran en la cuenta al instante.
             Tu equipo lo ve en una bandeja y da por visto lo que ya atendió.
@@ -644,9 +606,7 @@ function Benefits() {
       <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         <div className="reveal">
           <Eyebrow>Beneficios</Eyebrow>
-          <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-            Más rápido para tu equipo. Más fácil para tus clientes.
-          </h2>
+          <h2 className={H2.md}>Más rápido para tu equipo. Más fácil para tus clientes.</h2>
         </div>
         <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
           {[
@@ -673,12 +633,10 @@ function Benefits() {
 function ForOwners() {
   return (
     <Section id="restaurantes">
-      <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+      <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
         <div>
           <Eyebrow>Para el restaurante</Eyebrow>
-          <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-            Pensado para el restaurante, no solo para el cliente.
-          </h2>
+          <h2 className={H2.lg}>Pensado para el restaurante, no solo para el cliente.</h2>
           <p className="mt-5 max-w-md text-[17px] leading-relaxed text-muted-foreground">
             Splite conecta la experiencia del comensal con la operación del restaurante.
           </p>
@@ -719,9 +677,7 @@ function Onboarding() {
     <Section className="border-y border-border bg-secondary">
       <div className="reveal max-w-2xl">
         <Eyebrow>Puesta en marcha</Eyebrow>
-        <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-          Así funcionará tu restaurante con Splite.
-        </h2>
+        <h2 className={H2.sm}>Así funciona tu restaurante con Splite.</h2>
         <p className="mt-4 text-[17px] text-muted-foreground">
           Acompañamos la configuración inicial con tu equipo.
         </p>
@@ -748,41 +704,6 @@ function Onboarding() {
           </li>
         ))}
       </ol>
-    </Section>
-  );
-}
-
-function Audiences() {
-  return (
-    <Section>
-      <div className="grid gap-5 md:grid-cols-2">
-        <article className="rounded-2xl border border-border bg-foreground p-8 text-background">
-          <Utensils className="h-5 w-5 opacity-80" />
-          <h2 className="mt-4 text-[26px] md:text-[32px]">Para restaurantes</h2>
-          <p className="mt-3 max-w-sm text-[16px] leading-relaxed opacity-80">
-            Una herramienta para simplificar el cobro y reducir trabajo operativo.
-          </p>
-          <Link
-            to="/registro"
-            className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-full bg-background px-6 text-[15px] font-semibold text-foreground"
-          >
-            Para mi restaurante
-          </Link>
-        </article>
-        <article className="rounded-2xl border border-border bg-card p-8">
-          <Smartphone className="h-5 w-5 text-primary" />
-          <h2 className="mt-4 text-[26px] md:text-[32px]">Para comensales</h2>
-          <p className="mt-3 max-w-sm text-[16px] leading-relaxed text-muted-foreground">
-            Escanea. Mira tu cuenta. Elige lo que pagas. Sin descargar ninguna app.
-          </p>
-          <a
-            href="/t?demo=1"
-            className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-full border border-border px-6 text-[15px] font-medium transition-colors hover:bg-secondary"
-          >
-            Ver cómo funciona
-          </a>
-        </article>
-      </div>
     </Section>
   );
 }
@@ -828,9 +749,7 @@ function Trust() {
     <Section id="seguridad" className="border-y border-border bg-secondary">
       <div className="reveal max-w-2xl">
         <Eyebrow>Confianza</Eyebrow>
-        <h2 className="mt-4 text-[30px] leading-tight md:text-[44px]">
-          Construido para manejar cuentas y pagos con precisión.
-        </h2>
+        <h2 className={H2.sm}>Construido para manejar cuentas y pagos con precisión.</h2>
         <p className="mt-4 text-[17px] text-muted-foreground">
           Aislamiento total entre restaurantes: los datos de tu negocio son solo tuyos.
         </p>
@@ -856,7 +775,7 @@ function FinalCta() {
   return (
     <Section>
       <div className="rounded-3xl border border-border bg-card px-6 py-14 text-center md:px-16">
-        <h2 className="mx-auto max-w-3xl text-[30px] leading-tight md:text-[46px]">
+        <h2 className={`${H2.lg} mx-auto max-w-3xl`}>
           ¿Cuántas veces al día tu equipo tiene que dividir una cuenta?
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-[17px] text-muted-foreground md:text-[19px]">
@@ -885,8 +804,10 @@ function Footer() {
       <div className="mx-auto grid w-full max-w-6xl gap-10 md:grid-cols-[1.2fr_repeat(3,0.6fr)]">
         <div>
           <p className="text-[17px] font-semibold tracking-[0.14em]">SPLITE</p>
+          {/* Repetía el H1 palabra por palabra, que es la quinta vez que esa
+              frase aparecía en la página. Aquí lo útil es decir qué es esto. */}
           <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-            Cada cliente paga lo suyo. Tu equipo no divide la cuenta.
+            Cobro y pedidos por QR para restaurantes.
           </p>
         </div>
         <div>

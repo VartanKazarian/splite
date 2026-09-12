@@ -8,7 +8,7 @@ import { ApiError, guest, guestSession, menu, scannedQr } from "@/lib/api";
 import { GuestError } from "@/components/GuestError";
 import { GuestBillScreen } from "@/components/GuestBillScreen";
 import { GuestMenuView } from "@/components/GuestMenuView";
-import { GuestOrderBar, GuestOrderSent } from "@/components/GuestOrderBar";
+import { FixedBottomBar, GuestOrderBar, GuestOrderSent } from "@/components/GuestOrderBar";
 import { RestaurantHero } from "@/components/RestaurantHero";
 import type { GuestView } from "@/lib/guest-view";
 
@@ -238,11 +238,11 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
             quien acaba de pedir suele querer seguir mirando la carta, y
             sacarlo de ella para decirle "hecho" es devolverlo al principio. */}
         {sent ? (
-          <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-5 pb-5 pt-3 backdrop-blur">
-            <div className="mx-auto w-full max-w-md">
+          <FixedBottomBar>
+            <div className="mx-auto w-full max-w-md px-5 pb-5 pt-3">
               <GuestOrderSent onMenu={() => setSent(false)} onBill={openBill} />
             </div>
-          </div>
+          </FixedBottomBar>
         ) : (
           <GuestOrderBar
             quantities={cart}

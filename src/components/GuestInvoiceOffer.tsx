@@ -39,12 +39,35 @@ export function GuestInvoiceOffer({
   const [name, setName] = useState("");
   const [taxId, setTaxId] = useState("");
   const [email, setEmail] = useState("");
+  /**
+   * El consentimiento comercial, **sin marcar** y aparte.
+   *
+   * Dar el correo para que llegue la factura y aceptar publicidad son dos
+   * finalidades distintas. Marcarla por defecto -- o deducirla de que haya
+   * escrito un correo -- convertiría un dato transaccional en una lista de
+   * promociones sin que nadie dijera que sí, que es justo lo que se impugna
+   * después.
+   */
+  const [marketing, setMarketing] = useState(false);
   const [result, setResult] = useState<RequestInvoiceResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: () => {
       if (!paymentId) throw new Error("missing payment");
+      // El contacto se guarda aparte de la factura, a propósito: son dos
+      // finalidades y el backend las guarda como dos cosas. Si esto falla no
+      // se arrastra la factura -- el documento importa más que la lista.
+      if (email.trim()) {
+        void guest
+          .saveContact({
+            email: email.trim(),
+            ...(name.trim() ? { name: name.trim() } : {}),
+            marketingConsent: marketing,
+          })
+          .catch(() => undefined);
+      }
+
       return guest.requestInvoice({
         paymentId,
         ...(name.trim() ? { name: name.trim() } : {}),
@@ -176,6 +199,28 @@ export function GuestInvoiceOffer({
               autoComplete="email"
             />
           </label>
+
+          {/*
+            La casilla va debajo del correo y con su propia explicación, no
+            pegada al campo: quien la lea tiene que poder ver que es otra cosa
+            distinta de recibir su factura. Y empieza vacía.
+          */}
+          {email.trim() ? (
+            <label className="flex items-start gap-2.5 rounded-lg border border-border p-3">
+              <input
+                type="checkbox"
+                checked={marketing}
+                onChange={(e) => setMarketing(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0"
+              />
+              <span className="text-sm">
+                {t("marketingOptIn")}
+                <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                  {t("marketingWhy")}
+                </span>
+              </span>
+            </label>
+          ) : null}
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
 

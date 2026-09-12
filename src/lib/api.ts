@@ -680,6 +680,23 @@ export const guest = {
       auth: "guest",
     }),
 
+  /**
+   * El correo del comensal, con la finalidad separada del dato.
+   *
+   * `marketingConsent` sólo va en `true` si marcó una casilla vacía. Dar el
+   * correo para que llegue la factura no consiente publicidad -- son dos
+   * cosas, y mandarlo siempre en true las convertiría en una.
+   *
+   * Devuelve lo que quedó guardado y no lo que se pidió: si había una baja
+   * previa vuelve `false`, porque volver a dejar el correo no es volver a
+   * decir que sí.
+   */
+  saveContact: (body: GuestContactInput) =>
+    apiRequest<{ email: string; marketingConsent: boolean; withdrawn: boolean }>(
+      "/api/v1/guest/bill/contact",
+      { method: "POST", body, auth: "guest" },
+    ),
+
   endSession: async () => {
     await apiRequest<void>("/api/v1/guest/sessions", { method: "DELETE", auth: "guest" }).catch(
       () => undefined,
@@ -1913,6 +1930,13 @@ export type FiscalRequestRow = {
   lastAttemptAt: string | null;
   createdAt: string;
   invoiceId: string | null;
+};
+
+export type GuestContactInput = {
+  email: string;
+  name?: string;
+  /** Sólo true si marcó una casilla que estaba vacía. Nunca por defecto. */
+  marketingConsent?: boolean;
 };
 
 export type RequestInvoiceInput = {

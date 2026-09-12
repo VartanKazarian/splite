@@ -615,6 +615,20 @@ const dict = {
       "Esa referencia ya fue usada. Revisa el número, y si estás seguro de que es correcto avísale al mesero.",
     guestErrTooMuch: "Ese monto supera lo que falta por pagar ({amount}).",
     guestErrFields: "Revisa los datos.",
+    /* Una frase por casilla, que diga qué se espera y no sólo que está mal. */
+    guestErrFieldsN: "Hay {n} datos que revisar. Están marcados abajo.",
+    guestErrBadAmount: "El monto no vale. Escribe lo que transferiste, en bolívares.",
+    guestErrBadReference:
+      "La referencia no vale. Son los números que te dio tu banco, entre 4 y 32 dígitos.",
+    guestErrBadPhone:
+      "Ese teléfono no es una línea móvil venezolana. Debe empezar por 0412, 0414, 0416, 0422, 0424 o 0426.",
+    guestErrBadBank: "Ese banco no lo reconocemos. Elígelo de la lista o déjalo vacío.",
+    guestErrBadId: "La cédula o el RIF no valen. Por ejemplo: V12345678 o J123456789.",
+    guestErrBadTip: "La propina no vale. Déjala vacía si no dejaste ninguna.",
+    /* No es su referencia de pago: es el número con el que el personal puede
+       buscar qué pasó. Rotularlo "Referencia" hacía creer que su referencia
+       había sido sustituida por eso. */
+    guestErrIncidentCode: "Código de incidencia",
     guestPhone: "Teléfono",
     guestAmount: "Monto",
     guestNothingLeft: "No queda nada por pagar en esta mesa.",
@@ -1401,6 +1415,16 @@ const dict = {
       "That reference has already been used. Check the number, and if you are sure it is right, tell your server.",
     guestErrTooMuch: "That is more than is left to pay ({amount}).",
     guestErrFields: "Check the details.",
+    guestErrFieldsN: "There are {n} details to check. They are marked below.",
+    guestErrBadAmount: "That amount is not valid. Enter what you transferred, in bolívares.",
+    guestErrBadReference:
+      "That reference is not valid. It is the number your bank gave you, 4 to 32 digits.",
+    guestErrBadPhone:
+      "That is not a Venezuelan mobile line. It must start with 0412, 0414, 0416, 0422, 0424 or 0426.",
+    guestErrBadBank: "We do not recognise that bank. Pick one from the list or leave it blank.",
+    guestErrBadId: "That ID is not valid. For example: V12345678 or J123456789.",
+    guestErrBadTip: "That tip is not valid. Leave it blank if you did not leave one.",
+    guestErrIncidentCode: "Incident code",
     guestPhone: "Phone",
     guestAmount: "Amount",
     guestNothingLeft: "There is nothing left to pay on this table.",

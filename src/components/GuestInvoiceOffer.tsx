@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
-import { guest, ApiError, type RequestInvoiceResult } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { guest, ApiError } from "@/lib/api";
+import { useI18n, type Key } from "@/lib/i18n";
 import { useRememberedPayment } from "@/lib/guest-payment";
 
 /**
@@ -64,7 +64,7 @@ export function GuestInvoiceOffer() {
    * después.
    */
   const [marketing, setMarketing] = useState(false);
-  const [result, setResult] = useState<RequestInvoiceResult | null>(null);
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -92,26 +92,25 @@ export function GuestInvoiceOffer() {
     },
     onSuccess: (data) => {
       setError(null);
-      setResult(data);
+      // ISSUED trae documento. UNCERTAIN es el único «en camino» de verdad.
+      // Un FAILED es un rechazo de la imprenta: no hay nada en ninguna cola.
+      if (data.status === "ISSUED" && data.invoice) {
+        setOutcome({ kind: "issued", controlNumber: data.invoice.controlNumber });
+      } else if (data.status === "UNCERTAIN") {
+        setOutcome({ kind: "pending" });
+      } else {
+        setOutcome({ kind: "rejected" });
+      }
     },
     onError: (err) => {
       // El único error que el comensal puede arreglar por su cuenta es el RIF.
       // Todo lo demás es del restaurante o del despliegue, y decirle «revisa
       // los datos» a alguien cuyos datos están bien no ayuda a nadie.
       if (err instanceof ApiError && err.code === "VALIDATION_FAILED") {
-        const paths = (err.details as { fieldPaths?: string[] })?.fieldPaths ?? [];
-        setError(paths.includes("taxId") ? t("invoiceTaxIdBad") : t("invoiceTaxIdBad"));
+        setError(t("invoiceTaxIdBad"));
         return;
       }
-      // Un 403 por plan o un 503 por falta de imprenta no son culpa suya ni
-      // tienen remedio desde su teléfono: se trata como «en camino» en vez de
-      // dejarle un error que no puede resolver.
-      setResult({
-        status: "UNCERTAIN",
-        requestId: "",
-        invoice: null,
-        paymentUnaffected: true,
-      });
+      setOutcome(outcomeForError(err));
     },
   });
 
@@ -121,25 +120,44 @@ export function GuestInvoiceOffer() {
   // Hasta saber en qué quedó, no se promete nada.
   if (payment.isPending || payment.isError) return null;
 
-  if (result?.status === "ISSUED" && result.invoice) {
+  if (outcome?.kind === "issued") {
     return (
       <div role="status" className="surface mt-4 border border-emerald-500/40 bg-emerald-500/5 p-5">
         <p className="font-display text-xl">{t("invoiceIssued")}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          {t("invoiceIssuedBody").replace("{control}", result.invoice.controlNumber)}
+          {t("invoiceIssuedBody").replace("{control}", outcome.controlNumber)}
         </p>
       </div>
     );
   }
 
-  if (result) {
-    // En duda, o rechazada. No se ha creado ningún documento y puede que nunca
-    // se cree -- pero el pago está hecho, y eso es lo primero que se lee.
+  if (outcome) {
+    const copy = COPY[outcome.kind];
     return (
       <div role="status" className="surface mt-4 border border-amber-500/40 bg-amber-500/5 p-5">
-        <p className="font-display text-xl">{t("invoicePending")}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{t("invoicePendingBody")}</p>
+        <p className="font-display text-xl">{t(copy.title)}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t(copy.body)}</p>
+        {/* Lo primero que hay que despejar, pase lo que pase con el documento. */}
         <p className="mt-2 text-[11px] text-muted-foreground">{t("invoicePaymentIntact")}</p>
+        {/*
+          Reintentar sólo donde de verdad puede haber cambiado algo: una red que
+          se cortó. Si la petición sí llegó, el segundo intento contesta 409 y
+          cae en «ya pediste tu factura», que también es cierto -- nunca en un
+          segundo documento, que el índice único del servidor impide.
+        */}
+        {copy.retry ? (
+          <button
+            type="button"
+            className="mt-4 min-h-[44px] w-full rounded-lg border border-border text-sm transition-colors hover:bg-muted disabled:opacity-40"
+            disabled={mutation.isPending}
+            onClick={() => {
+              setOutcome(null);
+              mutation.mutate();
+            }}
+          >
+            {t("invoiceRetry")}
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -267,4 +285,61 @@ export function GuestInvoiceOffer() {
       )}
     </div>
   );
+}
+
+/**
+ * En qué quedó la petición, con nombre propio.
+ *
+ * Existe porque antes **todo** error no-validación se pintaba como «tu factura
+ * está en camino, el restaurante la está resolviendo». Para la mayoría de los
+ * casos eso era falso de las tres maneras a la vez: no se creó ninguna
+ * petición, no hay nada en ninguna cola, y nadie va a resolver nada. El más
+ * común en producción era precisamente ése -- un 503 porque el despliegue no
+ * tiene imprenta configurada.
+ *
+ * `pending` es el único que promete algo, y sólo lo produce un 202 con
+ * `UNCERTAIN`: ahí sí existe una petición y sí la mira una persona.
+ */
+type Outcome =
+  | { kind: "issued"; controlNumber: string }
+  | { kind: "pending" }
+  | { kind: "rejected" }
+  | { kind: "unavailable" }
+  | { kind: "already" }
+  | { kind: "declared" }
+  | { kind: "tooEarly" }
+  | { kind: "failed" };
+
+const COPY: Record<
+  Exclude<Outcome["kind"], "issued">,
+  { title: Key; body: Key; retry?: boolean }
+> = {
+  pending: { title: "invoicePending", body: "invoicePendingBody" },
+  rejected: { title: "invoiceRejected", body: "invoiceRejectedBody" },
+  unavailable: { title: "invoiceUnavailable", body: "invoiceUnavailableBody" },
+  already: { title: "invoiceAlready", body: "invoiceAlreadyBody" },
+  declared: { title: "invoiceDeclared", body: "invoiceDeclaredBody" },
+  tooEarly: { title: "invoiceTooEarly", body: "invoiceTooEarlyBody" },
+  failed: { title: "invoiceFailed", body: "invoiceFailedBody", retry: true },
+};
+
+function outcomeForError(err: unknown): Outcome {
+  if (!(err instanceof ApiError)) return { kind: "failed" };
+  switch (err.code) {
+    // Las dos razones por las que este restaurante no factura desde aquí. Se
+    // cuentan igual a propósito: cuál de las dos es -- un plan o una imprenta
+    // sin configurar -- no es asunto del comensal, y lo accionable para él es
+    // el mismo en ambos casos.
+    case "FISCAL_PROVIDER_NOT_CONFIGURED":
+    case "PLAN_UPGRADE_REQUIRED":
+      return { kind: "unavailable" };
+    case "FISCAL_ALREADY_REQUESTED":
+      return { kind: "already" };
+    case "FISCAL_NOTHING_TO_DECLARE":
+      return { kind: "declared" };
+    case "PAYMENT_STATE_INVALID":
+      return { kind: "tooEarly" };
+    default:
+      return { kind: "failed" };
+  }
 }

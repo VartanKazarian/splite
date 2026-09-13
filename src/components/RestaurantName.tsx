@@ -20,6 +20,7 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
 
   const accountQuery = useQuery({
     queryKey: ["account"],
@@ -30,11 +31,22 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
   // El servidor manda mientras no se esté escribiendo: el campo se siembra con
   // lo guardado y a partir de ahí lo lleva el usuario.
   useEffect(() => {
-    if (accountQuery.data) setName(accountQuery.data.name ?? "");
+    if (!accountQuery.data) return;
+    setName(accountQuery.data.name ?? "");
+    setAddress(accountQuery.data.fiscalAddress ?? "");
   }, [accountQuery.data]);
 
+  const savedName = accountQuery.data?.name ?? "";
+  const savedAddress = accountQuery.data?.fiscalAddress ?? "";
+
   const save = useMutation({
-    mutationFn: () => account.rename(name.trim()),
+    // Sólo lo que cambió. Mandar los dos campos siempre es como se renombra un
+    // restaurante sin querer al corregirle la dirección.
+    mutationFn: () =>
+      account.updateProfile({
+        ...(name.trim() !== savedName ? { name: name.trim() } : {}),
+        ...(address.trim() !== savedAddress ? { fiscalAddress: address.trim() } : {}),
+      }),
     onSuccess: (data: Account) => {
       queryClient.setQueryData(["account"], data);
       toast.success(t("restaurantNameSaved"));
@@ -45,18 +57,19 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
     },
   });
 
-  const saved = accountQuery.data?.name ?? "";
   const trimmed = name.trim();
-  // Nada que guardar si no ha cambiado o si se ha quedado vacío: el backend
-  // rechaza el vacío, y pedirlo para que lo rechace es hacerle perder el viaje.
-  const dirty = trimmed.length > 0 && trimmed !== saved;
+  // El nombre no puede quedarse vacío -- el backend lo rechaza y una mesa sin
+  // nombre no es una pantalla que se pueda enseñar. La dirección sí: vaciarla
+  // es la forma de quitar una mal escrita.
+  const nameOk = trimmed.length > 0;
+  const dirty = nameOk && (trimmed !== savedName || address.trim() !== savedAddress);
 
   return (
     <section className="surface mt-6 p-6">
       <h2 className="text-xl">{t("restaurantName")}</h2>
       <p className="mt-1 text-sm text-muted-foreground">{t("restaurantNameHint")}</p>
 
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-4 flex flex-col gap-2">
         <input
           value={name}
           maxLength={120}
@@ -65,10 +78,27 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
           placeholder="Casa 72"
           className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring disabled:opacity-50"
         />
+        {/*
+          El domicilio encabeza el recibo del comensal. Va aquí, junto al
+          nombre, porque es la misma decisión -- lo que el cliente lee de este
+          local -- y el mismo endpoint. Sin este campo la columna existiría sin
+          que nadie pudiera rellenarla, y el recibo saldría con el nombre
+          suelto para siempre.
+        */}
+        <input
+          value={address}
+          maxLength={200}
+          disabled={!canEdit || accountQuery.isLoading}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder={t("restaurantAddressPlaceholder")}
+          aria-label={t("restaurantAddress")}
+          className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring disabled:opacity-50"
+        />
+        <p className="text-xs text-muted-foreground">{t("restaurantAddressHint")}</p>
         <button
           disabled={!canEdit || !dirty || save.isPending}
           onClick={() => save.mutate()}
-          className="whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
+          className="mt-1 self-start whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
         >
           {t("save")}
         </button>
@@ -78,7 +108,7 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
           QR. Enseñarlo aquí es lo que convierte un campo cualquiera en algo
           que se entiende sin explicación. */}
       <p className="mt-3 text-xs text-muted-foreground">
-        {t("restaurantNamePreview").replace("{name}", trimmed || saved || "—")}
+        {t("restaurantNamePreview").replace("{name}", trimmed || savedName || "—")}
       </p>
 
       {!canEdit && <p className="mt-2 text-xs text-muted-foreground">{t("menuForbidden")}</p>}

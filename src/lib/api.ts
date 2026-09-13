@@ -698,6 +698,19 @@ export const guest = {
     }>(`/api/v1/guest/payments/${paymentId}`, { auth: "guest" }),
 
   /**
+   * El recibo de un cobro: la cuenta entera y, debajo, lo que puso esta persona.
+   *
+   * La sección `bill` viene derivada sólo de la cuenta, así que es idéntica en
+   * los recibos de todos los comensales de la mesa. Lo único que cambia entre
+   * ellos es `payment`. Eso es lo que permite ponerlos uno al lado del otro y
+   * comprobar que cuentan la misma cena.
+   *
+   * **No es una factura fiscal** y no debe pintarse como si lo fuera.
+   */
+  receipt: (paymentId: string) =>
+    apiRequest<GuestReceipt>(`/api/v1/guest/payments/${paymentId}/receipt`, { auth: "guest" }),
+
+  /**
    * El correo del comensal, con la finalidad separada del dato.
    *
    * `marketingConsent` sólo va en `true` si marcó una casilla vacía. Dar el
@@ -725,6 +738,53 @@ export const guest = {
 /* ------------------------------------------------------- tipos de dominio */
 
 export type Money = string; // dígitos en unidades menores
+
+/** Una línea de la cuenta, tal y como se imprime en el recibo. */
+export type ReceiptLine = {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPriceMinor: Money;
+  subtotalMinor: Money;
+  taxCategory: "TAXABLE" | "EXEMPT" | "EXONERATED" | "NON_TAXABLE";
+  vatBps: number | null;
+};
+
+/**
+ * El recibo. `bill` es de la mesa y `payment` es de quien mira: los recibos de
+ * una mesa de cuatro comparten el primero y sólo se distinguen en el segundo.
+ */
+export type GuestReceipt = {
+  restaurant: { name: string; rif: string | null; address: string | null };
+  table: { name: string };
+  bill: {
+    id: string;
+    status: "OPEN" | "CLOSED" | "VOID";
+    currency: MenuCurrency;
+    openedAt: string;
+    lines: ReceiptLine[];
+    subtotalMinor: Money;
+    serviceChargeBps: number;
+    serviceChargeMinor: Money;
+    taxes: { vatBps: number; baseMinor: Money; vatMinor: Money }[];
+    vatMinor: Money;
+    totalMinor: Money;
+    totalVes: Money;
+    fxRateVesPerUnit: string | null;
+  };
+  payment: {
+    id: string;
+    status: PaymentClaim["status"];
+    method: string;
+    reference: string | null;
+    amountVes: Money;
+    tipVes: Money;
+    handedOverVes: Money;
+    declaredAt: string;
+    invoiced: boolean;
+    invoiceId: string | null;
+  };
+};
 export type MenuCurrency = "VES" | "USD" | "EUR";
 
 export type Table = {
@@ -1178,6 +1238,8 @@ export type Account = {
   };
   /** A quién se le factura: a cada comensal, o a la mesa. */
   fiscalInvoicePolicy?: "PER_DINER" | "SINGLE_BILL";
+  /** El domicilio que encabeza el recibo. Nulo si no se ha registrado. */
+  fiscalAddress?: string | null;
   createdAt?: string;
 };
 
@@ -1853,11 +1915,15 @@ export const payments = {
 export const account = {
   get: () => apiRequest<Account>("/api/v1/account", { auth: "staff" }),
   /**
-   * El nombre del restaurante: lo primero que lee un comensal al escanear el QR,
-   * encima del número de mesa. Sólo OWNER y MANAGER.
+   * El escaparate del restaurante: el nombre que lee un comensal al escanear el
+   * QR, y el domicilio que encabeza su recibo. Sólo OWNER y MANAGER.
+   *
+   * Parcial a propósito: se manda lo que cambió. Mandar siempre los dos campos
+   * es como se renombra un restaurante sin querer al corregir su dirección.
+   * `fiscalAddress: ""` **borra** la dirección; omitirlo la deja como estaba.
    */
-  rename: (name: string) =>
-    apiRequest<Account>("/api/v1/account", { method: "PATCH", auth: "staff", body: { name } }),
+  updateProfile: (body: { name?: string; fiscalAddress?: string }) =>
+    apiRequest<Account>("/api/v1/account", { method: "PATCH", auth: "staff", body }),
   banks: () =>
     apiRequest<{ data: BankRef[] }>("/api/v1/account/banks", { auth: "staff" }).then((r) => r.data),
   /** Los cuatro campos juntos, o {} para borrarlos: un payee a medias no cobra. */

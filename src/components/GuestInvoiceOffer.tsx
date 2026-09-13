@@ -95,7 +95,13 @@ export function GuestInvoiceOffer() {
       // ISSUED trae documento. UNCERTAIN es el único «en camino» de verdad.
       // Un FAILED es un rechazo de la imprenta: no hay nada en ninguna cola.
       if (data.status === "ISSUED" && data.invoice) {
-        setOutcome({ kind: "issued", controlNumber: data.invoice.controlNumber });
+        setOutcome({
+          kind: "issued",
+          controlNumber: data.invoice.controlNumber,
+          // Del documento y no del formulario: es la dirección a la que el
+          // servidor va a mandarla de verdad.
+          email: data.invoice.customer?.email ?? null,
+        });
       } else if (data.status === "UNCERTAIN") {
         setOutcome({ kind: "pending" });
       } else {
@@ -127,6 +133,18 @@ export function GuestInvoiceOffer() {
         <p className="mt-1 text-sm text-muted-foreground">
           {t("invoiceIssuedBody").replace("{control}", outcome.controlNumber)}
         </p>
+        {/*
+          Si dejó su correo, que sepa que va para allá -- y qué hacer si no
+          llega. El envío ocurre en segundo plano y puede fallar, así que no se
+          dice «te la enviamos» a secas: eso sería prometer una entrega que
+          nadie ha confirmado todavía. Con la salida al lado, la frase es cierta
+          en los dos desenlaces.
+        */}
+        {outcome.email ? (
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t("invoiceIssuedMailed").replace("{email}", outcome.email)}
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -301,7 +319,7 @@ export function GuestInvoiceOffer() {
  * `UNCERTAIN`: ahí sí existe una petición y sí la mira una persona.
  */
 type Outcome =
-  | { kind: "issued"; controlNumber: string }
+  | { kind: "issued"; controlNumber: string; email: string | null }
   | { kind: "pending" }
   | { kind: "rejected" }
   | { kind: "unavailable" }

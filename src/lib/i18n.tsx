@@ -697,6 +697,8 @@ const dict = {
     invoiceCancel: "Ahora no",
     invoiceIssued: "Factura emitida",
     invoiceIssuedBody: "Número de control {control}.",
+    invoiceIssuedMailed:
+      "La enviamos a {email}. Si no te llega, pídesela al personal antes de irte.",
     invoiceRejected: "No se pudo emitir tu factura",
     invoiceRejectedBody:
       "La imprenta digital la rechazó. Pídesela al personal antes de irte y te la resuelven ellos.",
@@ -1579,6 +1581,8 @@ const dict = {
     invoiceCancel: "Not now",
     invoiceIssued: "Invoice issued",
     invoiceIssuedBody: "Control number {control}.",
+    invoiceIssuedMailed:
+      "We are sending it to {email}. If it does not arrive, ask a member of staff before you leave.",
     invoiceRejected: "Your invoice could not be issued",
     invoiceRejectedBody:
       "The authorised printer refused it. Ask a member of staff before you leave and they will sort it out.",

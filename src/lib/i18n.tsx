@@ -697,6 +697,25 @@ const dict = {
     invoiceCancel: "Ahora no",
     invoiceIssued: "Factura emitida",
     invoiceIssuedBody: "Número de control {control}.",
+    invoiceRejected: "No se pudo emitir tu factura",
+    invoiceRejectedBody:
+      "La imprenta digital la rechazó. Pídesela al personal antes de irte y te la resuelven ellos.",
+    invoiceUnavailable: "Aquí no se piden las facturas",
+    invoiceUnavailableBody:
+      "Este restaurante todavía no emite facturas desde la app. Si la necesitas, pídesela al personal antes de irte.",
+    invoiceAlready: "Ya pediste tu factura",
+    invoiceAlreadyBody:
+      "Este cobro ya tiene la suya. Si no la has recibido, el personal puede dártela.",
+    invoiceDeclared: "Esta cuenta ya está facturada",
+    invoiceDeclaredBody:
+      "La mesa se facturó completa, así que no queda nada por declarar de tu parte. El personal puede darte una copia.",
+    invoiceTooEarly: "Todavía no",
+    invoiceTooEarlyBody:
+      "El restaurante aún no ha confirmado tu pago. Podrás pedirla en cuanto lo haga.",
+    invoiceFailed: "No pudimos pedir tu factura",
+    invoiceFailedBody:
+      "Algo falló por el camino y no llegó a pedirse. Puedes intentarlo otra vez, o pedírsela al personal.",
+    invoiceRetry: "Intentar otra vez",
     invoicePending: "Tu factura está en camino",
     invoicePendingBody:
       "No pudimos confirmarla ahora mismo. El restaurante la está resolviendo y no hace falta que lo intentes otra vez.",
@@ -1560,6 +1579,25 @@ const dict = {
     invoiceCancel: "Not now",
     invoiceIssued: "Invoice issued",
     invoiceIssuedBody: "Control number {control}.",
+    invoiceRejected: "Your invoice could not be issued",
+    invoiceRejectedBody:
+      "The authorised printer refused it. Ask a member of staff before you leave and they will sort it out.",
+    invoiceUnavailable: "Invoices are not requested here",
+    invoiceUnavailableBody:
+      "This restaurant does not issue invoices from the app yet. If you need one, ask a member of staff before you leave.",
+    invoiceAlready: "You already asked for your invoice",
+    invoiceAlreadyBody:
+      "This payment already has one. If it has not reached you, a member of staff can hand it over.",
+    invoiceDeclared: "This bill is already invoiced",
+    invoiceDeclaredBody:
+      "The whole table was invoiced, so there is nothing of your share left to declare. Staff can give you a copy.",
+    invoiceTooEarly: "Not yet",
+    invoiceTooEarlyBody:
+      "The restaurant has not confirmed your payment yet. You will be able to ask as soon as they do.",
+    invoiceFailed: "We could not ask for your invoice",
+    invoiceFailedBody:
+      "Something failed on the way and the request never landed. You can try again, or ask a member of staff.",
+    invoiceRetry: "Try again",
     invoicePending: "Your invoice is on its way",
     invoicePendingBody:
       "We could not confirm it just now. The restaurant is resolving it and you do not need to try again.",

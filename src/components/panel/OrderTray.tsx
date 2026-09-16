@@ -116,9 +116,6 @@ export function OrderTray({ onOpenTable }: { onOpenTable?: (tableId: string) => 
             order={order}
             pending={ack.isPending || claim.isPending}
             onAck={() => ack.mutate(order.id)}
-            {/* Sólo a quien el servidor deja cambiar el mesero de una cuenta:
-                un mesero pulsándolo sólo vería un error y el pedido se
-                quedaría sin dar por visto. */}
             {...(order.servedBy === null && order.billId && canAssign
               ? { onMine: () => claim.mutate({ orderId: order.id, billId: order.billId! }) }
               : {})}

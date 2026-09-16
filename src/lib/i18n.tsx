@@ -595,6 +595,27 @@ const dict = {
       "Encabeza el recibo del comensal. Si lo dejas vacío, el recibo no enseña ninguna dirección.",
     restaurantNamePreview: "En la mesa se leerá: {name}",
     restaurantNameSaved: "Nombre guardado",
+    fiscalSeries: "Serie fiscal autorizada",
+    fiscalSeriesHint:
+      "Cópiala tal cual de tu autorización del SENIAT. Con ella se numeran las facturas que emite el local, y Splite no comprueba que coincida con el papel: eso es tuyo.",
+    fiscalSeriesControlPrefix: "Prefijo del número de control",
+    fiscalSeriesDocumentPrefix: "Prefijo del número de factura",
+    fiscalSeriesPadTo: "Dígitos del correlativo",
+    fiscalSeriesPadToHint:
+      "El ancho forma parte del número: 00-000123 y 00-123 no son el mismo documento para quien lo busca.",
+    fiscalSeriesFirst: "Primer número de control autorizado",
+    fiscalSeriesLast: "Último autorizado",
+    fiscalSeriesLastHint: "Déjalo vacío si tu autorización no pone tope.",
+    fiscalSeriesRef: "Referencia de la autorización",
+    fiscalSeriesNext: "La próxima factura saldrá con el número {number}",
+    fiscalSeriesSaved: "Serie guardada",
+    fiscalSeriesUnset:
+      "Todavía no has configurado la serie. Sin ella el local no puede emitir facturas.",
+    fiscalSeriesLockedNote:
+      "Ya has emitido con esta serie, así que el formato y el primer número no se pueden cambiar: hacerlo contradiría las facturas ya emitidas. El tope y la referencia sí, para cuando te amplíen el rango.",
+    fiscalSeriesLockedError:
+      "Eso no se puede cambiar después de emitir. Si el prefijo salió mal, se corrige con una nota de crédito, no reescribiendo la serie.",
+    fiscalSeriesOwnerOnly: "Sólo el dueño puede escribir la serie.",
     productPhoto: "Foto",
     productPhotoAdd: "Añadir foto",
     productPhotoReplace: "Cambiar foto",
@@ -1511,6 +1532,27 @@ const dict = {
       "Heads the diner's receipt. Leave it empty and the receipt shows no address at all.",
     restaurantNamePreview: "The table will read: {name}",
     restaurantNameSaved: "Name saved",
+    fiscalSeries: "Authorised invoice series",
+    fiscalSeriesHint:
+      "Copy it exactly from your SENIAT authorisation. It is what numbers the invoices this restaurant issues, and Splite does not check it against the paper: that part is yours.",
+    fiscalSeriesControlPrefix: "Control number prefix",
+    fiscalSeriesDocumentPrefix: "Invoice number prefix",
+    fiscalSeriesPadTo: "Digits in the correlative",
+    fiscalSeriesPadToHint:
+      "The width is part of the number: 00-000123 and 00-123 are not the same document to anyone looking one up.",
+    fiscalSeriesFirst: "First authorised control number",
+    fiscalSeriesLast: "Last authorised",
+    fiscalSeriesLastHint: "Leave it empty if your authorisation sets no ceiling.",
+    fiscalSeriesRef: "Authorisation reference",
+    fiscalSeriesNext: "The next invoice will carry number {number}",
+    fiscalSeriesSaved: "Series saved",
+    fiscalSeriesUnset:
+      "You have not set the series yet. Without it this restaurant cannot issue invoices.",
+    fiscalSeriesLockedNote:
+      "You have already issued with this series, so the format and the first number cannot change: doing so would contradict the invoices already out there. The ceiling and the reference still can, for when your range is widened.",
+    fiscalSeriesLockedError:
+      "That cannot change once you have issued. If the prefix came out wrong, it is fixed with a credit note, not by rewriting the series.",
+    fiscalSeriesOwnerOnly: "Only the owner can set the series.",
     productPhoto: "Photo",
     productPhotoAdd: "Add photo",
     productPhotoReplace: "Replace photo",

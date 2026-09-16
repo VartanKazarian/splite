@@ -25,6 +25,7 @@ import { ConfirmButton } from "@/components/ConfirmButton";
 import { MfaPanel } from "@/components/MfaPanel";
 import { RestaurantName } from "@/components/RestaurantName";
 import { RestaurantBranding } from "@/components/RestaurantBranding";
+import { FiscalSeries } from "@/components/FiscalSeries";
 import { PanelHeader } from "@/components/PanelHeader";
 
 export const Route = createFileRoute("/settings")({
@@ -483,6 +484,13 @@ function SettingsPage() {
 
               {(role === "OWNER" || role === "MANAGER") && <PayoutSection />}
               {role === "OWNER" && <ProvidersSection />}
+
+              {/* Con qué números se emiten las facturas. Va en Cobros y no en
+                  Restaurante porque no es escaparate: es cómo declara el local,
+                  la misma familia que el payee y las credenciales. La lee
+                  cualquiera -- el personal puede necesitar saber por qué número
+                  va -- y sólo el dueño la escribe. */}
+              <FiscalSeries canEdit={role === "OWNER"} />
             </Group>
 
             <Group id="equipo" title={t("settingsGroupTeam")} active={current === "equipo"}>

@@ -344,12 +344,22 @@ const COPY: Record<
 function outcomeForError(err: unknown): Outcome {
   if (!(err instanceof ApiError)) return { kind: "failed" };
   switch (err.code) {
-    // Las dos razones por las que este restaurante no factura desde aquí. Se
-    // cuentan igual a propósito: cuál de las dos es -- un plan o una imprenta
-    // sin configurar -- no es asunto del comensal, y lo accionable para él es
-    // el mismo en ambos casos.
+    /*
+     * Las razones por las que este restaurante no factura desde aquí. Se
+     * cuentan todas igual a propósito: cuál de ellas sea -- el plan, un
+     * despliegue sin emisor, una serie autorizada que su dueño no ha
+     * configurado, o un rango agotado -- no es asunto del comensal, y lo
+     * accionable para él es el mismo en todos los casos.
+     *
+     * Las dos últimas son del restaurante que emite por medios propios, y caen
+     * aquí y no en `failed` por lo único que de verdad decide qué se le ofrece:
+     * **reintentar no cambia nada**. Un botón de «volver a intentarlo» sería
+     * pedirle que insista contra algo que sólo el restaurante puede arreglar.
+     */
     case "FISCAL_PROVIDER_NOT_CONFIGURED":
     case "PLAN_UPGRADE_REQUIRED":
+    case "FISCAL_SERIES_MISSING":
+    case "FISCAL_RANGE_EXHAUSTED":
       return { kind: "unavailable" };
     case "FISCAL_ALREADY_REQUESTED":
       return { kind: "already" };

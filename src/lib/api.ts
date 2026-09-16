@@ -1243,6 +1243,37 @@ export type Account = {
   createdAt?: string;
 };
 
+/**
+ * La serie que el SENIAT le autorizó al restaurante.
+ *
+ * Los números van como cadena y no como `number` a propósito: un rango
+ * autorizado puede pasarse de lo que un entero de JavaScript representa sin
+ * perder precisión, y un correlativo fiscal redondeado es un número que no
+ * existe.
+ */
+export type FiscalSeries = {
+  controlPrefix: string;
+  documentPrefix: string;
+  padTo: number;
+  controlFirst: string;
+  controlLast: string | null;
+  authorisationRef: string | null;
+  /** Formateado: es el que va a imprimir la próxima factura. */
+  nextControlNumber: string;
+  /** Cierto en cuanto la serie ha numerado algo. Cuatro campos dejan de poder cambiar. */
+  locked: boolean;
+  updatedAt?: string | null;
+};
+
+export type FiscalSeriesInput = {
+  controlPrefix: string;
+  documentPrefix: string;
+  padTo: number;
+  controlFirst: number;
+  controlLast: number | null;
+  authorisationRef: string;
+};
+
 export type ExchangeRate = {
   rates: Record<string, { rate: string; valueDate: string | null; source: string }>;
 };
@@ -1924,6 +1955,27 @@ export const account = {
    */
   updateProfile: (body: { name?: string; fiscalAddress?: string }) =>
     apiRequest<Account>("/api/v1/account", { method: "PATCH", auth: "staff", body }),
+  /**
+   * La serie autorizada. `null` significa «todavía no la ha configurado», que
+   * es una respuesta y no un error: es lo que hace pintar el formulario vacío.
+   */
+  fiscalSeries: () =>
+    apiRequest<{ fiscalSeries: FiscalSeries | null }>("/api/v1/account/fiscal-series", {
+      auth: "staff",
+    }).then((r) => r.fiscalSeries),
+  /**
+   * Sólo OWNER. Sustitución completa y no parcial: una serie a la que le falta
+   * un campo no puede numerar nada.
+   *
+   * En cuanto ha emitido, cambiar prefijos, ancho o primer número contesta 409
+   * `FISCAL_SERIES_LOCKED` con los nombres en `details.fields`.
+   */
+  setFiscalSeries: (body: FiscalSeriesInput) =>
+    apiRequest<{ fiscalSeries: FiscalSeries }>("/api/v1/account/fiscal-series", {
+      method: "PUT",
+      auth: "staff",
+      body,
+    }).then((r) => r.fiscalSeries),
   banks: () =>
     apiRequest<{ data: BankRef[] }>("/api/v1/account/banks", { auth: "staff" }).then((r) => r.data),
   /** Los cuatro campos juntos, o {} para borrarlos: un payee a medias no cobra. */

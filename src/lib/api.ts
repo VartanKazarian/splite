@@ -1999,6 +1999,22 @@ export type FiscalInvoice = {
   issuedAt: string;
   lines?: FiscalLine[];
   taxes?: FiscalTax[];
+  /**
+   * El envío por correo, sólo al leer una factura suelta.
+   *
+   * Nulo cuando nadie dejó dirección, que es el caso mayoritario y no un dato
+   * que falte. Va aparte del documento a propósito: una factura vale igual si
+   * el correo no llegó, y un fallo de envío nunca la deshace.
+   */
+  delivery?: {
+    email: string;
+    status: "PENDING" | "SENT" | "FAILED";
+    attempts: number;
+    sentAt: string | null;
+    /** El motivo del último intento fallido, para distinguir dirección mal
+     *  escrita de proveedor caído. */
+    lastError: string | null;
+  } | null;
 };
 
 export type FiscalRequestRow = {

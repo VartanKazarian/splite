@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HelpCircle, RefreshCw } from "lucide-react";
@@ -5,6 +6,7 @@ import { HelpCircle, RefreshCw } from "lucide-react";
 import { fiscalInvoices, formatMoney, type FiscalRequestRow } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/dates";
+import { FiscalInvoiceSheet } from "@/components/panel/FiscalInvoiceSheet";
 
 /**
  * Facturación, para el restaurante.
@@ -29,9 +31,18 @@ export function FiscalPanel() {
     queryFn: () => fiscalInvoices.requests({ status: "UNCERTAIN", limit: 50 }),
   });
 
+  /*
+   * Cuántas se piden. Sube de 25 en 25 con «ver más» en vez de paginar: un
+   * restaurante que busca una factura concreta la busca por fecha bajando, no
+   * saltando a la página 4, y una lista que se alarga conserva lo que ya estaba
+   * leyendo en pantalla.
+   */
+  const [limit, setLimit] = useState(25);
+  const [openInvoice, setOpenInvoice] = useState<string | null>(null);
+
   const issued = useQuery({
-    queryKey: ["fiscal", "invoices"],
-    queryFn: () => fiscalInvoices.list({ limit: 25 }),
+    queryKey: ["fiscal", "invoices", limit],
+    queryFn: () => fiscalInvoices.list({ limit }),
   });
 
   const resolve = useMutation({
@@ -121,22 +132,54 @@ export function FiscalPanel() {
         ) : (
           <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
             {issued.data?.data.map((inv) => (
-              <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-                <div className="min-w-0">
-                  {/* El número de control lo pone la imprenta autorizada. Se
-                      muestra tal cual, sin adornarlo ni reformatearlo. */}
-                  <p className="figure text-sm">{inv.controlNumber}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {formatDateTime(inv.issuedAt, lang) ?? ""} ·{" "}
-                    {inv.customer?.taxId ?? t("fiscalFinalConsumer")}
-                  </p>
-                </div>
-                <span className="figure text-sm">{formatMoney(inv.totalMinor, "VES")}</span>
+              <li key={inv.id}>
+                {/*
+                  La fila entera abre la factura. Antes no había forma de abrir
+                  ninguna: el detalle existía en la API y no lo llamaba nadie,
+                  así que las líneas, el desglose por alícuota y el envío eran
+                  inalcanzables desde la pantalla.
+                */}
+                <button
+                  type="button"
+                  onClick={() => setOpenInvoice(inv.id)}
+                  className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-muted"
+                >
+                  <span className="min-w-0">
+                    {/* El número de control lo pone la imprenta autorizada. Se
+                        muestra tal cual, sin adornarlo ni reformatearlo. */}
+                    <span className="figure block text-sm">{inv.controlNumber}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {formatDateTime(inv.issuedAt, lang) ?? ""} ·{" "}
+                      {inv.customer?.taxId ?? t("fiscalFinalConsumer")}
+                    </span>
+                  </span>
+                  <span className="figure text-sm">{formatMoney(inv.totalMinor, "VES")}</span>
+                </button>
               </li>
             ))}
           </ul>
         )}
+
+        {/* Sólo cuando la página vino llena: si vinieron menos de las pedidas,
+            no hay más y ofrecer el botón sería prometer una página vacía. */}
+        {(issued.data?.data.length ?? 0) >= limit ? (
+          <button
+            type="button"
+            className="mt-3 min-h-[44px] w-full rounded-lg border border-border text-sm transition-colors hover:bg-muted disabled:opacity-40"
+            disabled={issued.isFetching}
+            onClick={() => setLimit((n) => n + 25)}
+          >
+            {issued.isFetching ? t("loading") : t("fiscalLoadMore")}
+          </button>
+        ) : null}
       </section>
+
+      <FiscalInvoiceSheet
+        invoiceId={openInvoice}
+        onOpenChange={(open) => {
+          if (!open) setOpenInvoice(null);
+        }}
+      />
     </div>
   );
 }

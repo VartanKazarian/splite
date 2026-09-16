@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, bills, formatMoney, orders, type GuestOrder } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { canAssignServer } from "@/components/BillServerPicker";
 
 /**
  * Lo que los comensales acaban de pedir desde su mesa.
@@ -49,6 +50,11 @@ export function OrderTray({ onOpenTable }: { onOpenTable?: (tableId: string) => 
   // Quién está mirando, para poder ponerse una mesa a su nombre. Misma clave
   // que el resto del panel: una consulta, no una más.
   const me = useQuery({ queryKey: ["me"], queryFn: () => auth.me(), retry: false });
+
+  // El servidor sólo deja cambiar el mesero de una cuenta a dueño y encargado
+  // (PATCH /bills/{id}/server). A un mesero el botón sólo le daría un error, y
+  // encima dejaría el pedido sin dar por visto: mejor no ofrecérselo.
+  const canAssign = canAssignServer(me.data?.user.role);
 
   const settled = () => {
     void queryClient.invalidateQueries({ queryKey: ["orders"] });

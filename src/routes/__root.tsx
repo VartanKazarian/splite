@@ -99,6 +99,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Con un QR por mesa, cada comensal ve la cuenta, elige lo que consumió y paga su parte desde su banco. Tu equipo deja de dividir cuentas.",
       },
+      { property: "og:image", content: "https://splite.lovable.app/og-image.jpg" },
+      { name: "twitter:image", content: "https://splite.lovable.app/og-image.jpg" },
       { name: "google-site-verification", content: "xcKZYGfBHKsmRvI-POFUilb7g1rWM8oe8-WafMDgmT4" },
     ],
     links: [

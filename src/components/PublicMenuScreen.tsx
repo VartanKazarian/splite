@@ -259,8 +259,8 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
         la carta entera.
       */}
       {browsing && (
-        {/* Por encima de la barra de pedido (z-20): si no, la barra pintaba
-            sobre el final de este panel de secciones. */}
+        // z-30: por encima de la barra de pedido (z-20), que si no pintaba
+        // sobre el final de este panel de secciones.
         <div className="fixed inset-0 z-30 flex flex-col justify-end">
           <button
             aria-label={t("cancel")}

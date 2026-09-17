@@ -109,11 +109,20 @@ export function GuestInvoiceOffer() {
       }
     },
     onError: (err) => {
-      // El único error que el comensal puede arreglar por su cuenta es el RIF.
-      // Todo lo demás es del restaurante o del despliegue, y decirle «revisa
-      // los datos» a alguien cuyos datos están bien no ayuda a nadie.
+      /*
+       * Lo único que el comensal puede arreglar por su cuenta son sus propios
+       * campos. Todo lo demás es del restaurante o del despliegue, y decirle
+       * «revisa los datos» a alguien cuyos datos están bien no ayuda a nadie.
+       *
+       * Se mira **cuál** falló y no se acusa siempre al RIF. Antes daba igual
+       * porque el correo sólo se podía escribir junto al RIF; ahora se pide
+       * también en el camino principal, así que un correo mal escrito habría
+       * mandado a revisar un RIF que esa persona ni siquiera escribió.
+       */
       if (err instanceof ApiError && err.code === "VALIDATION_FAILED") {
-        setError(t("invoiceTaxIdBad"));
+        const paths = err.details?.["fieldPaths"];
+        const failed = Array.isArray(paths) ? paths.map(String) : [];
+        setError(t(failed.includes("email") ? "invoiceEmailBad" : "invoiceTaxIdBad"));
         return;
       }
       setOutcome(outcomeForError(err));
@@ -160,7 +169,14 @@ export function GuestInvoiceOffer() {
           <p className="mt-2 text-sm text-muted-foreground">
             {t("invoiceIssuedMailed").replace("{email}", outcome.email)}
           </p>
-        ) : null}
+        ) : (
+          /*
+            Y si no dejó correo, se dice. Antes esto callaba: el comensal leía
+            «Número de control X», daba por hecho que su factura iba en camino,
+            y no llegaba nada ni había forma de pedirla otra vez.
+          */
+          <p className="mt-2 text-sm text-muted-foreground">{t("invoiceIssuedNotMailed")}</p>
+        )}
       </div>
     );
   }
@@ -207,6 +223,56 @@ export function GuestInvoiceOffer() {
         <p className="mt-3 text-sm text-muted-foreground">{t("invoiceWaitForPayment")}</p>
       ) : !open ? (
         <div className="mt-4 flex flex-col gap-2">
+          {/*
+            El correo, en el camino principal y no escondido tras «a mi nombre».
+            
+            Los dos botones de antes mezclaban dos preguntas distintas: a nombre
+            de quién va la factura (fiscal) y cómo te llega (entrega). El correo
+            es lo segundo, así que pedirlo sólo a quien da además su RIF dejaba
+            al resto con un número de control en pantalla y ningún documento en
+            ninguna parte -- sin reenvío posible, porque no existe.
+            
+            Sigue siendo opcional: quien no lo quiera dar emite con un toque,
+            como antes. Lo que cambia es que ahora es una decisión suya y no una
+            consecuencia que no vio venir.
+          */}
+          <label className="text-xs uppercase tracking-widest text-muted-foreground">
+            {t("invoiceMailTo")}
+            <input
+              className="mt-1 min-h-[44px] w-full rounded-lg border border-border bg-transparent px-3 text-base"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              placeholder="tu@correo.com"
+            />
+          </label>
+          <p className="-mt-1 text-[11px] text-muted-foreground">{t("invoiceMailOptional")}</p>
+
+          {/*
+            La casilla comercial sólo cuando hay correo, y con su explicación
+            aparte: dar el correo para recibir la factura y aceptar publicidad
+            son dos cosas distintas, y empieza vacía.
+          */}
+          {email.trim() ? (
+            <label className="flex items-start gap-2.5 rounded-lg border border-border p-3">
+              <input
+                type="checkbox"
+                checked={marketing}
+                onChange={(e) => setMarketing(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0"
+              />
+              <span className="text-sm">
+                {t("marketingOptIn")}
+                <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                  {t("marketingWhy")}
+                </span>
+              </span>
+            </label>
+          ) : null}
+
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
           <button
             type="button"
             className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"

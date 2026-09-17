@@ -150,7 +150,18 @@ export function AddProductsSheet({
           {list.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">{t("noResults")}</p>
           ) : (
-            <ul className="grid grid-cols-2 gap-3">
+            /*
+             * Dos columnas es lo correcto en un móvil y absurdo en un portátil:
+             * esta hoja ocupa todo el ancho (`side="bottom"`), así que en una
+             * pantalla de 1500 px cada tarjeta medía ~780 px y la foto del plato
+             * se estiraba hasta ahí. De ahí venía el «se ven borrosas»: no es
+             * que la foto sea mala, es que se estaba ampliando cuatro veces.
+             *
+             * Las columnas crecen con el ancho para que la tarjeta se quede
+             * siempre en torno a 200-250 px, que es el tamaño al que se ve un
+             * plato sin inventarle detalle que la foto no tiene.
+             */
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               {list.map((p) => {
                 // Un plato en dólares no entra en una cuenta en bolívares: el
                 // servidor lo rechaza, así que aquí ni se ofrece.
@@ -178,6 +189,7 @@ export function AddProductsSheet({
                               src={`${API_BASE_URL}${p.imageUrl}`}
                               alt=""
                               loading="lazy"
+                              decoding="async"
                               className="aspect-[4/3] w-full object-cover"
                             />
                           ) : (

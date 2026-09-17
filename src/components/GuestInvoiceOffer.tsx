@@ -125,6 +125,22 @@ export function GuestInvoiceOffer() {
   if (!paymentId || dismissed || alreadyInvoiced) return null;
   // Hasta saber en qué quedó, no se promete nada.
   if (payment.isPending || payment.isError) return null;
+  /*
+   * Y si aquí no se factura, no se abre la boca.
+   *
+   * Éste es el arreglo del fallo que se veía en producción: la pantalla decía
+   * «podrás pedir la factura cuando el restaurante confirme tu pago» sin
+   * comprobar nada, y después de esperar el comensal se encontraba con «aquí no
+   * se piden las facturas». La promesa no era sólo falsa: quien necesitaba
+   * factura no se la pidió al personal **porque la app le dijo que esperara**,
+   * y para cuando se enteraba podía estar ya en la puerta.
+   *
+   * No hay caja ámbar explicando que no se puede. Un restaurante que no factura
+   * desde la app no tiene por qué sacar el tema: lo que el comensal necesita
+   * saber es que se la pida al personal, y eso se lo dice el personal, no una
+   * advertencia sobre algo que nunca se le ofreció.
+   */
+  if (payment.data?.canRequestInvoice === false) return null;
 
   if (outcome?.kind === "issued") {
     return (

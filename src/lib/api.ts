@@ -695,6 +695,18 @@ export const guest = {
       amountVes: Money;
       billClosed: boolean;
       invoiced: boolean;
+      /**
+       * Si en este restaurante se puede pedir factura.
+       *
+       * Viaja con el pago y no con la cuenta a propósito: confirmar el cobro es
+       * lo que cierra la mesa, así que la cuenta deja de leerse justo cuando la
+       * factura empieza a poder pedirse.
+       *
+       * `false` significa que **no hay que ofrecer nada**, ni siquiera un «ya
+       * podrás pedirla»: el servidor la va a rechazar, y un comensal que espera
+       * por esa promesa es uno que no se la pidió al personal mientras podía.
+       */
+      canRequestInvoice: boolean;
     }>(`/api/v1/guest/payments/${paymentId}`, { auth: "guest" }),
 
   /**

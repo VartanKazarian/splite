@@ -363,19 +363,24 @@ function outcomeForError(err: unknown): Outcome {
     /*
      * Las razones por las que este restaurante no factura desde aquí. Se
      * cuentan todas igual a propósito: cuál de ellas sea -- el plan, un
-     * despliegue sin emisor, una serie autorizada que su dueño no ha
-     * configurado, o un rango agotado -- no es asunto del comensal, y lo
-     * accionable para él es el mismo en todos los casos.
+     * despliegue sin emisor, un local sin RIF registrado, una serie autorizada
+     * que su dueño no ha configurado, o un rango agotado -- no es asunto del
+     * comensal, y lo accionable para él es el mismo en todos los casos.
      *
-     * Las dos últimas son del restaurante que emite por medios propios, y caen
-     * aquí y no en `failed` por lo único que de verdad decide qué se le ofrece:
-     * **reintentar no cambia nada**. Un botón de «volver a intentarlo» sería
-     * pedirle que insista contra algo que sólo el restaurante puede arreglar.
+     * Caen aquí y no en `failed` por lo único que de verdad decide qué se le
+     * ofrece: **reintentar no cambia nada**. Un botón de «volver a intentarlo»
+     * sería pedirle que insista contra algo que sólo el restaurante puede
+     * arreglar.
+     *
+     * Con `canRequestInvoice` esto casi nunca se alcanza -- la oferta ni
+     * siquiera se pinta --, y sigue aquí por la carrera: que algo de eso cambie
+     * entre la consulta y el toque.
      */
     case "FISCAL_PROVIDER_NOT_CONFIGURED":
     case "PLAN_UPGRADE_REQUIRED":
     case "FISCAL_SERIES_MISSING":
     case "FISCAL_RANGE_EXHAUSTED":
+    case "FISCAL_RIF_MISSING":
       return { kind: "unavailable" };
     case "FISCAL_ALREADY_REQUESTED":
       return { kind: "already" };

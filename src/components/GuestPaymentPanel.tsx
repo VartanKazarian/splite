@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Copy } from "lucide-react";
 
 import { GuestC2PForm } from "@/components/GuestC2PForm";
@@ -13,6 +13,7 @@ import {
   guest,
   parseMinorInput,
   type Bill,
+  type BankRef,
   type PaymentClaim,
   type Payee,
 } from "@/lib/api";
@@ -230,6 +231,25 @@ export function GuestPaymentPanel({
   const [reference, setReference] = useState("");
   const [phoneOrigin, setPhoneOrigin] = useState("");
   const [bankOrigin, setBankOrigin] = useState("");
+  /*
+   * Los bancos, para elegir en vez de escribir.
+   *
+   * `bankOrigin` es opcional pero cerrado: el servidor sólo admite un código de
+   * su lista. Con una caja de texto, escribir «Banesco» -- lo que cualquiera
+   * escribe -- devolvía 400 y dejaba al comensal sin poder pagar la cuenta, por
+   * un campo que no tenía obligación de rellenar. El mensaje de error decía ya
+   * «elígelo de la lista» y esa lista no estaba en ninguna pantalla.
+   *
+   * Si la petición falla no se rompe nada: el campo se queda sin opciones y el
+   * comensal paga sin banco, que es un envío perfectamente válido. Corroborar
+   * es una ayuda, no un requisito, y no puede costar el pago.
+   */
+  const banks = useQuery({
+    queryKey: ["guest-banks"],
+    queryFn: () => guest.banks(),
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+  });
   const [claim, setClaim] = useState<PaymentClaim | null>(null);
   const [error, setError] = useState<ClaimError | null>(null);
   const [cooldown, setCooldown] = useState(0);
@@ -509,13 +529,27 @@ export function GuestPaymentPanel({
                 >
                   Tu banco (opcional)
                 </label>
-                <input
+                {/*
+                  Desplegable y no caja de texto: el servidor valida contra una
+                  lista cerrada, así que cualquier cosa escrita a mano es un 400
+                  que impide pagar. Vacío es una opción de verdad -- es lo que
+                  hace que «opcional» signifique opcional.
+                */}
+                <select
                   id="claim-bank"
                   value={bankOrigin}
                   onChange={(e) => setBankOrigin(e.target.value)}
                   aria-invalid={invalid("bankOrigin")}
+                  disabled={banks.isPending || banks.isError}
                   className={field}
-                />
+                >
+                  <option value="">Sin especificar</option>
+                  {(banks.data ?? []).map((bank: BankRef) => (
+                    <option key={bank.code} value={bank.code}>
+                      {bank.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {error && (

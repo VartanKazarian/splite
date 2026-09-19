@@ -621,6 +621,20 @@ export const guest = {
   /** 404 cuando todavía no se ha acordado ningún reparto: estado normal. */
   activeSplit: () => apiRequest<BillSplit>("/api/v1/guest/bill/splits/active", { auth: "guest" }),
 
+  /**
+   * Los bancos, para el desplegable de «tu banco» al declarar un pago.
+   *
+   * No es la misma lista que `c2pBanks`: aquélla son los bancos con integración
+   * C2P y su guía de clave. Ésta es la lista completa, que es la que
+   * `bankOrigin` valida contra.
+   *
+   * Hace falta porque ese campo es opcional pero cerrado: el servidor sólo
+   * admite un código de la lista, así que una caja de texto convertía un campo
+   * que nadie tenía que rellenar en un 400 que impedía pagar.
+   */
+  banks: () =>
+    apiRequest<{ data: BankRef[] }>("/api/v1/guest/banks", { auth: "guest" }).then((r) => r.data),
+
   /** Guía de claves por banco. Se pide en el momento del pago: la clave caduca. */
   c2pBanks: () =>
     apiRequest<{ data: C2PBankClave[] }>("/api/v1/guest/c2p/banks", { auth: "guest" }).then(

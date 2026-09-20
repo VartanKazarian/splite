@@ -953,20 +953,29 @@ export function GuestBillScreen({
                     dice «Comensal 2» y funciona igual -- el valor es para los
                     demás, que ven quién ha pagado sin preguntarlo en voz alta.
                   */}
-                  <label className="block text-xs uppercase tracking-widest text-muted-foreground">
-                    {t("yourNameOptional")}
-                    <input
-                      value={myName}
-                      onChange={(e) => setMyName(e.target.value)}
-                      maxLength={80}
-                      autoComplete="given-name"
-                      placeholder={t("yourNamePlaceholder")}
-                      className="mt-1 min-h-[44px] w-full rounded-lg border border-border bg-transparent px-3 text-base"
-                    />
-                  </label>
-                  <p className="mb-4 mt-1.5 text-[11px] text-muted-foreground">
-                    {t("yourNameWhy")}
-                  </p>
+                  {/* Con un reparto ya acordado el nombre se pide abajo, sobre
+                      la parte que el comensal acaba de tomar. Pedirlo aquí
+                      también ponía dos campos «Tu nombre» en la misma pantalla,
+                      preguntando lo mismo dos veces. El botón de acordar o
+                      reemplazar se queda: ésa es otra decisión. */}
+                  {!activeSplit && (
+                    <>
+                      <label className="block text-xs uppercase tracking-widest text-muted-foreground">
+                        {t("yourNameOptional")}
+                        <input
+                          value={myName}
+                          onChange={(e) => setMyName(e.target.value)}
+                          maxLength={80}
+                          autoComplete="given-name"
+                          placeholder={t("yourNamePlaceholder")}
+                          className="mt-1 min-h-[44px] w-full rounded-lg border border-border bg-transparent px-3 text-base"
+                        />
+                      </label>
+                      <p className="mb-4 mt-1.5 text-[11px] text-muted-foreground">
+                        {t("yourNameWhy")}
+                      </p>
+                    </>
+                  )}
                   <button
                     disabled={confirmSplit.isPending}
                     onClick={() => confirmSplit.mutate()}
@@ -999,6 +1008,7 @@ export function GuestBillScreen({
           split={activeSplit}
           mineRef={myParticipantRef}
           onPick={setMyParticipantRef}
+          onChanged={() => void activeSplitQuery.refetch()}
         />
       )}
 

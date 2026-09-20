@@ -1,4 +1,7 @@
-import { formatMoney, type BillSplit } from "@/lib/api";
+import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+
+import { formatMoney, guest, type BillSplit } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 /**
@@ -21,13 +24,26 @@ import { useI18n } from "@/lib/i18n";
 
 type Props = {
   split: BillSplit;
+  /** Que la lista se relea cuando una parte cambia de nombre. */
+  onChanged: () => void;
   /** La referencia de la parte que dijo pagar quien está mirando, si eligió una. */
   mineRef: string | null;
   onPick: (ref: string) => void;
 };
 
-export function GuestSplitProgress({ split, mineRef, onPick }: Props) {
+export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props) {
   const { t } = useI18n();
+  const [name, setName] = useState("");
+
+  const mine = split.participants.find((p) => p.ref === mineRef) ?? null;
+
+  const rename = useMutation({
+    mutationFn: () => guest.nameShare(mineRef ?? "", name.trim()),
+    onSuccess: () => {
+      setName("");
+      onChanged();
+    },
+  });
 
   const settled = split.participants.filter((p) => p.settled).length;
   const total = split.participants.length;
@@ -109,6 +125,39 @@ export function GuestSplitProgress({ split, mineRef, onPick }: Props) {
       {/* Sólo mientras haga falta: quien ya eligió su parte no necesita que se
           le explique cómo elegirla. */}
       {!mineRef && <p className="mt-3 text-[11px] text-muted-foreground">{t("pickYourShare")}</p>}
+
+      {/* Y el nombre se pide justo aquí, a quien acaba de tomar una parte: el
+          momento en que empieza a servir de algo. Sólo si esa parte no tiene
+          nombre ya y no ha recibido dinero -- después el servidor lo rechaza,
+          así que ofrecer el campo sería ofrecer un 409. */}
+      {mine && !mine.name && !mine.settled && BigInt(mine.amountPaidVes) === 0n && (
+        <form
+          className="mt-4 border-t border-border pt-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (name.trim()) rename.mutate();
+          }}
+        >
+          <label className="block text-xs uppercase tracking-widest text-muted-foreground">
+            {t("yourNameOptional")}
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={80}
+              autoComplete="given-name"
+              placeholder={t("yourNamePlaceholder")}
+              className="mt-1 min-h-[44px] w-full rounded-lg border border-border bg-transparent px-3 text-base"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={!name.trim() || rename.isPending}
+            className="mt-2 min-h-11 w-full rounded-full border border-primary bg-primary/15 px-4 text-sm disabled:opacity-40"
+          >
+            {rename.isPending ? t("loading") : t("saveName")}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

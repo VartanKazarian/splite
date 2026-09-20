@@ -567,6 +567,7 @@ const dict = {
     /* El pago en tres actos. Ver `GuestBillScreen`. */
     payMyShare: "Pagar mi parte",
     payTheBill: "Pagar la cuenta",
+    chooseHowToSplit: "Elige cómo repartir la cuenta",
     stepContinue: "Continuar",
     backToTip: "Volver a la propina",
     billWas: "La cuenta era {amount}",
@@ -1510,6 +1511,7 @@ const dict = {
     splitTheBill: "Split the bill",
     payMyShare: "Pay my share",
     payTheBill: "Pay the bill",
+    chooseHowToSplit: "Choose how to split the bill",
     stepContinue: "Continue",
     backToTip: "Back to the tip",
     billWas: "The bill was {amount}",

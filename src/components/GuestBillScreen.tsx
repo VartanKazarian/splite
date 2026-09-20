@@ -733,7 +733,14 @@ export function GuestBillScreen({
           )}
         </div>
       ) : (
-        <div ref={splitPanelRef} className={`surface mt-4 p-6 ${step === 3 ? "hidden" : ""}`}>
+        /* En el paso 1, antes de abrir el reparto, esta tarjeta ya no tiene
+           contenido: lo único que llevaba era "Tu parte", que repetía el total
+           que la tarjeta de arriba y el botón de pagar ya dicen. Sin eso,
+           dibujarla sería dejar un recuadro vacío en medio de la pantalla. */
+        <div
+          ref={splitPanelRef}
+          className={`surface mt-4 p-6 ${step === 3 || (step === 1 && !splitOpen) ? "hidden" : ""}`}
+        >
           {/* Las cuatro formas de repartir, sólo una vez que se ha elegido
               dividir. Antes vivía aquí también el botón que abre esto; se
               mudó a la barra de abajo, a la misma altura que pagar, porque
@@ -900,12 +907,12 @@ export function GuestBillScreen({
 
           {splitMutation.isError && <GuestError error={splitMutation.error} />}
 
-          {preview && !splitMutation.isPending && (
-            /* La raya de arriba separa esto de los controles de reparto, así
-               que sólo aparece cuando los hay. Con el botón de dividir mudado
-               a la barra, en el paso 1 sin abrir no queda nada encima y la
-               raya separaba el bloque del borde de la tarjeta. */
-            <div className={step === 1 && !splitOpen ? "" : "mt-5 border-t border-border pt-4"}>
+          {/* Sólo cuando hay un reparto de verdad. Pagando la cuenta entera,
+              "Tu parte" era el total dicho por tercera vez en la misma
+              pantalla, y presentado como una decisión ya tomada: o divides, o
+              pagas todo, y eso se elige abajo. */}
+          {preview && !splitMutation.isPending && !(step === 1 && mode === "FULL") && (
+            <div className="mt-5 border-t border-border pt-4">
               {/* Una cifra grande por tarjeta, y es la que se puede pagar
                   desde ella. Sin propina puesta, eso es tu parte; en cuanto
                   hay propina, el importe con propina toma el sitio y esto baja
@@ -1028,7 +1035,7 @@ export function GuestBillScreen({
                   elige -- un botón llamado "Confirmar división" aparecía sin
                   que nadie hubiera dividido nada. Pagar la cuenta entera no
                   necesita guardar ningún reparto: lo hace el panel de pago. */}
-              {step === 1 && !demo && !activeSplit && mode !== "FULL" && (
+              {step === 1 && !demo && mode !== "FULL" && (
                 <div className="mt-4 border-t border-border pt-4">
                   {/*
                     El nombre va aquí y no en un paso propio: es una línea
@@ -1056,9 +1063,20 @@ export function GuestBillScreen({
                     onClick={() => confirmSplit.mutate()}
                     className="w-full rounded-lg border border-primary bg-primary/15 px-4 py-3 text-sm text-foreground disabled:opacity-40"
                   >
-                    {confirmSplit.isPending ? t("loading") : t("splitConfirm")}
+                    {confirmSplit.isPending
+                      ? t("loading")
+                      : activeSplit
+                        ? t("splitReplace")
+                        : t("splitConfirm")}
                   </button>
-                  <p className="mt-2 text-[11px] text-muted-foreground">{t("splitConfirmNote")}</p>
+                  {/* Con un reparto ya acordado, el botón reemplaza en vez de
+                      crear, y hay que decirlo antes de pulsarlo: por detrás el
+                      anterior se anula. El servidor sólo lo permite mientras
+                      nadie haya pagado -- en cuanto hay dinero contra una
+                      parte, responde y el reparto viejo se queda. */}
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    {activeSplit ? t("splitReplaceNote") : t("splitConfirmNote")}
+                  </p>
                   {confirmSplit.isError && <GuestError error={confirmSplit.error} />}
                 </div>
               )}

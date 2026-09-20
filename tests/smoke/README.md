@@ -49,17 +49,18 @@ factura y la serie es la transcripción de una autorización del SENIAT. Por eso
 la suite se niega a correr contra algo que no sea `localhost` salvo que se lo
 pidas por escrito con `SMOKE_ALLOW_REMOTE=1`.
 
-**Una ejecución por minuto.** La API se defiende con varios limitadores por
-ventana de tiempo, y una ejecución completa gasta alrededor de la mitad del más
-estrecho -- el de cuentas, 60 por minuto, del que se gastan unas 30. Así que la
-primera pasa y la segunda seguida se corta a sí misma con un 429 que no dice
-nada del producto. Espera un minuto entre ejecuciones.
+**Una ejecución por minuto.** La API se defiende con limitadores por ventana de
+tiempo y una ejecución completa gasta buena parte del cupo, así que la primera
+pasa y la segunda seguida se corta a sí misma con un 429 que no dice nada del
+producto. Espera un minuto entre ejecuciones; el mensaje que sale lo dice.
 
-Dos de esos techos sí se suben en CI, porque una sola ejecución no cabía en
-ellos: el general (`RATE_LIMIT_API_MAX`) y el de acceso (`RATE_LIMIT_AUTH_MAX`),
-éste porque el panel pregunta quién eres y si tienes segundo factor en cada
-carga de pantalla. **Los dos se ignoran en producción**, así que ponerlos en
-Railway no afloja nada; hay pruebas en el backend que fallan si eso cambia.
+En CI se suben tres de esos techos, porque una sola ejecución no cabía en
+ninguno: el general (`RATE_LIMIT_API_MAX`), el de acceso (`RATE_LIMIT_AUTH_MAX`)
+y el de cuentas (`RATE_LIMIT_BILLS_MAX`). Ninguno de los tres lo gasta un abuso:
+el panel pregunta quién eres y si tienes segundo factor en cada carga de
+pantalla, y refresca las cuentas abiertas solo. **Los tres se ignoran en
+producción**, así que ponerlos en Railway no afloja nada; hay pruebas en el
+backend que fallan si eso deja de ser cierto.
 
 ## Por qué hay `data-testid`
 

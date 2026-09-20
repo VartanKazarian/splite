@@ -93,6 +93,10 @@ jobs:
       # misma. Pasó en la primera ejecución de este trabajo, con el 429 llegando
       # en `/auth/me`. También se ignora en producción, donde siguen siendo diez.
       RATE_LIMIT_AUTH_MAX: "60"
+      # Y el de cuentas, que en CI tampoco cabía: entre las cinco mesas que
+      # monta la suite y el panel refrescando solo las cuentas abiertas, la
+      # quinta prueba recibía un 429 leyendo una cuenta que acababa de crear.
+      RATE_LIMIT_BILLS_MAX: "600"
       # Claves de usar y tirar, igual que en la CI del backend y por lo mismo:
       # protegen una base de datos que se destruye con el trabajo. Literales y
       # no secretos del repositorio, para que la copia de cualquiera ejecute lo

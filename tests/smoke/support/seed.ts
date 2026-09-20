@@ -45,11 +45,45 @@ const DEFAULT_LINES: SeedLine[] = [
   { name: "jugo", priceMinorUnits: "500", quantity: 2 },
 ];
 
+/**
+ * Adónde llega el dinero.
+ *
+ * Sin esto el panel de pago no enseña ni una forma de pagar: dice «este
+ * restaurante todavía no tiene configurado el pago móvil» y se acabó, que es
+ * exactamente lo correcto -- un local que no puede recibir un bolívar no debe
+ * fingir que sí. Pero deja al recorrido sin final.
+ *
+ * Costó una ejecución de CI entera descubrirlo: en la base de desarrollo el
+ * local de pruebas llevaba payee desde hace meses, y en la de CI, que nace
+ * vacía con cada trabajo, las dos pruebas que pagan se quedaban esperando a
+ * unas pestañas que nunca iban a aparecer. Las otras cuatro pasaban.
+ *
+ * Se escribe una vez por ejecución. La cuenta es de Mercantil (0105) y no
+ * existe; lo único que se le pide es tener la forma que el servidor valida --
+ * veinte dígitos que empiezan por el código del banco.
+ */
+let payout: Promise<unknown> | null = null;
+
+async function ensurePayout(auth: Auth & { kind: "staff" }): Promise<void> {
+  payout ??= api.put(
+    "/api/v1/account/payout",
+    {
+      bankCode: "0105",
+      accountNumber: "01050000000000000000",
+      phone: "04141234567",
+      holderId: "V12345678",
+    },
+    auth,
+  );
+  await payout;
+}
+
 export async function seedOpenBill(
   label: string,
   lines: SeedLine[] = DEFAULT_LINES,
 ): Promise<Seed> {
   const auth = await loginOwner();
+  await ensurePayout(auth);
   const tag = `smoke-${label}-${Date.now().toString(36)}`;
 
   const table = await api.post<{ id: string; name: string }>("/api/v1/tables", { name: tag }, auth);
@@ -81,6 +115,16 @@ export async function seedOpenBill(
     api.get<Bill>(`/api/v1/bills/${bill.id}`, auth),
     api.get<{ token: string }>(`/api/v1/guest/tables/${table.id}/qr`, auth),
   ]);
+
+  // Una cuenta sin dinero encima deja pasar todos los pasos sin probar nada:
+  // el importe a pagar sería cero y las afirmaciones sobre él se cumplirían
+  // solas. Mejor romper aquí, donde se ve el motivo.
+  if (BigInt(finalBill.remainingVes || "0") <= 0n) {
+    throw new Error(
+      `El atrezzo salió sin dinero: la cuenta ${bill.id} debe ${finalBill.remainingVes} Bs. ` +
+        `Probablemente falta la tasa de cambio, o las líneas no llegaron a la cuenta.`,
+    );
+  }
 
   return {
     auth,

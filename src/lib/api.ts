@@ -622,6 +622,19 @@ export const guest = {
   activeSplit: () => apiRequest<BillSplit>("/api/v1/guest/bill/splits/active", { auth: "guest" }),
 
   /**
+   * Le pone nombre a una parte del reparto, o lo borra con la cadena vacía.
+   *
+   * El servidor lo acepta mientras esa parte no haya recibido dinero; después
+   * responde 409, porque entonces el nombre deja de ser una etiqueta y pasa a
+   * ser el registro de quién pagó.
+   */
+  nameShare: (ref: string, name: string) =>
+    apiRequest<BillSplit>(
+      `/api/v1/guest/bill/splits/active/participants/${encodeURIComponent(ref)}`,
+      { method: "PATCH", body: { name }, auth: "guest" },
+    ),
+
+  /**
    * Los bancos, para el desplegable de «tu banco» al declarar un pago.
    *
    * No es la misma lista que `c2pBanks`: aquélla son los bancos con integración

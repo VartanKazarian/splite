@@ -49,9 +49,17 @@ factura y la serie es la transcripción de una autorización del SENIAT. Por eso
 la suite se niega a correr contra algo que no sea `localhost` salvo que se lo
 pidas por escrito con `SMOKE_ALLOW_REMOTE=1`.
 
-**Dos ejecuciones seguidas se cortan.** `/api/v1/auth` admite diez llamadas por
-minuto y por dirección y una ejecución gasta siete. Si las lanzas dos veces en
-el mismo minuto, la segunda falla con un mensaje que lo dice. Espera un minuto.
+**Una ejecución por minuto.** La API se defiende con varios limitadores por
+ventana de tiempo, y una ejecución completa gasta alrededor de la mitad del más
+estrecho -- el de cuentas, 60 por minuto, del que se gastan unas 30. Así que la
+primera pasa y la segunda seguida se corta a sí misma con un 429 que no dice
+nada del producto. Espera un minuto entre ejecuciones.
+
+Dos de esos techos sí se suben en CI, porque una sola ejecución no cabía en
+ellos: el general (`RATE_LIMIT_API_MAX`) y el de acceso (`RATE_LIMIT_AUTH_MAX`),
+éste porque el panel pregunta quién eres y si tienes segundo factor en cada
+carga de pantalla. **Los dos se ignoran en producción**, así que ponerlos en
+Railway no afloja nada; hay pruebas en el backend que fallan si eso cambia.
 
 ## Por qué hay `data-testid`
 

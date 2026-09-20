@@ -87,6 +87,12 @@ jobs:
       # Los límites que sí protegen algo -- diez intentos de acceso, los de la
       # sesión de invitado -- se quedan como están y la suite cabe dentro.
       RATE_LIMIT_API_MAX: "600"
+      # Y el de acceso, por lo mismo: el panel pregunta quién eres y si tienes
+      # segundo factor en cada carga de pantalla, así que cinco pantallas gastan
+      # nueve de las diez llamadas y la última prueba se corta el acceso a sí
+      # misma. Pasó en la primera ejecución de este trabajo, con el 429 llegando
+      # en `/auth/me`. También se ignora en producción, donde siguen siendo diez.
+      RATE_LIMIT_AUTH_MAX: "60"
       # Claves de usar y tirar, igual que en la CI del backend y por lo mismo:
       # protegen una base de datos que se destruye con el trabajo. Literales y
       # no secretos del repositorio, para que la copia de cualquiera ejecute lo

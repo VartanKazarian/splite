@@ -114,15 +114,14 @@ export async function ownerSession(): Promise<StaffSession> {
     return await cached;
   } catch (error) {
     cached = null;
-    // Una ejecución entera gasta siete de las diez llamadas del minuto, así
-    // que dos seguidas se cortan. Es el producto protegiéndose y está bien que
-    // lo haga; lo que no está bien es que la suite lo cuente como «demasiadas
-    // peticiones» y deje a quien la corre buscando qué ha roto.
+    // Es el producto protegiéndose y está bien que lo haga; lo que no está
+    // bien es que la suite lo cuente como «demasiadas peticiones» y deje a
+    // quien la corre buscando qué ha roto.
     if (error instanceof ApiCallError && error.status === 429) {
       throw new Error(
-        "La API corta el acceso a diez llamadas por minuto y por dirección, y una " +
-          "ejecución de esta suite gasta siete. Has corrido dos seguidas: espera un " +
-          "minuto y vuelve a lanzarla. No has roto nada.",
+        "La API limita las peticiones por minuto y una ejecución de esta suite " +
+          "gasta buena parte del cupo. Has lanzado dos seguidas: espera un minuto " +
+          "y vuelve a intentarlo. No has roto nada.",
       );
     }
     throw error;

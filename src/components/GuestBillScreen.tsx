@@ -734,18 +734,12 @@ export function GuestBillScreen({
         </div>
       ) : (
         <div ref={splitPanelRef} className={`surface mt-4 p-6 ${step === 3 ? "hidden" : ""}`}>
-          {/* Pagarlo todo es lo que hace la mayoría, y ya es el modo por
-              defecto: no necesita un botón compitiendo con los otros tres. Las
-              cuatro opciones con el mismo peso obligaban a leerlas y decidir
-              antes de poder hacer nada. Dividir sigue estando a un toque. */}
-          {step !== 1 ? null : !splitOpen ? (
-            <button
-              onClick={() => setSplitOpen(true)}
-              className="w-full rounded-full border border-border px-4 py-3 text-sm transition-colors hover:bg-secondary"
-            >
-              {t("splitTheBill")}
-            </button>
-          ) : (
+          {/* Las cuatro formas de repartir, sólo una vez que se ha elegido
+              dividir. Antes vivía aquí también el botón que abre esto; se
+              mudó a la barra de abajo, a la misma altura que pagar, porque
+              dividir es la otra mitad de para qué se abre esta pantalla y no
+              una opción escondida dentro de la tarjeta. */}
+          {step !== 1 || !splitOpen ? null : (
             <div className="grid grid-cols-2 gap-2">
               {modes.map((m) => (
                 <button
@@ -753,9 +747,18 @@ export function GuestBillScreen({
                   onClick={() => {
                     setMode(m.id);
                     setPreview(null);
+                    // "Pagar todo" no es una forma de dividir: es decir que no
+                    // se divide. Así que cierra el panel y devuelve la pareja
+                    // de botones, en vez de dejar abierto un reparto de uno.
+                    if (m.id === "FULL") setSplitOpen(false);
                   }}
+                  /* Recién abierto el panel, `mode` sigue en FULL porque nadie
+                     ha elegido todavía -- y pintar "Pagar todo" como la opción
+                     activa justo después de pulsar "Dividir la cuenta" hace
+                     creer que no se registró lo que se pidió. Mientras no haya
+                     elección de reparto, ninguna va marcada. */
                   className={`rounded-lg border px-3 py-2.5 text-xs transition-colors ${
-                    mode === m.id
+                    mode === m.id && mode !== "FULL"
                       ? "border-primary bg-primary/15 text-foreground"
                       : "border-border text-muted-foreground hover:bg-secondary"
                   }`}
@@ -898,7 +901,11 @@ export function GuestBillScreen({
           {splitMutation.isError && <GuestError error={splitMutation.error} />}
 
           {preview && !splitMutation.isPending && (
-            <div className="mt-5 border-t border-border pt-4">
+            /* La raya de arriba separa esto de los controles de reparto, así
+               que sólo aparece cuando los hay. Con el botón de dividir mudado
+               a la barra, en el paso 1 sin abrir no queda nada encima y la
+               raya separaba el bloque del borde de la tarjeta. */
+            <div className={step === 1 && !splitOpen ? "" : "mt-5 border-t border-border pt-4"}>
               {/* Una cifra grande por tarjeta, y es la que se puede pagar
                   desde ella. Sin propina puesta, eso es tu parte; en cuanto
                   hay propina, el importe con propina toma el sitio y esto baja
@@ -1133,7 +1140,39 @@ export function GuestBillScreen({
           --------------------------------------------------------------- */}
       {!nothingToPay && (
         <div className="sticky bottom-0 z-10 -mx-5 mt-4 bg-gradient-to-t from-background from-65% to-transparent px-5 pb-4 pt-6">
-          {step < 3 && (
+          {/* Dividir y pagar, lado a lado y con el mismo peso: son las dos
+              cosas que se puede querer hacer aquí, y antes una era un botón
+              lleno y la otra un enlace dentro de la tarjeta. El importe se
+              apila bajo su etiqueta porque a media pantalla no cabe en la
+              misma línea, y quitarlo no era opción: es lo que convierte el
+              botón en una confirmación. */}
+          {step === 1 && !splitOpen && (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSplitOpen(true)}
+                className="flex min-h-14 items-center justify-center rounded-full border border-border bg-background px-4 text-center text-[15px] font-medium transition-colors hover:bg-secondary"
+              >
+                {t("splitTheBill")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="flex min-h-14 flex-col items-center justify-center rounded-full bg-primary px-4 text-primary-foreground shadow-[0_12px_26px_-14px] shadow-primary transition-opacity hover:opacity-95"
+              >
+                <span className="text-[15px] font-medium leading-tight">{t("payTheBill")}</span>
+                <span className="money-sm leading-tight opacity-90">
+                  {formatMoney(dockTotal.toString(), "VES")}
+                </span>
+              </button>
+            </div>
+          )}
+
+          {/* Dividiendo, pagar la cuenta entera deja de ofrecerse: se acaba de
+              decir que no. Mientras no se elija cómo repartir no hay importe
+              que confirmar, así que tampoco hay botón -- la decisión está
+              arriba, en las cuatro opciones. */}
+          {step < 3 && !(step === 1 && !splitOpen) && !(step === 1 && mode === "FULL") && (
             <button
               type="button"
               onClick={() => setStep(step === 1 ? 2 : 3)}
@@ -1165,12 +1204,14 @@ export function GuestBillScreen({
           )}
           {step === 1 && (
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              {partlyPaid
-                ? t("overRemaining").replace(
-                    "{amount}",
-                    formatMoney(bill.remainingVes ?? "0", "VES"),
-                  )
-                : t("nobodyElseCommitted")}
+              {splitOpen && mode === "FULL"
+                ? t("chooseHowToSplit")
+                : partlyPaid
+                  ? t("overRemaining").replace(
+                      "{amount}",
+                      formatMoney(bill.remainingVes ?? "0", "VES"),
+                    )
+                  : t("nobodyElseCommitted")}
             </p>
           )}
         </div>

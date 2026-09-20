@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { applyRate, parseRate } from "@/lib/fiscal";
@@ -24,6 +24,10 @@ import {
 import { GuestError } from "@/components/GuestError";
 import { GuestPaymentPanel } from "@/components/GuestPaymentPanel";
 import { GuestInvoiceOffer } from "@/components/GuestInvoiceOffer";
+import { GuestItemSelector } from "@/components/GuestItemSelector";
+import { GuestSplitModeSelector } from "@/components/GuestSplitModeSelector";
+import { GuestSplitProgress } from "@/components/GuestSplitProgress";
+import { GuestStepIndicator } from "@/components/GuestStepIndicator";
 import { GuestReceipt } from "@/components/GuestReceipt";
 import { recallPayment } from "@/lib/guest-payment";
 import { demoBill, demoSplit } from "@/lib/demo-bill";
@@ -516,15 +520,6 @@ export function GuestBillScreen({
   // total, así que es el saldo quien se lleva la cifra grande.
   const partlyPaid = paidSoFar > 0n && outstanding > 0n;
 
-  // "Pagar todo" ya no es una opción entre cuatro: es lo que pasa si no tocas
-  // nada. Vuelve a la lista sólo para poder deshacer una división empezada.
-  const modes: { id: SplitMode; label: string }[] = [
-    { id: "FULL", label: t("payAll") },
-    { id: "ITEMS", label: t("splitItems") },
-    { id: "EQUAL", label: t("splitEven") },
-    { id: "CUSTOM", label: t("custom") },
-  ];
-
   // La propina se calcula en céntimos enteros sobre la parte del comensal.
   const shareMinor = preview ? BigInt(myShare(preview, mode)) : 0n;
   const tipMinor =
@@ -585,6 +580,15 @@ export function GuestBillScreen({
           salda la cuenta mientras tú estás en el paso del banco, la cuenta
           se vuelve a enseñar en vez de quedarse escondida detrás de un paso
           que ya no lleva a ningún sitio. */}
+      {/* Los tres pasos, arriba del todo y fuera de la tarjeta: responden
+          «¿cuánto falta?» antes de que nadie lo pregunte. Sin cuenta que
+          cobrar no hay recorrido, así que tampoco indicador. */}
+      {!nothingToPay && !demo && (
+        <div className="mt-1">
+          <GuestStepIndicator current={step === 3 ? 3 : step === 2 ? 2 : 1} />
+        </div>
+      )}
+
       <div className={`surface p-6 ${step === 1 || nothingToPay ? "" : "hidden"}`}>
         <h1 className="text-3xl">{t("yourBill")}</h1>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -747,33 +751,19 @@ export function GuestBillScreen({
               dividir es la otra mitad de para qué se abre esta pantalla y no
               una opción escondida dentro de la tarjeta. */}
           {step !== 1 || !splitOpen ? null : (
-            <div className="grid grid-cols-2 gap-2">
-              {modes.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => {
-                    setMode(m.id);
-                    setPreview(null);
-                    // "Pagar todo" no es una forma de dividir: es decir que no
-                    // se divide. Así que cierra el panel y devuelve la pareja
-                    // de botones, en vez de dejar abierto un reparto de uno.
-                    if (m.id === "FULL") setSplitOpen(false);
-                  }}
-                  /* Recién abierto el panel, `mode` sigue en FULL porque nadie
-                     ha elegido todavía -- y pintar "Pagar todo" como la opción
-                     activa justo después de pulsar "Dividir la cuenta" hace
-                     creer que no se registró lo que se pidió. Mientras no haya
-                     elección de reparto, ninguna va marcada. */
-                  className={`rounded-lg border px-3 py-2.5 text-xs transition-colors ${
-                    mode === m.id && mode !== "FULL"
-                      ? "border-primary bg-primary/15 text-foreground"
-                      : "border-border text-muted-foreground hover:bg-secondary"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
+            <GuestSplitModeSelector
+              // Mientras el modo siga en FULL nadie ha elegido cómo repartir:
+              // es el valor por defecto del estado, no una decisión.
+              selected={mode === "FULL" ? null : mode}
+              onSelect={(next) => {
+                setMode(next);
+                setPreview(null);
+                // "Pagar toda la cuenta" no es una forma de dividir: es decir
+                // que no se divide. Así que cierra el panel y devuelve la
+                // pareja de botones, en vez de dejar abierto un reparto de uno.
+                if (next === "FULL") setSplitOpen(false);
+              }}
+            />
           )}
 
           {step === 1 && mode === "EQUAL" && (
@@ -800,90 +790,12 @@ export function GuestBillScreen({
           )}
 
           {step === 1 && mode === "ITEMS" && (
-            <div className="mt-5 space-y-2">
-              <p className="text-xs text-muted-foreground">{t("selectYourItems")}</p>
-              {(bill.items ?? []).map((item) => {
-                const max = item.quantity ?? 1;
-                const qty = mine[item.id] ?? 0;
-                const on = qty > 0;
-                const unit = (BigInt(item.subtotalMinor) * BigInt(qty)) / BigInt(max || 1);
-
-                // Si solo hay una unidad, basta con marcar/desmarcar el producto.
-                if (max === 1) {
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setMineQty(item.id, on ? 0 : 1, max)}
-                      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
-                        on ? "border-primary bg-primary/15" : "border-border text-muted-foreground"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                            on ? "border-primary bg-primary/40" : "border-border"
-                          }`}
-                        >
-                          {on && <Check className="h-3 w-3" />}
-                        </span>
-                        <span>{item.name}</span>
-                      </span>
-                      <span className="w-20 shrink-0 text-right">
-                        {formatMoney(item.subtotalMinor, bill.currency)}
-                      </span>
-                    </button>
-                  );
-                }
-
-                return (
-                  <div
-                    key={item.id}
-                    className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
-                      on ? "border-primary bg-primary/15" : "border-border text-muted-foreground"
-                    }`}
-                  >
-                    <button
-                      onClick={() => setMineQty(item.id, on ? 0 : 1, max)}
-                      className="flex flex-1 items-center gap-2 text-left"
-                    >
-                      <span
-                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                          on ? "border-primary bg-primary/40" : "border-border"
-                        }`}
-                      >
-                        {on && <Check className="h-3 w-3" />}
-                      </span>
-                      <span>{item.name}</span>
-                    </button>
-
-                    <span className="flex items-center gap-2">
-                      <span className="flex items-center gap-1">
-                        <button
-                          aria-label="-"
-                          onClick={() => setMineQty(item.id, qty - 1, max)}
-                          disabled={qty <= 0}
-                          className="h-7 w-7 rounded-full border border-border text-sm disabled:opacity-30"
-                        >
-                          −
-                        </button>
-                        <span className="w-5 text-center figure">{qty}</span>
-                        <button
-                          aria-label="+"
-                          onClick={() => setMineQty(item.id, qty + 1, max)}
-                          disabled={qty >= max}
-                          className="h-7 w-7 rounded-full border border-border text-sm disabled:opacity-30"
-                        >
-                          +
-                        </button>
-                      </span>
-                      <span className="w-20 shrink-0 text-right">
-                        {formatMoney(unit.toString(), bill.currency)}
-                      </span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            <GuestItemSelector
+              items={bill.items ?? []}
+              mine={mine}
+              currency={bill.currency}
+              onChange={setMineQty}
+            />
           )}
 
           {step === 1 && mode === "CUSTOM" && (
@@ -1026,9 +938,6 @@ export function GuestBillScreen({
                   </div>
                 )}
               </div>
-              {step === 1 && (
-                <p className="mt-3 text-[11px] text-muted-foreground">{t("changeUntilPaid")}</p>
-              )}
 
               {/* Sólo cuando de verdad se está dividiendo. Con "Pagar todo"
                   -- que ahora es el camino por defecto y no una opción que se
@@ -1086,45 +995,11 @@ export function GuestBillScreen({
       )}
 
       {activeSplit && (
-        <div className="surface mt-4 p-6">
-          <h2 className="text-xl">{t("splitAgreed")}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Sobre {formatMoney(activeSplit.basisVes, "VES")} pendientes al acordarla.
-          </p>
-          <ul className="mt-4 space-y-2 text-sm">
-            {activeSplit.participants.map((p, i) => {
-              const isMine = p.ref === myParticipantRef;
-              return (
-                <li
-                  key={p.id}
-                  className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
-                    isMine ? "border-primary bg-primary/10" : "border-border"
-                  }`}
-                >
-                  <button onClick={() => setMyParticipantRef(p.ref)} className="flex-1 text-left">
-                    <span>{p.name ?? (isMine ? "Tu parte" : `Comensal ${i + 1}`)}</span>
-                    <span className="ml-2 text-[11px] uppercase tracking-widest text-muted-foreground">
-                      {p.settled ? "Pagado" : "Pendiente"}
-                    </span>
-                  </button>
-                  <span className="text-right">
-                    <span className="block figure">{formatMoney(p.amountVes, "VES")}</span>
-                    {!p.settled && BigInt(p.amountPaidVes) > 0n && (
-                      <span className="block text-[11px] text-muted-foreground">
-                        Falta {formatMoney(p.remainingVes, "VES")}
-                      </span>
-                    )}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          {!myParticipantRef && (
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              Toca la parte que vas a pagar para que el pago se acredite a ella.
-            </p>
-          )}
-        </div>
+        <GuestSplitProgress
+          split={activeSplit}
+          mineRef={myParticipantRef}
+          onPick={setMyParticipantRef}
+        />
       )}
 
       {/* Fuera del panel de pago a propósito: el panel se desmonta en cuanto la
@@ -1168,7 +1043,16 @@ export function GuestBillScreen({
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setSplitOpen(true)}
+                onClick={() => {
+                  setSplitOpen(true);
+                  // Una fila por opción lee mejor que la rejilla de antes, pero
+                  // ocupa más alto: medido a 390 px, la cuarta quedaba debajo
+                  // de la barra. Llevar la vista al panel las pone las cuatro
+                  // a la vista en vez de dejarlas a que alguien intuya que hay
+                  // que bajar. El desplazamiento suave lo desactiva el sistema
+                  // de quien pide menos movimiento.
+                  requestAnimationFrame(() => scrollFrameTo(splitPanelRef.current));
+                }}
                 className="flex min-h-14 items-center justify-center rounded-full border border-border bg-background px-4 text-center text-[15px] font-medium transition-colors hover:bg-secondary"
               >
                 {t("splitTheBill")}
@@ -1220,16 +1104,19 @@ export function GuestBillScreen({
               {step === 2 ? t("backToBill") : t("backToTip")}
             </button>
           )}
-          {step === 1 && (
+          {/* Sólo cuando hay algo que decir que la pantalla no enseñe ya: qué
+              falta por elegir, o que se está pagando sobre un saldo parcial.
+              «Nadie más queda comprometido» se cayó por lo contrario -- era
+              tranquilizar por escrito algo que el importe y los dos botones ya
+              dicen. */}
+          {step === 1 && (splitOpen ? mode === "FULL" : partlyPaid) && (
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              {splitOpen && mode === "FULL"
+              {splitOpen
                 ? t("chooseHowToSplit")
-                : partlyPaid
-                  ? t("overRemaining").replace(
-                      "{amount}",
-                      formatMoney(bill.remainingVes ?? "0", "VES"),
-                    )
-                  : t("nobodyElseCommitted")}
+                : t("overRemaining").replace(
+                    "{amount}",
+                    formatMoney(bill.remainingVes ?? "0", "VES"),
+                  )}
             </p>
           )}
         </div>

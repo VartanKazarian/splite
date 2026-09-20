@@ -79,6 +79,7 @@ export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props)
             <li key={p.id}>
               <button
                 type="button"
+                data-testid={`guest-share-${i}`}
                 aria-pressed={isMine}
                 onClick={() => onPick(p.ref)}
                 className={`flex min-h-[52px] w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
@@ -141,6 +142,7 @@ export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props)
           <label className="block text-xs uppercase tracking-widest text-muted-foreground">
             {t("yourNameOptional")}
             <input
+              data-testid="guest-share-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={80}
@@ -151,6 +153,7 @@ export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props)
           </label>
           <button
             type="submit"
+            data-testid="guest-share-name-save"
             disabled={!name.trim() || rename.isPending}
             className="mt-2 min-h-11 w-full rounded-full border border-primary bg-primary/15 px-4 text-sm disabled:opacity-40"
           >

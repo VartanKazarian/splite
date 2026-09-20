@@ -36,5 +36,13 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  {
+    // Las pruebas de humo corren en Node, no en un navegador, y su `use` es el
+    // parámetro con el que Playwright entrega una fixture -- no un hook de
+    // React. La regla lo lee por el nombre y no puede saberlo.
+    files: ["tests/**/*.ts", "playwright.config.ts"],
+    languageOptions: { globals: globals.node },
+    rules: { "react-hooks/rules-of-hooks": "off" },
+  },
   eslintPluginPrettier,
 );

@@ -143,6 +143,7 @@ function Login() {
             {error && <AuthError code={error.code} step="code" />}
 
             <button
+              data-testid="login-submit"
               type="submit"
               disabled={pending || code.trim().length === 0}
               className="mt-6 w-full rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
@@ -209,6 +210,7 @@ function Login() {
             {error && <AuthError code={error.code} step="password" />}
 
             <button
+              data-testid="login-submit"
               type="submit"
               disabled={pending}
               className="mt-6 w-full rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"

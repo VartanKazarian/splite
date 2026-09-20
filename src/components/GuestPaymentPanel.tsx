@@ -378,6 +378,7 @@ export function GuestPaymentPanel({
           <button
             key={x.id}
             type="button"
+            data-testid={`guest-pay-tab-${x.id}`}
             onClick={() => setTab(x.id)}
             aria-pressed={tab === x.id}
             className={`min-h-11 rounded-lg border px-3 text-xs transition-colors ${
@@ -442,6 +443,7 @@ export function GuestPaymentPanel({
           ) : claim ? (
             <div
               ref={successRef}
+              data-testid="guest-claim-sent"
               tabIndex={-1}
               role="status"
               className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 outline-none"
@@ -643,6 +645,7 @@ export function GuestPaymentPanel({
 
               <button
                 type="submit"
+                data-testid="guest-claim-submit"
                 disabled={!canSubmit}
                 className="mt-5 min-h-12 w-full rounded-lg border border-primary bg-primary/15 px-4 text-sm text-foreground transition-colors disabled:opacity-40"
               >

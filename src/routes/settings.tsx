@@ -336,6 +336,7 @@ function SettingsPage() {
               <button
                 key={id}
                 type="button"
+                data-testid={`settings-tab-${id}`}
                 aria-current={current === id ? "page" : undefined}
                 onClick={() => {
                   setTab(id);

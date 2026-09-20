@@ -112,7 +112,10 @@ export function FiscalRif({ canEdit }: { canEdit: boolean }) {
       <p className="mt-1 text-sm text-muted-foreground">{t("fiscalRifWhy")}</p>
 
       {lockedUnder !== null ? (
-        <div className="mt-5 rounded-lg border border-border bg-secondary p-4">
+        <div
+          data-testid="fiscal-rif-locked"
+          className="mt-5 rounded-lg border border-border bg-secondary p-4"
+        >
           <p className="text-sm">{t("fiscalRifLockedBody")}</p>
           <p className="figure mt-2 text-base">{lockedUnder}</p>
         </div>
@@ -121,6 +124,7 @@ export function FiscalRif({ canEdit }: { canEdit: boolean }) {
           <label className="mt-5 flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">{t("fiscalRifLabel")}</span>
             <input
+              data-testid="fiscal-rif-input"
               value={rif}
               disabled={!canEdit || query.isLoading}
               onChange={(e) => {
@@ -148,6 +152,7 @@ export function FiscalRif({ canEdit }: { canEdit: boolean }) {
           {canEdit && (
             <button
               type="button"
+              data-testid="fiscal-rif-save"
               onClick={() => save.mutate()}
               disabled={unchanged || save.isPending}
               className="mt-4 min-h-11 rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"

@@ -78,6 +78,7 @@ export function GuestItemSelector({ items, mine, currency, onChange }: Props) {
             <button
               key={item.id}
               type="button"
+              data-testid={`guest-item-${item.id}`}
               aria-pressed={on}
               onClick={() => onChange(item.id, on ? 0 : 1, max)}
               className={`flex min-h-[60px] w-full items-center gap-3 px-3.5 py-3 text-left ${frame}`}
@@ -97,6 +98,7 @@ export function GuestItemSelector({ items, mine, currency, onChange }: Props) {
           <div key={item.id} className={`px-3.5 py-3 ${frame}`}>
             <button
               type="button"
+              data-testid={`guest-item-${item.id}`}
               aria-pressed={on}
               onClick={() => onChange(item.id, on ? 0 : 1, max)}
               className="flex min-h-[44px] w-full items-center gap-3 text-left"
@@ -116,6 +118,7 @@ export function GuestItemSelector({ items, mine, currency, onChange }: Props) {
             <div className="mt-2 flex items-center gap-3 pl-9">
               <button
                 type="button"
+                data-testid={`guest-item-minus-${item.id}`}
                 aria-label={`${t("removeOne")} ${item.name}`}
                 onClick={() => onChange(item.id, qty - 1, max)}
                 disabled={qty <= 0}
@@ -126,6 +129,7 @@ export function GuestItemSelector({ items, mine, currency, onChange }: Props) {
               <span className="figure min-w-[1.5rem] text-center text-lg">{qty}</span>
               <button
                 type="button"
+                data-testid={`guest-item-plus-${item.id}`}
                 aria-label={`${t("addOne")} ${item.name}`}
                 onClick={() => onChange(item.id, qty + 1, max)}
                 disabled={qty >= max}

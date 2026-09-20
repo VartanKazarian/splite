@@ -92,6 +92,7 @@ export function GuestSplitModeSelector({ selected, onSelect }: Props) {
           <button
             key={option.id}
             type="button"
+            data-testid={`guest-split-mode-${option.id}`}
             aria-pressed={isSelected}
             onClick={() => onSelect(option.id)}
             className={`flex min-h-[56px] w-full items-center gap-3.5 rounded-2xl border px-4 py-3 text-left transition-colors ${

@@ -349,6 +349,7 @@ function PaymentsPage() {
                     ) : (
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
+                          data-testid={`claim-confirm-${claim.id}`}
                           disabled={confirmClaim.isPending}
                           onClick={() => confirmClaim.mutate(claim.id)}
                           className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground disabled:opacity-40"

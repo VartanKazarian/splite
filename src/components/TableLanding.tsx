@@ -278,12 +278,14 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
 
         <div className="mt-6 space-y-3">
           <Choice
+            testId="guest-open-menu"
             icon={<BookOpen className="h-5 w-5" />}
             title={t("theMenu")}
             hint={t("theMenuHint")}
             onClick={() => go("menu")}
           />
           <Choice
+            testId="guest-open-bill"
             icon={<Receipt className="h-5 w-5" />}
             title={t("yourBill")}
             // Lo único que dice del dinero: si hay cuenta abierta. Cuánto se debe
@@ -306,15 +308,23 @@ function Choice({
   hint,
   onClick,
   disabled = false,
+  testId,
 }: {
   icon: React.ReactNode;
   title: string;
   hint: string;
   onClick: () => void;
   disabled?: boolean;
+  /**
+   * Ancla para las pruebas de humo. Es lo único de esta pantalla que no puede
+   * cambiar de nombre: el texto del botón sí, y las pruebas afirman que se
+   * llega al final, no cómo se llama cada paso.
+   */
+  testId?: string;
 }) {
   return (
     <button
+      {...(testId ? { "data-testid": testId } : {})}
       onClick={onClick}
       disabled={disabled}
       className="flex w-full items-center gap-4 rounded-lg border border-border bg-secondary px-4 py-4 text-left transition-colors hover:border-primary disabled:opacity-60"

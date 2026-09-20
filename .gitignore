@@ -35,3 +35,7 @@ dist-ssr
 # run by a tool leaves one of these behind, and it must not be committed --
 # two lockfiles disagreeing is how a build resolves versions nobody pinned.
 package-lock.json
+
+# Playwright: el informe y las trazas de una ejecución fallida.
+test-results
+playwright-report

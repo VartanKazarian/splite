@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { applyRate, parseRate } from "@/lib/fiscal";
@@ -24,7 +24,9 @@ import {
 import { GuestError } from "@/components/GuestError";
 import { GuestPaymentPanel } from "@/components/GuestPaymentPanel";
 import { GuestInvoiceOffer } from "@/components/GuestInvoiceOffer";
+import { GuestItemSelector } from "@/components/GuestItemSelector";
 import { GuestSplitModeSelector } from "@/components/GuestSplitModeSelector";
+import { GuestSplitProgress } from "@/components/GuestSplitProgress";
 import { GuestStepIndicator } from "@/components/GuestStepIndicator";
 import { GuestReceipt } from "@/components/GuestReceipt";
 import { recallPayment } from "@/lib/guest-payment";
@@ -788,90 +790,12 @@ export function GuestBillScreen({
           )}
 
           {step === 1 && mode === "ITEMS" && (
-            <div className="mt-5 space-y-2">
-              <p className="text-xs text-muted-foreground">{t("selectYourItems")}</p>
-              {(bill.items ?? []).map((item) => {
-                const max = item.quantity ?? 1;
-                const qty = mine[item.id] ?? 0;
-                const on = qty > 0;
-                const unit = (BigInt(item.subtotalMinor) * BigInt(qty)) / BigInt(max || 1);
-
-                // Si solo hay una unidad, basta con marcar/desmarcar el producto.
-                if (max === 1) {
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setMineQty(item.id, on ? 0 : 1, max)}
-                      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
-                        on ? "border-primary bg-primary/15" : "border-border text-muted-foreground"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                            on ? "border-primary bg-primary/40" : "border-border"
-                          }`}
-                        >
-                          {on && <Check className="h-3 w-3" />}
-                        </span>
-                        <span>{item.name}</span>
-                      </span>
-                      <span className="w-20 shrink-0 text-right">
-                        {formatMoney(item.subtotalMinor, bill.currency)}
-                      </span>
-                    </button>
-                  );
-                }
-
-                return (
-                  <div
-                    key={item.id}
-                    className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
-                      on ? "border-primary bg-primary/15" : "border-border text-muted-foreground"
-                    }`}
-                  >
-                    <button
-                      onClick={() => setMineQty(item.id, on ? 0 : 1, max)}
-                      className="flex flex-1 items-center gap-2 text-left"
-                    >
-                      <span
-                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                          on ? "border-primary bg-primary/40" : "border-border"
-                        }`}
-                      >
-                        {on && <Check className="h-3 w-3" />}
-                      </span>
-                      <span>{item.name}</span>
-                    </button>
-
-                    <span className="flex items-center gap-2">
-                      <span className="flex items-center gap-1">
-                        <button
-                          aria-label="-"
-                          onClick={() => setMineQty(item.id, qty - 1, max)}
-                          disabled={qty <= 0}
-                          className="h-7 w-7 rounded-full border border-border text-sm disabled:opacity-30"
-                        >
-                          −
-                        </button>
-                        <span className="w-5 text-center figure">{qty}</span>
-                        <button
-                          aria-label="+"
-                          onClick={() => setMineQty(item.id, qty + 1, max)}
-                          disabled={qty >= max}
-                          className="h-7 w-7 rounded-full border border-border text-sm disabled:opacity-30"
-                        >
-                          +
-                        </button>
-                      </span>
-                      <span className="w-20 shrink-0 text-right">
-                        {formatMoney(unit.toString(), bill.currency)}
-                      </span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            <GuestItemSelector
+              items={bill.items ?? []}
+              mine={mine}
+              currency={bill.currency}
+              onChange={setMineQty}
+            />
           )}
 
           {step === 1 && mode === "CUSTOM" && (
@@ -1014,9 +938,6 @@ export function GuestBillScreen({
                   </div>
                 )}
               </div>
-              {step === 1 && (
-                <p className="mt-3 text-[11px] text-muted-foreground">{t("changeUntilPaid")}</p>
-              )}
 
               {/* Sólo cuando de verdad se está dividiendo. Con "Pagar todo"
                   -- que ahora es el camino por defecto y no una opción que se
@@ -1074,45 +995,11 @@ export function GuestBillScreen({
       )}
 
       {activeSplit && (
-        <div className="surface mt-4 p-6">
-          <h2 className="text-xl">{t("splitAgreed")}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Sobre {formatMoney(activeSplit.basisVes, "VES")} pendientes al acordarla.
-          </p>
-          <ul className="mt-4 space-y-2 text-sm">
-            {activeSplit.participants.map((p, i) => {
-              const isMine = p.ref === myParticipantRef;
-              return (
-                <li
-                  key={p.id}
-                  className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
-                    isMine ? "border-primary bg-primary/10" : "border-border"
-                  }`}
-                >
-                  <button onClick={() => setMyParticipantRef(p.ref)} className="flex-1 text-left">
-                    <span>{p.name ?? (isMine ? "Tu parte" : `Comensal ${i + 1}`)}</span>
-                    <span className="ml-2 text-[11px] uppercase tracking-widest text-muted-foreground">
-                      {p.settled ? "Pagado" : "Pendiente"}
-                    </span>
-                  </button>
-                  <span className="text-right">
-                    <span className="block figure">{formatMoney(p.amountVes, "VES")}</span>
-                    {!p.settled && BigInt(p.amountPaidVes) > 0n && (
-                      <span className="block text-[11px] text-muted-foreground">
-                        Falta {formatMoney(p.remainingVes, "VES")}
-                      </span>
-                    )}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          {!myParticipantRef && (
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              Toca la parte que vas a pagar para que el pago se acredite a ella.
-            </p>
-          )}
-        </div>
+        <GuestSplitProgress
+          split={activeSplit}
+          mineRef={myParticipantRef}
+          onPick={setMyParticipantRef}
+        />
       )}
 
       {/* Fuera del panel de pago a propósito: el panel se desmonta en cuanto la

@@ -266,6 +266,23 @@ export function GuestPaymentPanel({
     return () => clearTimeout(id);
   }, [cooldown]);
 
+  /*
+   * El correo, y el permiso para escribirle: dos cosas, no una.
+   *
+   * Hasta aquí sólo se pedía dentro de la oferta de factura, que aparece
+   * después de pagar y sólo si el restaurante puede emitir -- plan, proveedor,
+   * RIF y serie. Sin serie configurada no se recogía ninguno, nunca, y el
+   * comensal que quería su comprobante no tenía dónde dejarlo.
+   *
+   * Va como opcional de verdad: se puede pagar sin escribirlo, y si se deja
+   * vacío no se manda nada. Y el consentimiento comercial nace **sin marcar**
+   * y aparte del campo, porque dar un correo para un recibo no es aceptar que
+   * te escriban después; juntarlos sería obtener lo segundo aprovechando lo
+   * primero.
+   */
+  const [email, setEmail] = useState("");
+  const [marketing, setMarketing] = useState(false);
+
   const mutation = useMutation({
     mutationFn: async (): Promise<PaymentClaim> => {
       const amountVes = parseMinorInput(amount) || "0";
@@ -293,6 +310,13 @@ export function GuestPaymentPanel({
     onSuccess: (data) => {
       setError(null);
       setClaim(data);
+      // Aparte del cobro y sin bloquearlo: el pago del comensal importa más
+      // que nuestra lista, así que si esto falla no se entera ni lo nota.
+      if (!demo && email.trim()) {
+        void guest
+          .saveContact({ email: email.trim(), marketingConsent: marketing })
+          .catch(() => undefined);
+      }
       // El único hilo que le queda al comensal con su propio pago cuando la
       // cuenta se cierre y esta pantalla desaparezca.
       rememberPayment(data.id);
@@ -550,6 +574,43 @@ export function GuestPaymentPanel({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="mt-4">
+                <label
+                  htmlFor="claim-email"
+                  className="text-xs uppercase tracking-widest text-muted-foreground"
+                >
+                  {t("payerEmailLabel")}
+                </label>
+                <input
+                  id="claim-email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@correo.com"
+                  aria-describedby="claim-email-help"
+                  className={field}
+                />
+                <p id="claim-email-help" className="mt-1 text-[11px] text-muted-foreground">
+                  {t("payerEmailWhy")}
+                </p>
+                {/* Sólo cuando hay un correo que consentir. Una casilla de
+                    permiso sobre un campo vacío no consiente nada y sólo añade
+                    una decisión más a una pantalla donde se está pagando. */}
+                {email.trim() && (
+                  <label className="mt-2 flex items-start gap-2 text-[11px] text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={marketing}
+                      onChange={(e) => setMarketing(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0"
+                    />
+                    <span>{t("payerEmailMarketing")}</span>
+                  </label>
+                )}
               </div>
 
               {error && (

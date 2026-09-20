@@ -786,7 +786,13 @@ const dict = {
     guestClaimNote:
       "Esto no cobra nada: solo avisa al restaurante para que verifique tu pago móvil.",
     splitConfirm: "Confirmar división",
+    payerEmailLabel: "Tu correo (opcional)",
+    payerEmailWhy: "Para enviarte el comprobante y, si la pides, tu factura.",
+    payerEmailMarketing: "Quiero recibir novedades y promociones del restaurante.",
     splitAgreed: "División acordada",
+    splitReplace: "Reemplazar la división",
+    splitReplaceNote:
+      "Sustituye la división acordada. Sólo se puede mientras nadie haya pagado su parte.",
     copied: "Copiado",
     c2pErrNoBank: "No pudimos contactar al banco. Intenta de nuevo.",
     c2pErrTooMuch: "Ese monto supera lo que falta por pagar.",
@@ -1726,7 +1732,12 @@ const dict = {
     guestClaimNote:
       "This charges nothing: it only tells the restaurant to check your mobile payment.",
     splitConfirm: "Confirm the split",
+    payerEmailLabel: "Your email (optional)",
+    payerEmailWhy: "So we can send you the receipt and, if you ask for one, your invoice.",
+    payerEmailMarketing: "I'd like news and offers from the restaurant.",
     splitAgreed: "Split agreed",
+    splitReplace: "Replace the split",
+    splitReplaceNote: "Replaces the agreed split. Only possible while nobody has paid their share.",
     copied: "Copied",
     c2pErrNoBank: "We could not reach the bank. Try again.",
     c2pErrTooMuch: "That is more than is left to pay.",

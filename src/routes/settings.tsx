@@ -25,6 +25,7 @@ import { ConfirmButton } from "@/components/ConfirmButton";
 import { MfaPanel } from "@/components/MfaPanel";
 import { RestaurantName } from "@/components/RestaurantName";
 import { RestaurantBranding } from "@/components/RestaurantBranding";
+import { FiscalRif } from "@/components/FiscalRif";
 import { FiscalSeries } from "@/components/FiscalSeries";
 import { PanelHeader } from "@/components/PanelHeader";
 
@@ -484,6 +485,11 @@ function SettingsPage() {
 
               {(role === "OWNER" || role === "MANAGER") && <PayoutSection />}
               {role === "OWNER" && <ProvidersSection />}
+
+              {/* Antes que la serie, y a propósito: el RIF es quién emite y la
+                  serie es con qué números. Configurar la segunda sin el primero
+                  deja una serie que no puede numerar nada. */}
+              <FiscalRif canEdit={role === "OWNER"} />
 
               {/* Con qué números se emiten las facturas. Va en Cobros y no en
                   Restaurante porque no es escaparate: es cómo declara el local,

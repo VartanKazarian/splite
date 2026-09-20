@@ -24,6 +24,8 @@ import {
 import { GuestError } from "@/components/GuestError";
 import { GuestPaymentPanel } from "@/components/GuestPaymentPanel";
 import { GuestInvoiceOffer } from "@/components/GuestInvoiceOffer";
+import { GuestSplitModeSelector } from "@/components/GuestSplitModeSelector";
+import { GuestStepIndicator } from "@/components/GuestStepIndicator";
 import { GuestReceipt } from "@/components/GuestReceipt";
 import { recallPayment } from "@/lib/guest-payment";
 import { demoBill, demoSplit } from "@/lib/demo-bill";
@@ -516,15 +518,6 @@ export function GuestBillScreen({
   // total, así que es el saldo quien se lleva la cifra grande.
   const partlyPaid = paidSoFar > 0n && outstanding > 0n;
 
-  // "Pagar todo" ya no es una opción entre cuatro: es lo que pasa si no tocas
-  // nada. Vuelve a la lista sólo para poder deshacer una división empezada.
-  const modes: { id: SplitMode; label: string }[] = [
-    { id: "FULL", label: t("payAll") },
-    { id: "ITEMS", label: t("splitItems") },
-    { id: "EQUAL", label: t("splitEven") },
-    { id: "CUSTOM", label: t("custom") },
-  ];
-
   // La propina se calcula en céntimos enteros sobre la parte del comensal.
   const shareMinor = preview ? BigInt(myShare(preview, mode)) : 0n;
   const tipMinor =
@@ -585,6 +578,15 @@ export function GuestBillScreen({
           salda la cuenta mientras tú estás en el paso del banco, la cuenta
           se vuelve a enseñar en vez de quedarse escondida detrás de un paso
           que ya no lleva a ningún sitio. */}
+      {/* Los tres pasos, arriba del todo y fuera de la tarjeta: responden
+          «¿cuánto falta?» antes de que nadie lo pregunte. Sin cuenta que
+          cobrar no hay recorrido, así que tampoco indicador. */}
+      {!nothingToPay && !demo && (
+        <div className="mt-1">
+          <GuestStepIndicator current={step === 3 ? 3 : step === 2 ? 2 : 1} />
+        </div>
+      )}
+
       <div className={`surface p-6 ${step === 1 || nothingToPay ? "" : "hidden"}`}>
         <h1 className="text-3xl">{t("yourBill")}</h1>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -747,33 +749,19 @@ export function GuestBillScreen({
               dividir es la otra mitad de para qué se abre esta pantalla y no
               una opción escondida dentro de la tarjeta. */}
           {step !== 1 || !splitOpen ? null : (
-            <div className="grid grid-cols-2 gap-2">
-              {modes.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => {
-                    setMode(m.id);
-                    setPreview(null);
-                    // "Pagar todo" no es una forma de dividir: es decir que no
-                    // se divide. Así que cierra el panel y devuelve la pareja
-                    // de botones, en vez de dejar abierto un reparto de uno.
-                    if (m.id === "FULL") setSplitOpen(false);
-                  }}
-                  /* Recién abierto el panel, `mode` sigue en FULL porque nadie
-                     ha elegido todavía -- y pintar "Pagar todo" como la opción
-                     activa justo después de pulsar "Dividir la cuenta" hace
-                     creer que no se registró lo que se pidió. Mientras no haya
-                     elección de reparto, ninguna va marcada. */
-                  className={`rounded-lg border px-3 py-2.5 text-xs transition-colors ${
-                    mode === m.id && mode !== "FULL"
-                      ? "border-primary bg-primary/15 text-foreground"
-                      : "border-border text-muted-foreground hover:bg-secondary"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
+            <GuestSplitModeSelector
+              // Mientras el modo siga en FULL nadie ha elegido cómo repartir:
+              // es el valor por defecto del estado, no una decisión.
+              selected={mode === "FULL" ? null : mode}
+              onSelect={(next) => {
+                setMode(next);
+                setPreview(null);
+                // "Pagar toda la cuenta" no es una forma de dividir: es decir
+                // que no se divide. Así que cierra el panel y devuelve la
+                // pareja de botones, en vez de dejar abierto un reparto de uno.
+                if (next === "FULL") setSplitOpen(false);
+              }}
+            />
           )}
 
           {step === 1 && mode === "EQUAL" && (
@@ -1168,7 +1156,16 @@ export function GuestBillScreen({
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setSplitOpen(true)}
+                onClick={() => {
+                  setSplitOpen(true);
+                  // Una fila por opción lee mejor que la rejilla de antes, pero
+                  // ocupa más alto: medido a 390 px, la cuarta quedaba debajo
+                  // de la barra. Llevar la vista al panel las pone las cuatro
+                  // a la vista en vez de dejarlas a que alguien intuya que hay
+                  // que bajar. El desplazamiento suave lo desactiva el sistema
+                  // de quien pide menos movimiento.
+                  requestAnimationFrame(() => scrollFrameTo(splitPanelRef.current));
+                }}
                 className="flex min-h-14 items-center justify-center rounded-full border border-border bg-background px-4 text-center text-[15px] font-medium transition-colors hover:bg-secondary"
               >
                 {t("splitTheBill")}
@@ -1220,16 +1217,19 @@ export function GuestBillScreen({
               {step === 2 ? t("backToBill") : t("backToTip")}
             </button>
           )}
-          {step === 1 && (
+          {/* Sólo cuando hay algo que decir que la pantalla no enseñe ya: qué
+              falta por elegir, o que se está pagando sobre un saldo parcial.
+              «Nadie más queda comprometido» se cayó por lo contrario -- era
+              tranquilizar por escrito algo que el importe y los dos botones ya
+              dicen. */}
+          {step === 1 && (splitOpen ? mode === "FULL" : partlyPaid) && (
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              {splitOpen && mode === "FULL"
+              {splitOpen
                 ? t("chooseHowToSplit")
-                : partlyPaid
-                  ? t("overRemaining").replace(
-                      "{amount}",
-                      formatMoney(bill.remainingVes ?? "0", "VES"),
-                    )
-                  : t("nobodyElseCommitted")}
+                : t("overRemaining").replace(
+                    "{amount}",
+                    formatMoney(bill.remainingVes ?? "0", "VES"),
+                  )}
             </p>
           )}
         </div>

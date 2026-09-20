@@ -154,8 +154,12 @@ jobs:
           cat /tmp/api.log
           exit 1
 
+      # El binario que ya está instalado, y no `bunx playwright`: ese nombre es
+      # otro paquete de npm -- aquí sólo está `@playwright/test` -- así que bunx
+      # se queda esperando a que alguien le diga si lo descarga. Se quedó parado
+      # dieciocho minutos en la primera ejecución.
       - name: Navegador
-        run: bunx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       # Contra el servidor de desarrollo, que es lo que levanta la propia
       # configuración de Playwright. Que la compilación de producción funcione

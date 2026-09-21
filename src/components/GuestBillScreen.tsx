@@ -963,6 +963,7 @@ export function GuestBillScreen({
                       <label className="block text-xs uppercase tracking-widest text-muted-foreground">
                         {t("yourNameOptional")}
                         <input
+                          data-testid="guest-my-name"
                           value={myName}
                           onChange={(e) => setMyName(e.target.value)}
                           maxLength={80}
@@ -977,6 +978,7 @@ export function GuestBillScreen({
                     </>
                   )}
                   <button
+                    data-testid="guest-split-confirm"
                     disabled={confirmSplit.isPending}
                     onClick={() => confirmSplit.mutate()}
                     className="w-full rounded-lg border border-primary bg-primary/15 px-4 py-3 text-sm text-foreground disabled:opacity-40"
@@ -1030,7 +1032,24 @@ export function GuestBillScreen({
                 splitParticipantId: myParticipant.id,
                 shareRemainingVes: myParticipant.remainingVes,
               }
-            : {})}
+            : // Reparto calculado pero todavía no acordado: es la rama normal
+              // de "divido, elijo lo mío y pago", donde nadie ha pulsado
+              // "Acordar el reparto" porque no hace falta para pagar.
+              //
+              // Sin esto el panel cobraba `bill.remainingVes` -- la cuenta
+              // entera -- mientras la barra de arriba prometía la parte.
+              // Medido en un navegador sobre una cuenta de 15.272,02: la barra
+              // decía "Continuar · 12.599,42" y el formulario del banco
+              // aparecía relleno con 16.417,42, que es la cuenta de toda la
+              // mesa más la propina de uno. El comensal que no se fijara
+              // pagaba lo de los demás.
+              //
+              // Sin `splitParticipantId`: no hay reparto guardado, así que no
+              // hay parte a la que atribuir el cobro. El importe sí se conoce,
+              // y es lo único que este panel necesita.
+              preview
+              ? { shareRemainingVes: shareMinor.toString() }
+              : {})}
         />
       )}
 
@@ -1053,6 +1072,7 @@ export function GuestBillScreen({
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
+                data-testid="guest-split-open"
                 onClick={() => {
                   setSplitOpen(true);
                   // Una fila por opción lee mejor que la rejilla de antes, pero
@@ -1069,6 +1089,7 @@ export function GuestBillScreen({
               </button>
               <button
                 type="button"
+                data-testid="guest-pay-full"
                 onClick={() => setStep(2)}
                 className="flex min-h-14 flex-col items-center justify-center rounded-full bg-primary px-4 text-primary-foreground shadow-[0_12px_26px_-14px] shadow-primary transition-opacity hover:opacity-95"
               >
@@ -1087,6 +1108,7 @@ export function GuestBillScreen({
           {step < 3 && !(step === 1 && !splitOpen) && !(step === 1 && mode === "FULL") && (
             <button
               type="button"
+              data-testid="guest-continue"
               onClick={() => setStep(step === 1 ? 2 : 3)}
               className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground shadow-[0_12px_26px_-14px] shadow-primary transition-opacity hover:opacity-95"
             >
@@ -1106,6 +1128,7 @@ export function GuestBillScreen({
           {step > 1 && (
             <button
               type="button"
+              data-testid="guest-step-back"
               onClick={() => setStep(step === 2 ? 1 : 2)}
               className={`min-h-11 w-full rounded-full border border-border text-[13px] text-muted-foreground transition-colors hover:bg-secondary ${
                 step < 3 ? "mt-2" : ""

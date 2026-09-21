@@ -50,6 +50,20 @@ const dict = {
     splitItems: "Solo lo que consumí",
     splitEven: "Dividir entre todos",
     custom: "Elegir cuánto pago",
+    fiscalRifTitle: "RIF del restaurante",
+    fiscalRifWhy:
+      "Es el contribuyente que emite. Sin él no se puede emitir ninguna factura fiscal.",
+    fiscalRifLabel: "RIF",
+    fiscalRifSave: "Guardar el RIF",
+    fiscalRifSaved: "RIF guardado",
+    fiscalRifChecksumWarn:
+      "Guardado, pero el dígito verificador no cuadra. Compruébalo antes de emitir.",
+    fiscalRifMalformed:
+      "Un RIF es una letra, ocho dígitos y el verificador. Por ejemplo J-12345678-4.",
+    fiscalRifTaken: "Ese RIF ya está registrado en otra cuenta de Splite.",
+    fiscalRifLocked: "Ya se emitió una factura con este RIF: no se puede cambiar.",
+    fiscalRifLockedBody:
+      "Ya hay facturas emitidas con este RIF, así que queda fijo. Cambiarlo haría que el libro de ventas no cuadre con los documentos que ya tienen tus clientes.",
     saveName: "Guardar mi nombre",
     splitPaidCount: "{done} de {total} han pagado",
     diner: "Comensal",
@@ -1022,6 +1036,18 @@ const dict = {
     splitItems: "Only what I had",
     splitEven: "Split between everyone",
     custom: "Choose how much I pay",
+    fiscalRifTitle: "Restaurant RIF",
+    fiscalRifWhy: "The taxpayer that issues. Without it no fiscal invoice can be issued at all.",
+    fiscalRifLabel: "RIF",
+    fiscalRifSave: "Save the RIF",
+    fiscalRifSaved: "RIF saved",
+    fiscalRifChecksumWarn: "Saved, but the check digit does not add up. Verify it before issuing.",
+    fiscalRifMalformed:
+      "A RIF is a letter, eight digits and a check digit. For example J-12345678-4.",
+    fiscalRifTaken: "That RIF is already registered to another Splite account.",
+    fiscalRifLocked: "An invoice has already been issued under this RIF, so it cannot change.",
+    fiscalRifLockedBody:
+      "Invoices have already been issued under this RIF, so it is now fixed. Changing it would leave your sales book out of step with documents your customers already hold.",
     saveName: "Save my name",
     splitPaidCount: "{done} of {total} have paid",
     diner: "Diner",

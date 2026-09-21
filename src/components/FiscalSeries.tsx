@@ -117,6 +117,7 @@ export function FiscalSeries({ canEdit }: { canEdit: boolean }) {
     <label className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
       <input
+        data-testid={`fiscal-series-${key}`}
         value={form[key]}
         disabled={frozen(key) || query.isLoading}
         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
@@ -171,9 +172,12 @@ export function FiscalSeries({ canEdit }: { canEdit: boolean }) {
 
       {/* Lo que va a salir impreso. Enseñarlo es lo que convierte seis campos
           sueltos en algo que se puede cotejar con la autorización de un vistazo. */}
-      <p className="mt-3 text-sm">{t("fiscalSeriesNext").replace("{number}", preview)}</p>
+      <p data-testid="fiscal-series-next" className="mt-3 text-sm">
+        {t("fiscalSeriesNext").replace("{number}", preview)}
+      </p>
 
       <button
+        data-testid="fiscal-series-save"
         disabled={!canEdit || save.isPending || query.isLoading}
         onClick={() => save.mutate()}
         className="mt-4 min-h-11 self-start whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"

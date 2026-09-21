@@ -262,6 +262,7 @@ function Mesas() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              data-testid="table-search"
               placeholder={t("searchTable")}
               aria-label={t("searchTable")}
               className="min-h-11 w-full rounded-full border border-input bg-secondary pl-9 pr-4 text-sm outline-none focus:border-ring"

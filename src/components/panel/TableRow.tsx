@@ -47,6 +47,7 @@ export function TableRow({
     return (
       <button
         data-table-card=""
+        data-testid={`table-row-${table.id}`}
         onClick={onSelect}
         aria-pressed={selected}
         className={`flex min-h-12 w-full items-center gap-3 px-4 text-left transition-colors hover:bg-secondary ${
@@ -75,6 +76,7 @@ export function TableRow({
   return (
     <button
       data-table-card=""
+      data-testid={`table-row-${table.id}`}
       onClick={onSelect}
       aria-pressed={selected}
       className={`w-full px-4 py-3 text-left transition-colors hover:bg-secondary ${

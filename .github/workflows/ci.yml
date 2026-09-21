@@ -1,0 +1,192 @@
+name: CI
+
+on:
+  push:
+    # También las ramas de trabajo: sin esto nada se comprueba hasta que
+    # alguien abre una propuesta, que es justo cuando ya es tarde para
+    # enterarse de que no compila.
+    branches: [main, "claude/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Lo barato y lo que no necesita nada levantado. Hasta ahora este repositorio
+  # no ejecutaba ni esto: se publicaba a Lovable sin que nada hubiera mirado si
+  # el proyecto compila.
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # `--frozen-lockfile` a propósito: este proyecto resuelve con bun.lock y
+      # `package-lock.json` está ignorado. Sin la bandera, una dependencia
+      # añadida a mano y no fijada pasaría aquí y fallaría en la máquina de
+      # quien la instale después.
+      - run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Tipos
+        run: bun run typecheck
+
+      - name: Compila
+        run: bun run build
+
+  # Los seis recorridos, contra la API de verdad.
+  smoke:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: splite
+          POSTGRES_PASSWORD: splite_ci_password
+          POSTGRES_DB: splite_test
+        options: >-
+          --health-cmd "pg_isready -U splite -d splite_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: postgres://splite:splite_ci_password@localhost:5432/splite_test
+      DB_SSL: "false"
+      REDIS_URL: redis://localhost:6379
+      PORT: "4010"
+      SMOKE_API_URL: http://127.0.0.1:4010
+      SMOKE_WEB_URL: http://127.0.0.1:5173
+      # Sin esto el navegador no puede hablar con la API y todo falla con un
+      # error de red que parece cualquier otra cosa. Medido: el formulario de
+      # acceso decía "No hemos podido entrar" y la petición ni salía.
+      CORS_ORIGINS: http://127.0.0.1:5173
+      # El limitador general es por dirección y minuto, y aquí la suite comparte
+      # dirección con el panel que está conduciendo: un recorrido de dieciocho
+      # segundos gasta 126 de las 120 llamadas sin que nadie abuse de nada. El
+      # valor se ignora en producción, así que subirlo aquí no afloja nada allí.
+      # Los límites que sí protegen algo -- diez intentos de acceso, los de la
+      # sesión de invitado -- se quedan como están y la suite cabe dentro.
+      RATE_LIMIT_API_MAX: "600"
+      # Y el de acceso, por lo mismo: el panel pregunta quién eres y si tienes
+      # segundo factor en cada carga de pantalla, así que cinco pantallas gastan
+      # nueve de las diez llamadas y la última prueba se corta el acceso a sí
+      # misma. Pasó en la primera ejecución de este trabajo, con el 429 llegando
+      # en `/auth/me`. También se ignora en producción, donde siguen siendo diez.
+      RATE_LIMIT_AUTH_MAX: "60"
+      # Y el de cuentas, que en CI tampoco cabía: entre las cinco mesas que
+      # monta la suite y el panel refrescando solo las cuentas abiertas, la
+      # quinta prueba recibía un 429 leyendo una cuenta que acababa de crear.
+      RATE_LIMIT_BILLS_MAX: "600"
+      # Claves de usar y tirar, igual que en la CI del backend y por lo mismo:
+      # protegen una base de datos que se destruye con el trabajo. Literales y
+      # no secretos del repositorio, para que la copia de cualquiera ejecute lo
+      # mismo que la nuestra.
+      MFA_SECRET_KEYS: "1:Y2ktb25seS10ZXN0LWtleS0zMi1ieXRlcy1sb25nISE="
+      MFA_ACTIVE_KEY_VERSION: "1"
+      PAYMENT_CREDENTIALS_KEYS: "1:Y2ktb25seS1wYXltZW50LWtleS0zMi1ieXRlcy0hISE="
+      PAYMENT_CREDENTIALS_ACTIVE_KEY_VERSION: "1"
+      FISCAL_MOCK_ENABLED: "true"
+      SEED_OWNER_EMAIL: owner@example.com
+      SEED_OWNER_PASSWORD: SpliteCiPassword12345!
+      SMOKE_EMAIL: owner@example.com
+      SMOKE_PASSWORD: SpliteCiPassword12345!
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # La API es el otro repositorio. Probar el frontend contra un servidor
+      # fingido probaría el fingimiento: lo que se rompe de verdad son los
+      # contratos entre los dos.
+      #
+      # Sin credenciales porque hoy es público. Cuando se haga privado, esto
+      # necesita un token con permiso de lectura sobre él.
+      - uses: actions/checkout@v4
+        with:
+          repository: VartanKazarian/splite-backend
+          path: .api
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: .api/package-lock.json
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Dependencias de la API
+        run: npm ci
+        working-directory: .api
+
+      - name: Migraciones
+        run: npm run migrate
+        working-directory: .api
+
+      - name: Un dueño con el que entrar
+        run: npm run seed
+        working-directory: .api
+
+      - name: Levantar la API
+        working-directory: .api
+        run: |
+          node src/server.js > /tmp/api.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4010/health/ready > /dev/null; then
+              echo "API lista"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::la API no llegó a estar lista"
+          cat /tmp/api.log
+          exit 1
+
+      # El binario que ya está instalado, y no `bunx playwright`: ese nombre es
+      # otro paquete de npm -- aquí sólo está `@playwright/test` -- así que bunx
+      # se queda esperando a que alguien le diga si lo descarga. Se quedó parado
+      # dieciocho minutos en la primera ejecución.
+      - name: Navegador
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+
+      # Contra el servidor de desarrollo, que es lo que levanta la propia
+      # configuración de Playwright. Que la compilación de producción funcione
+      # lo comprueba el trabajo de arriba; servirla aquí añadiría una pieza más
+      # que puede fallar por su cuenta y no probaría ningún recorrido distinto.
+      - name: Pruebas de humo
+        run: bun run test:smoke
+
+      - name: El registro de la API, si algo falló
+        if: failure()
+        run: cat /tmp/api.log || true
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

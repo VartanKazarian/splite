@@ -2015,6 +2015,25 @@ export const account = {
       auth: "staff",
       body,
     }).then((r) => r.fiscalSeries),
+  /**
+   * El RIF del emisor. Sólo OWNER.
+   *
+   * La forma se rechaza (400 `FISCAL_RIF_MALFORMED`); el dígito verificador
+   * **no**: un RIF bien formado cuyo dígito no cuadra se guarda igual y la
+   * respuesta lo dice en `checksumOk`, para avisar sin dejar a un restaurante
+   * de verdad sin poder facturar por un cálculo nuestro sin contrastar.
+   *
+   * En cuanto se ha emitido un documento deja de poder cambiarse: 409
+   * `FISCAL_RIF_LOCKED`, con el RIF bajo el que se emitió en
+   * `details.issuedRif`. Y 409 `FISCAL_RIF_TAKEN` si ese contribuyente ya
+   * tiene cuenta.
+   */
+  setRif: (rif: string) =>
+    apiRequest<{ rif: string; checksumOk: boolean }>("/api/v1/account/rif", {
+      method: "PUT",
+      auth: "staff",
+      body: { rif },
+    }),
   banks: () =>
     apiRequest<{ data: BankRef[] }>("/api/v1/account/banks", { auth: "staff" }).then((r) => r.data),
   /** Los cuatro campos juntos, o {} para borrarlos: un payee a medias no cobra. */

@@ -267,6 +267,8 @@ const dict = {
     scanNeeded: "Escanea el QR de tu mesa para ver la cuenta.",
     qrInvalid: "Código no válido. Pide uno nuevo al personal.",
     qrInvalidTitle: "Código no válido",
+    qrInvalidHelp: "Pide uno nuevo al personal.",
+    qrRescan: "Volver a escanear",
 
     // La pantalla a la que llega un QR escaneado, antes de elegir nada.
     landingPrompt: "¿Qué quieres hacer?",
@@ -538,6 +540,7 @@ const dict = {
     c2pAmbiguous: "Ambiguo",
     waitUnderMinute: "menos de un minuto",
     feedTitle: "Movimiento",
+    feedBillTitle: "Movimientos recientes",
     feedEmpty: "Todavía no ha pasado nada hoy.",
     feedOther: "Movimiento",
     myTips: "Tus propinas",
@@ -1250,6 +1253,8 @@ const dict = {
     scanNeeded: "Scan your table QR to see the bill.",
     qrInvalid: "Invalid code. Ask the staff for a new one.",
     qrInvalidTitle: "Invalid code",
+    qrInvalidHelp: "Ask the staff for a new one.",
+    qrRescan: "Scan again",
 
     landingPrompt: "What would you like to do?",
     theMenu: "The menu",
@@ -1518,6 +1523,7 @@ const dict = {
     c2pAmbiguous: "Ambiguous",
     waitUnderMinute: "under a minute",
     feedTitle: "Activity",
+    feedBillTitle: "Recent movements",
     feedEmpty: "Nothing has happened yet today.",
     feedOther: "Activity",
     myTips: "Your tips",

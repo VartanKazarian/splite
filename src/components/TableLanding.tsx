@@ -201,7 +201,34 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
       return (
         <Shell>
           <h1 className="text-3xl">{t("qrInvalidTitle")}</h1>
-          <p className="mt-3 text-sm text-muted-foreground">{t("qrInvalid")}</p>
+          {/* Sin repetir el título. `qrInvalid` dice «Código no válido. Pide uno
+              nuevo al personal.» y hace falta entero donde no hay titular que lo
+              diga -- la pantalla de la cuenta --, pero aquí, debajo de «Código
+              no válido», la primera mitad es la misma frase dos veces. */}
+          <p className="mt-3 text-sm text-muted-foreground">{t("qrInvalidHelp")}</p>
+
+          {/* Y una salida.
+              Esta pantalla era un punto muerto: decía que el código no vale y
+              ahí se acababa. Recargar tampoco servía -- el token se guarda en la
+              pestaña, así que volvía a salir lo mismo --, y el comensal se
+              quedaba con un aviso y un teléfono en la mano.
+
+              Escanear no lo puede hacer esta pantalla; lo hace la cámara. Lo
+              que sí puede hacer es tirar el código caducado y la sesión que
+              colgaba de él, que es lo que deja el sitio listo para el código
+              nuevo. Sin esto, apuntar otra vez con la cámara funcionaba igual,
+              pero nada lo decía. */}
+          <button
+            type="button"
+            onClick={() => {
+              scannedQr.set(null);
+              guestSession.set(null);
+              setToken(null);
+            }}
+            className="mt-5 min-h-11 w-full rounded-full border border-border bg-background px-4 text-sm transition-colors hover:bg-secondary"
+          >
+            {t("qrRescan")}
+          </button>
         </Shell>
       );
     }

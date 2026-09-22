@@ -897,6 +897,11 @@ export type Bill = {
   fxRate?: string | null;
   fxValueDate?: string | null;
   usdReference?: string | null;
+  /**
+   * Si el restaurante puede cobrar por C2P ahora mismo. Sólo viene en la cuenta
+   * del invitado; el panel no lo necesita.
+   */
+  c2pAvailable?: boolean;
   itemCount?: number;
   /**
    * Los tres de abajo sólo vienen en el resumen de `/tables/floor`, no en

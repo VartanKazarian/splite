@@ -41,11 +41,25 @@ const KIND_KEY: Record<string, "feedSettled" | "feedDeclared"> = {
  * entrar un cobro había que mirar mesa por mesa. Es un listado del servidor: no
  * se deriva de los otros, que traen estado actual y no historia.
  */
-export function ActivityFeed() {
+/**
+ * Con `billId` se convierte en la actividad de una cuenta.
+ *
+ * Es el mismo listado y la misma consulta -- no hay un endpoint por cuenta --
+ * filtrado por la que se está mirando. Eso acota lo que puede enseñar: son los
+ * movimientos **recientes**, no el histórico de la cuenta. Para lo que se usa
+ * dentro de una mesa -- «¿entró ya el pago que me acaban de decir?» -- es
+ * justo lo que hace falta, y lo que no cabe en esa ventana ya está sumado
+ * arriba, en lo pagado y lo que falta.
+ *
+ * Por eso pide más entradas que el listado general: con veinte, en un servicio
+ * cargado, los movimientos de una mesa concreta se salen de la página.
+ */
+export function ActivityFeed({ billId }: { billId?: string }) {
   const { t, lang } = useI18n();
+  const limit = billId ? 50 : 20;
   const feed = useQuery({
-    queryKey: ["payments-activity"],
-    queryFn: () => payments.activity(undefined, 20),
+    queryKey: ["payments-activity", limit],
+    queryFn: () => payments.activity(undefined, limit),
     retry: false,
     refetchInterval: 30000,
   });
@@ -61,17 +75,38 @@ export function ActivityFeed() {
    * una cola de trabajo. Al final de la lista se llega bajando; a lo que entró
    * hace diez segundos hay que llegar sin hacer nada.
    */
-  const rows: ActivityEntry[] = [...(feed.data?.data ?? [])].reverse();
+  const all: ActivityEntry[] = [...(feed.data?.data ?? [])].reverse();
+  const rows = billId ? all.filter((r) => r.billId === billId) : all;
+
+  /*
+   * Dentro de una cuenta, sin movimientos no se dibuja nada.
+   *
+   * En la pantalla de cobros el vacío es una respuesta -- «no ha pasado nada en
+   * el turno» -- y merece decirse. Dentro de la hoja de una mesa es una caja
+   * vacía entre el importe y los botones, empujando hacia abajo lo que se ha
+   * venido a hacer.
+   */
+  if (billId && rows.length === 0) return null;
 
   return (
-    <section className="surface p-5">
-      <h2 className="inline-flex items-center gap-2 text-xl">
-        <Activity className="h-5 w-5 text-muted-foreground" /> {t("feedTitle")}
+    <section className={billId ? "mt-4" : "surface p-5"}>
+      <h2
+        className={
+          billId ? "text-sm text-muted-foreground" : "inline-flex items-center gap-2 text-xl"
+        }
+      >
+        {billId ? (
+          t("feedBillTitle")
+        ) : (
+          <>
+            <Activity className="h-5 w-5 text-muted-foreground" /> {t("feedTitle")}
+          </>
+        )}
       </h2>
 
       {feed.isLoading && <p className="mt-3 text-sm text-muted-foreground">{t("loading")}</p>}
 
-      {!feed.isLoading && rows.length === 0 && (
+      {!billId && !feed.isLoading && rows.length === 0 && (
         <p className="mt-3 text-sm text-muted-foreground">{t("feedEmpty")}</p>
       )}
 
@@ -95,7 +130,9 @@ export function ActivityFeed() {
           >
             <span className="min-w-0 truncate">
               {t(KIND_KEY[r.kind] ?? "feedOther")}
-              {r.tableName && <span className="text-muted-foreground"> · {r.tableName}</span>}
+              {!billId && r.tableName && (
+                <span className="text-muted-foreground"> · {r.tableName}</span>
+              )}
             </span>
             {r.amountVes && (
               <span className="figure shrink-0">{formatMoney(r.amountVes, "VES")}</span>

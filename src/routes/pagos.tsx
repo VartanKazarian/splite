@@ -18,6 +18,7 @@ import {
 } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
 import { ActivityFeed } from "@/components/ActivityFeed";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MyTipsCard } from "@/components/MyTipsCard";
 import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
 import { FxRatesCard } from "@/components/panel/FxRatesCard";
@@ -285,6 +286,31 @@ function PaymentsPage() {
               {claimsQuery.isError && (
                 <ErrorBox error={claimsQuery.error} fallback={t("apiDown")} />
               )}
+              {/* Mientras carga, la forma de lo que viene.
+                  Esta pantalla se abre para responder «¿ha entrado ya ese
+                  cobro?», y hasta ahora no dibujaba nada hasta tener la
+                  respuesta: unos segundos de tarjeta vacía sobre la que no se
+                  sabe si no hay nada pendiente o si todavía no ha llegado. Son
+                  dos respuestas opuestas.
+
+                  Con el hueco ocupado tampoco salta la página cuando llegan
+                  las filas. `aria-hidden` porque no hay nada que leer: quien
+                  usa un lector de pantalla oye el resultado cuando exista. */}
+              {claimsQuery.isPending && (
+                <ul aria-hidden className="mt-4 space-y-3">
+                  {[0, 1].map((i) => (
+                    <li key={i} className="rounded-lg border border-border p-4">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <Skeleton className="h-7 w-36" />
+                        <Skeleton className="h-4 w-28 rounded-full" />
+                      </div>
+                      <Skeleton className="mt-4 h-3 w-full" />
+                      <Skeleton className="mt-2 h-3 w-2/3" />
+                      <Skeleton className="mt-4 h-11 w-44 rounded-full" />
+                    </li>
+                  ))}
+                </ul>
+              )}
               {claimsQuery.isSuccess && claimsQuery.data.length === 0 && (
                 <p className="mt-4 text-sm text-muted-foreground">{t("payNoClaims")}</p>
               )}
@@ -376,6 +402,17 @@ function PaymentsPage() {
               <p className="mt-1 text-xs text-muted-foreground">{t("c2pUnresolvedHint")}</p>
               {unresolvedQuery.isError && (
                 <ErrorBox error={unresolvedQuery.error} fallback={t("apiDown")} />
+              )}
+              {unresolvedQuery.isPending && (
+                <ul aria-hidden className="mt-4 space-y-3">
+                  <li className="rounded-lg border border-border p-4">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <Skeleton className="h-7 w-36" />
+                      <Skeleton className="h-4 w-28 rounded-full" />
+                    </div>
+                    <Skeleton className="mt-4 h-3 w-3/4" />
+                  </li>
+                </ul>
               )}
               {unresolvedQuery.isSuccess && unresolvedQuery.data.length === 0 && (
                 <p className="mt-4 text-sm text-muted-foreground">{t("c2pNoPending")}</p>

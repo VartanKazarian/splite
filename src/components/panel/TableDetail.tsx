@@ -21,6 +21,7 @@ import {
   type SettleReason,
   type TillPaymentMethod,
 } from "@/lib/api";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import { paidPercent } from "@/components/panel/tableStatus";
 import { AddProductsSheet } from "@/components/panel/AddProductsSheet";
 import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
@@ -711,6 +712,15 @@ export function TableDetail({
               </Link>
             )}
           </div>
+
+          {/* Qué ha entrado y cuándo, en esta cuenta.
+              La franja de arriba dice en qué punto está el cobro y los importes
+              dicen cuánto; lo que faltaba es el cuándo. «¿Entró ya el pago que
+              me acaban de decir?» se respondía yendo a Pagos y buscando la mesa
+              entre las de todos. Es el mismo listado del servidor, filtrado por
+              esta cuenta -- no hay un endpoint por mesa --, así que son los
+              movimientos recientes y no el histórico. Sin ninguno no se dibuja. */}
+          <ActivityFeed billId={bill.id} />
 
           {/* Añadir productos es lo que se hace en la mesa; cobrar es la
               excepción desde que el comensal paga con el QR. Estaban al revés:

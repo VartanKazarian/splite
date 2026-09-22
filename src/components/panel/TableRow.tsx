@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
-import { formatMoney, type FloorTable } from "@/lib/api";
+import { formatDecimalMoney, formatMoney, type FloorTable } from "@/lib/api";
 import { badgeOf, formatAge, openMinutesOf, paidPercent, useTableBadge } from "./tableStatus";
 
 /**
@@ -92,12 +92,17 @@ export function TableRow({
       </div>
 
       {/* La referencia en dólares la calcula el servidor con la tasa congelada
-          de esta cuenta (`usdReference`). No se convierte nada aquí.
+          de esta cuenta (`usdReference`). No se convierte nada aquí: sólo se
+          puntúa como el resto de la pantalla. Venía impresa en crudo, tal como
+          la manda la API, y salía "≈ $40.32" pegado a "30.544,04 Bs" -- el
+          punto separando céntimos en una cifra y miles en la de al lado.
           Sólo si la cuenta está en otra moneda: una cuenta en bolívares lleva
           tasa 1, así que su `usdReference` es el mismo importe en bolívares
-          con un símbolo de dólar delante -- "11.200,00 Bs ≈ $11200.00". */}
+          con un símbolo de dólar delante. */}
       {bill.currency !== "VES" && bill.usdReference && (
-        <p className="money-sm mt-0.5 text-right text-muted-foreground">≈ ${bill.usdReference}</p>
+        <p className="money-sm mt-0.5 text-right text-muted-foreground">
+          ≈ {formatDecimalMoney(bill.usdReference, "USD")}
+        </p>
       )}
 
       {/* Cuánto se lleva cobrado. La barra es presentación; el importe exacto

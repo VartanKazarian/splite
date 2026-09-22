@@ -107,6 +107,28 @@ export function formatMoney(minor: string, currency: MenuCurrency): string {
   return currency === "VES" ? `${amount} ${symbol}` : `${symbol}${amount}`;
 }
 
+/**
+ * "1234.56" → "$1.234,56".
+ *
+ * El servidor manda la referencia en dólares como un decimal en unidades
+ * mayores y con punto: convención de máquina. Todo lo demás en este fichero
+ * habla en unidades menores y se imprime a la venezolana -- punto para los
+ * miles, coma para los céntimos --, así que esto se convierte antes de pasar
+ * por el formateador de siempre. Imprimirlo tal cual ponía "≈ $40.32" al lado
+ * de "30.544,04 Bs": dos convenciones de puntuación en la misma línea, y el
+ * punto significando dos cosas distintas a cinco centímetros.
+ *
+ * Sin aritmética de coma flotante, como el resto: se recorta la cadena.
+ */
+export function formatDecimalMoney(value: string, currency: MenuCurrency): string {
+  const trimmed = value.trim();
+  const negative = trimmed.startsWith("-");
+  const [wholeRaw = "", fracRaw = ""] = trimmed.replace(/^[-+]/, "").split(".");
+  const whole = wholeRaw.replace(/\D/g, "") || "0";
+  const cents = fracRaw.replace(/\D/g, "").slice(0, 2).padEnd(2, "0");
+  return formatMoney(`${negative ? "-" : ""}${whole}${cents}`, currency);
+}
+
 /** "771.07140000" → "771,0714". No aritmética: sólo recorta ceros decimales. */
 export function formatFxRate(rate: string): string {
   const [wholeRaw, fracRaw = ""] = rate.split(".");

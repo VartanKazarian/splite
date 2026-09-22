@@ -454,8 +454,10 @@ export function GuestBillScreen({
     }
     return (
       <Shell {...(onBack ? { onBack } : {})}>
-        <h1 className="text-3xl">{t("errorTitle")}</h1>
-        <GuestError error={billQuery.error} />
+        <h1 className="text-3xl">
+          {billQuery.error instanceof ApiError ? t("errorTitle") : t("errorOfflineTitle")}
+        </h1>
+        <GuestError error={billQuery.error} onRetry={() => void billQuery.refetch()} />
       </Shell>
     );
   }
@@ -474,8 +476,15 @@ export function GuestBillScreen({
     return (
       <Shell {...(onBack ? { onBack } : {})}>
         <h1 className="text-3xl">{justPaid ? t("paidThanks") : t("noOpenBill")}</h1>
+        {/* Qué pasa ahora, no cuál es la regla.
+            Debajo de «Sin cuenta abierta» ponía «Una sola cuenta abierta por
+            mesa», que es cierto y no le sirve de nada a quien acaba de escanear
+            y no ve su cuenta: enuncia una restricción del sistema en vez de
+            decir quién abre la cuenta y qué puede hacer mientras. Esa frase
+            sigue donde sí ayuda -- en el panel, cuando alguien del local
+            intenta abrir una segunda. */}
         <p className="mt-3 text-sm text-muted-foreground">
-          {justPaid ? t("paidThanksBody") : t("oneOpenBill")}
+          {justPaid ? t("paidThanksBody") : t("noOpenBillBody")}
         </p>
         {/*
           Aquí cae justamente quien acaba de que le confirmen el pago: confirmar

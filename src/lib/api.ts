@@ -1,5 +1,14 @@
 /**
- * Cliente HTTP de Splite — sigue docs/FRONTEND_BRIEF.md al pie de la letra.
+ * Cliente HTTP de Splite.
+ *
+ * Las convenciones que sigue -- dinero en unidades menores y en cadena, nunca
+ * aritmética aquí, todo importe calculado por el servidor -- están escritas en
+ * `docs/FRONTEND_BRIEF.md` **del backend**, que es donde se mantienen junto al
+ * código que las cumple. Aquí había una copia de ese documento y del contrato
+ * `openapi.json`: las dos se quedaron atrás -- el contrato con 56 de las 98
+ * rutas, el brief diciendo que un comensal todavía no puede pagar -- y no las
+ * leía nadie, porque los tipos de este fichero están escritos a mano. Una copia
+ * desactualizada que afirma estar verificada es peor que no tenerla.
  *
  * Reglas del contrato:
  *  - El dinero viaja como string de dígitos en unidades menores. Nunca se hace

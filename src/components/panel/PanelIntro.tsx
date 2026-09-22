@@ -11,19 +11,18 @@ import { NameNudge } from "./NameNudge";
  * en la barra de navegación justo encima: dos centímetros de pantalla para
  * repetir dónde estás. Aquí va lo que sí cambia entre un turno y otro.
  *
- * **El nombre.** Si la persona lo ha puesto en Configuración, ese. Si no, la
- * parte del correo anterior a la arroba, que es lo que había antes de que
- * existiera el campo: dato real, aunque tosco -- "gerencia@casa72.com" saluda a
- * "Gerencia". Nadie está obligado a rellenarlo, así que el respaldo se queda.
+ * **El nombre, o ninguno.** Si la persona lo ha puesto en Configuración, ese.
+ * Si no, nada: «Buenas noches» a secas.
+ *
+ * Antes se sacaba de la parte del correo anterior a la arroba, y el resultado
+ * era una persona inventada. `vacia@example.com` saludaba a «Vacia» y
+ * `gerencia@casa72.com` a «Gerencia»: no son nombres de nadie, son cadenas que
+ * se parecen a uno lo justo para que parezca que el sistema cree saber quién
+ * eres y se ha equivocado. Un saludo sin nombre no se equivoca en nada, y
+ * justo debajo hay una fila que pregunta cómo te llamas.
  */
 function greetingName(user: { email: string; displayName?: string | null } | undefined): string {
-  const chosen = user?.displayName?.trim();
-  if (chosen) return chosen;
-
-  const local = (user?.email ?? "").split("@")[0] ?? "";
-  if (!local) return "";
-  const cleaned = local.replace(/[._-]+/g, " ").trim();
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  return user?.displayName?.trim() ?? "";
 }
 
 /**
@@ -70,7 +69,7 @@ export function PanelIntro({ live }: { live: boolean }) {
             {t("greetSub").replace("{name}", restaurant)}
           </p>
         )}
-        {asksName && <NameNudge email={me.data!.user.email} />}
+        {asksName && <NameNudge />}
       </div>
 
       <p

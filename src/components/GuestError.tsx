@@ -39,17 +39,45 @@ const GUEST_MESSAGES: Record<string, string> = {
   OPEN_BILL_NOT_FOUND: "guestErrBillClosed",
 };
 
-export function GuestError({ error }: { error: unknown }) {
+export function GuestError({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { t } = useI18n();
   const code = error instanceof ApiError ? error.code : null;
   const key = code ? GUEST_MESSAGES[code] : undefined;
 
+  /*
+   * No llegar al servidor no es lo mismo que que el servidor diga que no.
+   *
+   * `ApiError` sólo existe cuando hubo respuesta. Sin ella -- el móvil perdió
+   * la línea, el wifi del local se cayó, la API está reiniciándose -- lo que
+   * pasa es otra cosa y se arregla de otra forma, y decir «no hemos podido
+   * completar eso» manda a alguien a buscar un fallo que no está de su lado.
+   * En un restaurante esto es lo más frecuente de los dos.
+   */
+  const offline = !(error instanceof ApiError);
+
   return (
     <div className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3">
-      <p className="text-sm">{key ? t(key as never) : t("guestErrGeneric")}</p>
+      <p className="text-sm">
+        {key ? t(key as never) : offline ? t("guestErrOffline") : t("guestErrGeneric")}
+      </p>
       {/* Qué hacer ahora. Un aviso que sólo dice que algo falló deja a alguien
           mirando el teléfono en vez de levantar la mano. */}
       <p className="mt-1 text-xs text-muted-foreground">{t("guestErrAskStaff")}</p>
+
+      {/* Y poder hacerlo desde aquí.
+          Sin este botón, «vuelve a intentarlo» era un consejo sin ningún sitio
+          donde seguirse: el código del QR se borra de la barra de direcciones
+          nada más leerlo, así que recargar tampoco es evidente, y quien tiene
+          la cuenta delante se queda mirando un aviso rojo. */}
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-3 min-h-11 w-full rounded-full border border-border bg-background px-4 text-sm transition-colors hover:bg-secondary"
+        >
+          {t("guestRetry")}
+        </button>
+      )}
     </div>
   );
 }

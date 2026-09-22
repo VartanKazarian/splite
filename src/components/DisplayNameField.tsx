@@ -66,7 +66,10 @@ export function DisplayNameField() {
           value={value}
           maxLength={80}
           autoComplete="name"
-          placeholder={me.data?.user.email ?? ""}
+          // El correo de marcador se lee como un valor ya puesto, no como una
+          // pregunta -- y desde que el saludo dejó de inventarse un nombre a
+          // partir de él, además insinúa un respaldo que ya no existe.
+          placeholder={t("displayName")}
           onChange={(e) => {
             setTouched(true);
             setValue(e.target.value);

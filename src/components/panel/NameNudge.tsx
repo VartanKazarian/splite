@@ -10,11 +10,10 @@ import { ApiError, auth } from "@/lib/api";
  *
  * El campo existe desde la migración 035 y está en Configuración → Tu cuenta,
  * y por eso no lo rellena nadie: nada lo pide, y quien no ha entrado ahí no
- * sabe que existe. Mientras esté vacío, el panel saluda a "Gerencia" (la parte
- * del correo antes de la arroba), el desplegable de "Atendida por" enseña
- * `gerencia@casa72.com` entero en un teléfono, y el reparto de propinas agrupa
- * por direcciones de correo -- que es la lista que alguien reparte en mano al
- * final del turno.
+ * sabe que existe. Mientras esté vacío, el panel saluda sin nombre, el
+ * desplegable de "Atendida por" enseña `gerencia@casa72.com` entero en un
+ * teléfono, y el reparto de propinas agrupa por direcciones de correo -- que es
+ * la lista que alguien reparte en mano al final del turno.
  *
  * Va pegado al saludo y no en una tarjeta aparte porque ahí es donde se está
  * viendo el nombre equivocado. Una fila y una línea de explicación; en cuanto
@@ -38,7 +37,7 @@ function dismissed(): boolean {
   }
 }
 
-export function NameNudge({ email }: { email: string }) {
+export function NameNudge() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
@@ -67,13 +66,21 @@ export function NameNudge({ email }: { email: string }) {
 
   return (
     <div className="mt-3 max-w-lg">
-      <div className="flex flex-wrap items-center gap-2">
+      {/* La etiqueta, escrita y no sólo dicha.
+          Era un `aria-label` y un campo con el correo de marcador, así que a la
+          vista era una caja con «gerencia@casa72.com» dentro: se lee como un
+          valor ya puesto, no como una pregunta. El lector de pantalla oía la
+          etiqueta y quien mira no. */}
+      <label htmlFor="name-nudge" className="block text-xs text-muted-foreground">
+        {t("nameNudgeLabel")}
+      </label>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
         <input
+          id="name-nudge"
           value={value}
           maxLength={80}
           autoComplete="name"
-          placeholder={email}
-          aria-label={t("displayName")}
+          placeholder={t("displayName")}
           onChange={(e) => setValue(e.target.value)}
           className="min-h-11 min-w-0 flex-1 rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
         />

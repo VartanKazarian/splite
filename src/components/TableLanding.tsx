@@ -205,10 +205,14 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
         </Shell>
       );
     }
+    // El título también distingue. «Algo falló» encima de «no hemos podido
+    // conectar» son dos frases para lo mismo y la primera es la que menos dice.
     return (
       <Shell>
-        <h1 className="text-3xl">{t("errorTitle")}</h1>
-        <GuestError error={contextQuery.error} />
+        <h1 className="text-3xl">
+          {contextQuery.error instanceof ApiError ? t("errorTitle") : t("errorOfflineTitle")}
+        </h1>
+        <GuestError error={contextQuery.error} onRetry={() => void contextQuery.refetch()} />
       </Shell>
     );
   }
@@ -259,14 +263,15 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
   }
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-md px-5 pb-16">
-      {/* Sin enlace de salida: quien está sentado en la mesa no tiene nada que
-          hacer en la página comercial de Splite, y era el único sitio al que
-          llevaba esta cabecera. */}
-      <header className="flex items-center justify-between py-5">
-        <span className="text-sm text-muted-foreground">{t("brand")}</span>
-      </header>
-
+    <div className="mx-auto min-h-screen w-full max-w-md px-5 pb-16 pt-4">
+      {/* Aquí no va nuestro nombre.
+          Había una cabecera que ponía «Splite» y lo único que hacía era
+          aparecer encima del nombre del restaurante: quien acaba de escanear el
+          código de una mesa está en un local concreto, y lo primero que debe
+          leer es dónde está sentado, no con qué se lo estamos enseñando.
+          Ya no lleva a ningún sitio tampoco -- el enlace a la página comercial
+          se quitó antes, por lo mismo --, así que era una línea que ocupaba el
+          sitio de la portada del local. */}
       <RestaurantHero
         branding={context.restaurant}
         name={context.restaurant.name}
@@ -296,7 +301,7 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
           />
         </div>
 
-        {openError ? <GuestError error={openError} /> : null}
+        {openError ? <GuestError error={openError} onRetry={() => void openBill()} /> : null}
       </div>
     </div>
   );

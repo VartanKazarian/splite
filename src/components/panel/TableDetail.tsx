@@ -21,6 +21,7 @@ import {
   type SettleReason,
   type TillPaymentMethod,
 } from "@/lib/api";
+import { paidPercent } from "@/components/panel/tableStatus";
 import { AddProductsSheet } from "@/components/panel/AddProductsSheet";
 import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
@@ -109,6 +110,7 @@ export function TableDetail({
       return 0n;
     }
   })();
+  const paidPct = paidPercent(bill?.amountPaidVes, bill?.totalDueVes);
 
   // Anular no es cerrar: el servidor lo rechaza en cuanto ha entrado dinero
   // ("reversing it is a refund, not a status change") y sólo lo admite de un
@@ -650,6 +652,34 @@ export function TableDetail({
               <span className="money-xl">{formatMoney(bill.remainingVes, "VES")}</span>
             </div>
           </div>
+
+          {/* Cuánto se lleva cobrado, en una barra.
+              La fila de la lista de mesas ya la tenía y esta hoja no, que es al
+              revés de lo que hace falta: la lista es de dónde mirar, y aquí es
+              donde alguien decide si cobra, si espera o si cierra. Estaban los
+              tres importes y una frase, y de tres números en columna no sale
+              «va por la mitad» de un vistazo.
+
+              La barra es presentación: la proporción exacta está escrita
+              encima, en palabras y con su símbolo. Por eso lleva su etiqueta
+              dicha para un lector de pantalla y no depende del color. */}
+          {paidPct > 0 && (
+            <div
+              role="progressbar"
+              aria-valuenow={paidPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={t("paidProgress")
+                .replace("{paid}", formatMoney(bill.amountPaidVes, "VES"))
+                .replace("{total}", formatMoney(bill.totalDueVes, "VES"))}
+              className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-border"
+            >
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+                style={{ width: `${paidPct}%` }}
+              />
+            </div>
+          )}
 
           {/* En qué punto está el cobro, debajo del importe.
               Cuatro estados y sólo uno pide algo: los avisos por verificar. */}

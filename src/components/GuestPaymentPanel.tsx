@@ -250,6 +250,30 @@ export function GuestPaymentPanel({
     staleTime: 60 * 60 * 1000,
     retry: false,
   });
+  /*
+   * Si C2P puede funcionar aquí.
+   *
+   * La pestaña se ofrecía siempre, y en un restaurante sin el raíl configurado
+   * no lleva a ninguna parte: el comensal rellena el formulario, se va a su
+   * banco a por una clave de un solo uso y el cargo se rechaza al final. Es el
+   * peor sitio posible donde enterarse.
+   *
+   * Lo dice el servidor, que es el único que lo sabe. El primer intento fue
+   * deducirlo aquí, cruzando el banco de cobro con `chargeable` de la lista de
+   * bancos, y era falso: esa bandera dice qué módulo de integración está mapeado
+   * a un código de banco, hoy **ninguno**, así que habría escondido la pestaña
+   * en todos los restaurantes, incluidos los que sí pueden cobrar.
+   *
+   * Sin el campo -- una API vieja -- se ofrece, que es como estaba.
+   */
+  const c2pPossible = bill.c2pAvailable !== false;
+
+  // Si estaba abierta y deja de poder estarlo, no se queda seleccionada una
+  // pestaña que ya no se dibuja.
+  useEffect(() => {
+    if (!c2pPossible && tab === "c2p") setTab("payee");
+  }, [c2pPossible, tab]);
+
   const [claim, setClaim] = useState<PaymentClaim | null>(null);
   const [error, setError] = useState<ClaimError | null>(null);
   const [cooldown, setCooldown] = useState(0);
@@ -363,18 +387,16 @@ export function GuestPaymentPanel({
 
   return (
     <div className="surface mt-4 p-6">
-      <div className="grid grid-cols-3 gap-2">
-        {(
-          [
-            // "Pagar con C2P" era la única de las tres que se partía en dos
-            // líneas, así que la fila salía más alta por el centro. C2P es el
-            // nombre del servicio del banco, igual que "Pago móvil": no hace
-            // falta el verbo delante.
-            { id: "payee", label: t("payTabMobile") },
-            { id: "c2p", label: t("payTabC2P") },
-            { id: "claim", label: t("payTabPaid") },
-          ] as const
-        ).map((x) => (
+      {/* "Pagar con C2P" era la única de las tres que se partía en dos líneas,
+          así que la fila salía más alta por el centro. C2P es el nombre del
+          servicio del banco, igual que "Pago móvil": no hace falta el verbo
+          delante. */}
+      <div className={`grid gap-2 ${c2pPossible ? "grid-cols-3" : "grid-cols-2"}`}>
+        {[
+          { id: "payee" as const, label: t("payTabMobile") },
+          ...(c2pPossible ? [{ id: "c2p" as const, label: t("payTabC2P") }] : []),
+          { id: "claim" as const, label: t("payTabPaid") },
+        ].map((x) => (
           <button
             key={x.id}
             type="button"

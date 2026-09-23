@@ -599,6 +599,7 @@ const dict = {
       "En cuanto el restaurante añada lo que has pedido, aparecerá aquí y podrás pagar o dividir.",
     billEmptyMenu: "Mientras tanto, mira la carta",
     splitTheBill: "Dividir la cuenta",
+    splitTheBillHint: "Sólo lo tuyo",
     /* El pago en tres actos. Ver `GuestBillScreen`. */
     payMyShare: "Pagar mi parte",
     payTheBill: "Pagar la cuenta",
@@ -1582,6 +1583,7 @@ const dict = {
       "As soon as the restaurant adds what you ordered, it will show up here and you can pay or split it.",
     billEmptyMenu: "In the meantime, have a look at the menu",
     splitTheBill: "Split the bill",
+    splitTheBillHint: "Only your part",
     payMyShare: "Pay my share",
     payTheBill: "Pay the bill",
     chooseHowToSplit: "Choose how to split the bill",

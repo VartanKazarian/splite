@@ -1073,10 +1073,21 @@ export function GuestBillScreen({
         <div className="sticky bottom-0 z-10 -mx-5 mt-4 bg-gradient-to-t from-background from-65% to-transparent px-5 pb-4 pt-6">
           {/* Dividir y pagar, lado a lado y con el mismo peso: son las dos
               cosas que se puede querer hacer aquí, y antes una era un botón
-              lleno y la otra un enlace dentro de la tarjeta. El importe se
-              apila bajo su etiqueta porque a media pantalla no cabe en la
-              misma línea, y quitarlo no era opción: es lo que convierte el
-              botón en una confirmación. */}
+              lleno y la otra un enlace dentro de la tarjeta.
+
+              Ninguno de los dos va en verde. El verde es el color de nuestra
+              llamada a la acción, y aquí no hay una: hay una bifurcación que
+              decide el comensal. Pintar de verde «Pagar la cuenta» era empujar
+              hacia el lado que le cuesta la cuenta entera; vuelve en el paso
+              siguiente, cuando ya ha elegido y sólo queda confirmar.
+
+              Sin color, la visibilidad la da el trazo: 1,5 px a
+              `--border-strong`, que contrasta 3,2:1 contra la crema del fondo
+              -- el listón de 3:1 que piden las WCAG para el contorno de un
+              control -- frente al 1,23:1 del borde normal, que sobre este
+              fondo no se veía. La segunda línea, apilada porque a media
+              pantalla no cabe al lado, es lo que distingue una de otra: el
+              importe de la cuenta entera, o sólo lo tuyo. */}
           {step === 1 && !splitOpen && (
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -1092,18 +1103,21 @@ export function GuestBillScreen({
                   // de quien pide menos movimiento.
                   requestAnimationFrame(() => scrollFrameTo(splitPanelRef.current));
                 }}
-                className="flex min-h-14 items-center justify-center rounded-full border border-border bg-background px-4 text-center text-[15px] font-medium transition-colors hover:bg-secondary"
+                className="flex min-h-16 flex-col items-center justify-center rounded-full border-[1.5px] border-border-strong bg-card px-4 text-center transition-colors hover:bg-secondary active:bg-secondary"
               >
-                {t("splitTheBill")}
+                <span className="text-[15px] font-medium leading-tight">{t("splitTheBill")}</span>
+                <span className="text-[12px] leading-tight text-muted-foreground">
+                  {t("splitTheBillHint")}
+                </span>
               </button>
               <button
                 type="button"
                 data-testid="guest-pay-full"
                 onClick={() => setStep(2)}
-                className="flex min-h-14 flex-col items-center justify-center rounded-full bg-primary px-4 text-primary-foreground shadow-[0_12px_26px_-14px] shadow-primary transition-opacity hover:opacity-95"
+                className="flex min-h-16 flex-col items-center justify-center rounded-full border-[1.5px] border-border-strong bg-card px-4 text-center transition-colors hover:bg-secondary active:bg-secondary"
               >
                 <span className="text-[15px] font-medium leading-tight">{t("payTheBill")}</span>
-                <span className="money-sm leading-tight opacity-90">
+                <span className="money-sm leading-tight text-muted-foreground">
                   {formatMoney(dockTotal.toString(), "VES")}
                 </span>
               </button>

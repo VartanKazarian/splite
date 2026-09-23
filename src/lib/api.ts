@@ -430,6 +430,65 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
   }
 }
 
+/**
+ * Un fichero del servidor, con la sesión del personal, para guardarlo.
+ *
+ * `apiRequest` lee siempre JSON, y un PDF no lo es. Esto hace la misma
+ * petición autenticada -- con la misma renovación de sesión si el token caducó
+ * -- y devuelve el binario con el nombre que propone el servidor.
+ */
+export async function staffDownload(
+  path: string,
+): Promise<{ blob: Blob; filename: string | null }> {
+  const attempt = async () => {
+    const s = staffSession.get();
+    return fetch(`${API_BASE_URL}${path}`, {
+      headers: s ? { Authorization: `Bearer ${s.accessToken}` } : {},
+    });
+  };
+
+  let response = await attempt();
+  if (response.status === 401) {
+    try {
+      await refreshOnce();
+    } catch {
+      staffSession.set(null);
+    }
+    response = await attempt();
+  }
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: ApiErrorBody } | null;
+    throw new ApiError(
+      response.status,
+      payload?.error ?? {
+        code: "UNKNOWN_ERROR",
+        message: `Request failed with status ${response.status}`,
+        details: {},
+        requestId: "",
+      },
+    );
+  }
+
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const match = /filename="([^"]+)"/.exec(disposition);
+  return { blob: await response.blob(), filename: match?.[1] ?? null };
+}
+
+/** Entrega un binario al navegador como descarga. */
+export function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // Un momento antes de soltarla: algunos navegadores empiezan la descarga
+  // después de que `click()` vuelve.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /* ---------------------------------------------------------------- staff */
 
 /**
@@ -1337,8 +1396,6 @@ export type Account = {
   fiscalInvoicePolicy?: "PER_DINER" | "SINGLE_BILL";
   /** El domicilio que encabeza el recibo. Nulo si no se ha registrado. */
   fiscalAddress?: string | null;
-  /** Adónde responden los clientes a su factura (Reply-To). */
-  contactEmail?: string | null;
   createdAt?: string;
 };
 
@@ -2052,7 +2109,7 @@ export const account = {
    * es como se renombra un restaurante sin querer al corregir su dirección.
    * `fiscalAddress: ""` **borra** la dirección; omitirlo la deja como estaba.
    */
-  updateProfile: (body: { name?: string; fiscalAddress?: string; contactEmail?: string }) =>
+  updateProfile: (body: { name?: string; fiscalAddress?: string }) =>
     apiRequest<Account>("/api/v1/account", { method: "PATCH", auth: "staff", body }),
   /**
    * La serie autorizada. `null` significa «todavía no la ha configurado», que
@@ -2240,6 +2297,9 @@ export const fiscalInvoices = {
 
   get: (id: string) =>
     apiRequest<FiscalInvoice>(`/api/v1/fiscal/invoices/${id}`, { auth: "staff" }),
+
+  /** La factura en PDF: el mismo documento que recibe el cliente por correo. */
+  pdf: (id: string) => staffDownload(`/api/v1/fiscal/invoices/${id}/pdf`),
 
   /** La cola. `status=UNCERTAIN` es la consulta que importa. */
   requests: (params: { status?: FiscalRequestRow["status"]; limit?: number } = {}) =>

@@ -182,6 +182,8 @@ const dict = {
     fiscalIssuedTitle: "Facturas emitidas",
     fiscalIssuedEmpty: "Todavía no se ha emitido ninguna.",
     fiscalInvoiceTitle: "Factura emitida",
+    fiscalDownloadPdf: "Descargar PDF",
+    fiscalPdfFailed: "No se pudo descargar la factura. Vuelve a intentarlo.",
     fiscalControlNumber: "Nº de control",
     fiscalDocumentNumber: "Nº de factura",
     fiscalIssuedAt: "Emitida",
@@ -629,15 +631,10 @@ const dict = {
     restaurantNameHint:
       "Es lo primero que lee un comensal al escanear el código de la mesa, encima del número de mesa.",
     restaurantAddress: "Domicilio del local",
-    restaurantContactEmail: "Correo para respuestas de clientes",
-    restaurantContactEmailHint:
-      "Si un cliente responde al correo de su factura, le llega aquí. Vacío: la factura dice que esa dirección no recibe respuestas.",
-    restaurantContactEmailBad: "Ese correo no parece válido.",
     restaurantAddressPlaceholder: "Av. Francisco de Miranda, Chacao, Caracas",
     restaurantAddressHint:
       "Encabeza el recibo del comensal. Si lo dejas vacío, el recibo no enseña ninguna dirección.",
     restaurantNamePreview: "En la mesa se leerá: {name}",
-    restaurantNameSaved: "Nombre guardado",
     fiscalSeries: "Serie fiscal autorizada",
     fiscalSeriesHint:
       "Cópiala tal cual de tu autorización del SENIAT. Con ella se numeran las facturas que emite el local, y Splite no comprueba que coincida con el papel: eso es tuyo.",
@@ -1186,6 +1183,8 @@ const dict = {
     fiscalIssuedTitle: "Issued invoices",
     fiscalIssuedEmpty: "None issued yet.",
     fiscalInvoiceTitle: "Issued invoice",
+    fiscalDownloadPdf: "Download PDF",
+    fiscalPdfFailed: "The invoice could not be downloaded. Try again.",
     fiscalControlNumber: "Control number",
     fiscalDocumentNumber: "Invoice number",
     fiscalIssuedAt: "Issued",
@@ -1629,15 +1628,10 @@ const dict = {
     restaurantNameHint:
       "The first thing a diner reads after scanning the table code, above the table number.",
     restaurantAddress: "Premises address",
-    restaurantContactEmail: "Email for customer replies",
-    restaurantContactEmailHint:
-      "If a customer replies to their invoice email, it reaches you here. Empty: the invoice says that address does not take replies.",
-    restaurantContactEmailBad: "That email does not look valid.",
     restaurantAddressPlaceholder: "Av. Francisco de Miranda, Chacao, Caracas",
     restaurantAddressHint:
       "Heads the diner's receipt. Leave it empty and the receipt shows no address at all.",
     restaurantNamePreview: "The table will read: {name}",
-    restaurantNameSaved: "Name saved",
     fiscalSeries: "Authorised invoice series",
     fiscalSeriesHint:
       "Copy it exactly from your SENIAT authorisation. It is what numbers the invoices this restaurant issues, and Splite does not check it against the paper: that part is yours.",

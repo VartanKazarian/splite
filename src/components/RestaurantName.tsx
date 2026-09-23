@@ -21,7 +21,6 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
 
   const accountQuery = useQuery({
     queryKey: ["account"],
@@ -35,12 +34,10 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
     if (!accountQuery.data) return;
     setName(accountQuery.data.name ?? "");
     setAddress(accountQuery.data.fiscalAddress ?? "");
-    setContactEmail(accountQuery.data.contactEmail ?? "");
   }, [accountQuery.data]);
 
   const savedName = accountQuery.data?.name ?? "";
   const savedAddress = accountQuery.data?.fiscalAddress ?? "";
-  const savedContact = accountQuery.data?.contactEmail ?? "";
 
   const save = useMutation({
     // Sólo lo que cambió. Mandar los dos campos siempre es como se renombra un
@@ -49,15 +46,12 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
       account.updateProfile({
         ...(name.trim() !== savedName ? { name: name.trim() } : {}),
         ...(address.trim() !== savedAddress ? { fiscalAddress: address.trim() } : {}),
-        ...(contactEmail.trim().toLowerCase() !== savedContact
-          ? { contactEmail: contactEmail.trim().toLowerCase() }
-          : {}),
       }),
     onSuccess: (data: Account) => {
       queryClient.setQueryData(["account"], data);
       // «Cambios guardados» y no «Nombre guardado»: el formulario guarda
-      // también la dirección y el correo de respuestas, y decir «nombre» al
-      // cambiar sólo el correo hacía dudar de si se había guardado lo otro.
+      // también la dirección, y decir «nombre» al cambiar sólo la dirección
+      // hacía dudar de si se había guardado.
       toast.success(t("saved"));
     },
     onError: (error: unknown) => {
@@ -71,14 +65,7 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
   // nombre no es una pantalla que se pueda enseñar. La dirección sí: vaciarla
   // es la forma de quitar una mal escrita.
   const nameOk = trimmed.length > 0;
-  // Vacío vale (quita el Reply-To); escrito, tiene que parecer un correo. Se
-  // comprueba aquí para no gastar un viaje al servidor en un 400.
-  const contact = contactEmail.trim().toLowerCase();
-  const contactOk = contact === "" || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact);
-  const dirty =
-    nameOk &&
-    contactOk &&
-    (trimmed !== savedName || address.trim() !== savedAddress || contact !== savedContact);
+  const dirty = nameOk && (trimmed !== savedName || address.trim() !== savedAddress);
 
   return (
     <section className="surface mt-6 p-6">
@@ -111,33 +98,6 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
           className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring disabled:opacity-50"
         />
         <p className="text-xs text-muted-foreground">{t("restaurantAddressHint")}</p>
-        {/*
-          Adónde responden los clientes a su factura. La factura sale de una
-          dirección que no recibe respuestas; esto va como Reply-To para que
-          «responder» le llegue al local. Un campo propio y no el correo del
-          dueño: ése es su usuario de acceso.
-        */}
-        {/* Con rótulo visible: una vez relleno, un correo suelto no dice para
-            qué sirve, y el marcador de posición desaparece al escribir. */}
-        <label htmlFor="contact-email" className="mt-2 text-sm font-medium">
-          {t("restaurantContactEmail")}
-        </label>
-        <input
-          id="contact-email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          value={contactEmail}
-          maxLength={255}
-          disabled={!canEdit || accountQuery.isLoading}
-          onChange={(e) => setContactEmail(e.target.value)}
-          placeholder="facturas@turestaurante.com"
-          aria-invalid={!contactOk}
-          className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring disabled:opacity-50 aria-[invalid=true]:border-destructive"
-        />
-        <p className={`text-xs ${contactOk ? "text-muted-foreground" : "text-destructive"}`}>
-          {contactOk ? t("restaurantContactEmailHint") : t("restaurantContactEmailBad")}
-        </p>
         <button
           disabled={!canEdit || !dirty || save.isPending}
           onClick={() => save.mutate()}

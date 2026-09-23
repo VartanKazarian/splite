@@ -95,10 +95,15 @@ export function GuestSplitModeSelector({ selected, onSelect }: Props) {
             data-testid={`guest-split-mode-${option.id}`}
             aria-pressed={isSelected}
             onClick={() => onSelect(option.id)}
-            className={`flex min-h-[56px] w-full items-center gap-3.5 rounded-2xl border px-4 py-3 text-left transition-colors ${
+            /* El trazo, a `--border-strong` como la pareja de la barra: son
+               cuatro opciones entre iguales y el borde es lo único que las
+               dibuja. Con el borde normal contrastaban 1,23:1 contra la crema
+               -- por debajo del 3:1 que piden las WCAG para el contorno de un
+               control -- y sobre esta pantalla se leían como texto suelto. */
+            className={`flex min-h-[56px] w-full items-center gap-3.5 rounded-2xl border-[1.5px] px-4 py-3 text-left transition-colors ${
               isSelected
-                ? "border-primary bg-primary/[0.06] text-foreground"
-                : "border-border bg-card text-foreground hover:bg-secondary"
+                ? "border-primary bg-primary/10 text-foreground"
+                : "border-border-strong bg-card text-foreground hover:bg-secondary"
             }`}
           >
             <svg
@@ -109,7 +114,7 @@ export function GuestSplitModeSelector({ selected, onSelect }: Props) {
               strokeWidth={1.6}
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-[22px] w-[22px] shrink-0 text-primary"
+              className={`h-[22px] w-[22px] shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground"}`}
             >
               {ICONS[option.id]}
             </svg>

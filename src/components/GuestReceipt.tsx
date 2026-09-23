@@ -69,9 +69,7 @@ export function GuestReceipt() {
 
       {/* LA CUENTA DE LA MESA. Idéntica en el recibo de cada comensal. */}
       <div className="px-5 py-4">
-        <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
-          {t("receiptProducts")}
-        </p>
+        <p className="eyebrow">{t("receiptProducts")}</p>
 
         {bill.lines.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">{t("receiptNoLines")}</p>
@@ -125,8 +123,11 @@ export function GuestReceipt() {
         </dl>
 
         <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-border pt-3">
-          <p className="font-display text-lg">{t("receiptBillTotal")}</p>
-          <p className="font-display text-lg tabular-nums">{money(bill.totalMinor)}</p>
+          {/* Sans y en la escala del dinero. Iba en la serif, que es para los
+              nombres y no trae cifras tabulares: el total era el único importe
+              del recibo que no alineaba con los de encima. */}
+          <p className="text-[15px] font-semibold">{t("receiptBillTotal")}</p>
+          <p className="money-lg">{money(bill.totalMinor)}</p>
         </div>
         {currency !== "VES" ? (
           // Una carta en divisa se cobra igualmente en bolívares, a la tasa
@@ -143,9 +144,7 @@ export function GuestReceipt() {
         {/* Con rótulo, como «PRODUCTOS». Sin él los dos bloques se leen como una
             sola columna de cifras y se pierde lo único que este formato existe
             para decir: arriba la cuenta de la mesa, aquí lo que puso uno. */}
-        <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
-          {t("receiptYourPayment")}
-        </p>
+        <p className="eyebrow">{t("receiptYourPayment")}</p>
         <dl className="mt-3 space-y-1.5 text-sm">
           <Row label={t("receiptYouPaid")} value={formatMoney(payment.amountVes, "VES")} strong />
           {payment.tipVes !== "0" ? (
@@ -170,9 +169,7 @@ export function GuestReceipt() {
         no sirve para desgravar. Decirlo aquí es más barato que descubrirlo
         delante del SENIAT.
       */}
-      <p className="border-t border-border px-5 py-3 text-[11px] leading-relaxed text-muted-foreground">
-        {t("receiptNotFiscal")}
-      </p>
+      <p className="hint border-t border-border px-5 py-3">{t("receiptNotFiscal")}</p>
     </section>
   );
 }

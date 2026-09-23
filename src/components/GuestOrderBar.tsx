@@ -112,7 +112,7 @@ export function GuestOrderBar({
     <FixedBottomBar>
       <div className="mx-auto w-full max-w-md px-5 pb-5 pt-3">
         {send.isError && (
-          <p className="mb-2 text-[11px] text-destructive">
+          <p className="mb-2 text-xs text-destructive">
             {send.error instanceof ApiError && send.error.code === "PRODUCT_INACTIVE"
               ? t("guestOrderGone")
               : t("guestOrderFailed")}
@@ -128,7 +128,7 @@ export function GuestOrderBar({
           type="button"
           disabled={send.isPending}
           onClick={() => send.mutate()}
-          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-base font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="btn-primary w-full"
         >
           <Send aria-hidden className="h-4 w-4" />
           {send.isPending ? t("loading") : t("guestSendOrder")}
@@ -149,24 +149,16 @@ export function GuestOrderSent({ onMenu, onBill }: { onMenu: () => void; onBill:
   const { t } = useI18n();
   return (
     <div className="rounded-xl border border-primary/50 bg-primary/10 p-4">
-      <p className="flex items-center gap-2 font-display text-2xl">
+      <p className="flex items-center gap-2 text-xl font-semibold tracking-tight">
         <Check aria-hidden className="h-5 w-5 text-primary" />
         {t("guestOrderSent")}
       </p>
       <p className="mt-1 text-sm text-muted-foreground">{t("guestOrderSentBody")}</p>
       <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onMenu}
-          className="inline-flex min-h-11 items-center rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary"
-        >
+        <button type="button" onClick={onMenu} className="btn-choice min-h-11 px-4 text-sm">
           {t("guestOrderMore")}
         </button>
-        <button
-          type="button"
-          onClick={onBill}
-          className="inline-flex min-h-11 items-center rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary"
-        >
+        <button type="button" onClick={onBill} className="btn-choice min-h-11 px-4 text-sm">
           {t("yourBill")}
         </button>
       </div>

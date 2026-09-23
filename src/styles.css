@@ -45,6 +45,7 @@
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
@@ -93,6 +94,7 @@
   --success: oklch(0.53 0.105 162);
   --success-foreground: oklch(0.99 0.005 85);
   --border: oklch(0.915 0.008 80);
+  --border-strong: oklch(0.64 0.014 70);
   --input: oklch(0.915 0.008 80);
   --ring: oklch(0.53 0.105 162);
   --chart-1: oklch(0.53 0.105 162);
@@ -177,7 +179,6 @@
     letter-spacing: normal;
   }
 }
-
 
 /*
  * Un número. Cualquier número que alguien pueda comparar con otro: dinero,
@@ -264,10 +265,120 @@
   border-radius: var(--radius-xl);
 }
 
+/*
+ * Los botones del recorrido del comensal, en tres voces y ni una más.
+ *
+ *   btn-primary  verde lleno. La única acción que lleva hacia delante en la
+ *                pantalla, cuando ya no queda nada que elegir: «Continuar ·
+ *                importe», «Confirmar que pagué». Una por pantalla.
+ *   btn-choice   blanco con trazo. Una opción entre iguales o una acción
+ *                secundaria: dividir o pagar entera, acordar el reparto,
+ *                guardar el nombre, reintentar.
+ *   (texto)      volver. Sin caja: un botón con borde para ir hacia atrás
+ *                pesaba lo mismo que los que llevan hacia delante.
+ *
+ * El verde translúcido con borde verde no es un botón: es «esto es lo
+ * elegido» -- la forma de repartir, la propina, la pestaña, tu parte -- y se
+ * escribe en cada control porque va y viene con su estado.
+ *
+ * Cada pantalla dibujaba sus botones con su propia cadena de clases, y dos
+ * de ellos -- «Confirmar división» y «Confirmar que pagué» -- llevaban el
+ * verde translúcido de lo elegido: parecían una opción marcada, no algo que
+ * pulsar.
+ *
+ * El trazo es `--border-strong` y no `--border`: el normal contrasta 1,23:1
+ * contra la crema del fondo, y un control que sólo se dibuja con su borde
+ * necesita 3:1 (WCAG 1.4.11). Éste da 3,2.
+ */
+@utility btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding-inline: 1.5rem;
+  border-radius: 9999px;
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  box-shadow: 0 12px 26px -14px var(--color-primary);
+  transition: opacity 150ms;
+  &:hover {
+    opacity: 0.95;
+  }
+  &:disabled {
+    opacity: 0.4;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+}
+
+@utility btn-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding-inline: 1.25rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--color-border-strong);
+  background-color: var(--color-card);
+  color: var(--color-foreground);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: background-color 150ms;
+  &:hover,
+  &:active {
+    background-color: var(--color-secondary);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+/*
+ * El texto del comensal: tres voces además de los títulos y el dinero.
+ *
+ *   eyebrow     11, mayúsculas, espaciado. El rótulo corto de una sección o
+ *               de una fila de datos: «TOTAL A PAGAR», «BANCO». Nunca una
+ *               frase -- en mayúsculas espaciadas una frase larga se lee letra
+ *               a letra, y «TELÉFONO DESDE EL QUE PAGASTE (OPCIONAL)» ocupaba
+ *               el ancho entero.
+ *   field-label 14, medio, en minúscula. Lo que pregunta un campo o un
+ *               control. Antes era un eyebrow de 12, y un formulario entero de
+ *               rótulos en mayúsculas grises no dejaba ver qué se pedía.
+ *   hint        12, gris. La frase de ayuda debajo. Iba a 11 px -- en el
+ *               recorrido del comensal había 39 `text-[11px]`, la mayoría
+ *               frases --, por debajo de lo que Material o Apple usan para
+ *               texto de lectura, y en una mesa con poca luz, con el teléfono
+ *               en la mano, no se leían.
+ */
+@utility eyebrow {
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-muted-foreground);
+}
+
+@utility field-label {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--color-foreground);
+}
+
+@utility hint {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+}
+
 @utility grain {
   position: relative;
 }
-
 
 /* Tema claro premium sólo para el sitio público de marketing. */
 .marketing {
@@ -286,6 +397,7 @@
   --accent: oklch(0.53 0.105 162);
   --accent-foreground: oklch(0.99 0.005 85);
   --border: oklch(0.915 0.008 80);
+  --border-strong: oklch(0.64 0.014 70);
   --input: oklch(0.915 0.008 80);
   --ring: oklch(0.53 0.105 162);
   background-color: var(--background);

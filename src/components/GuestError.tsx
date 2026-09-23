@@ -70,11 +70,7 @@ export function GuestError({ error, onRetry }: { error: unknown; onRetry?: () =>
           nada más leerlo, así que recargar tampoco es evidente, y quien tiene
           la cuenta delante se queda mirando un aviso rojo. */}
       {onRetry && (
-        <button
-          type="button"
-          onClick={onRetry}
-          className="mt-3 min-h-11 w-full rounded-full border border-border bg-background px-4 text-sm transition-colors hover:bg-secondary"
-        >
+        <button type="button" onClick={onRetry} className="btn-choice mt-3 w-full">
           {t("guestRetry")}
         </button>
       )}

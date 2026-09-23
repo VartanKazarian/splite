@@ -34,8 +34,8 @@ function Tick({ on }: { on: boolean }) {
   return (
     <span
       aria-hidden="true"
-      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] border transition-colors ${
-        on ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card"
+      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] border-[1.5px] transition-colors ${
+        on ? "border-primary bg-primary text-primary-foreground" : "border-border-strong bg-card"
       }`}
     >
       {on && (
@@ -60,15 +60,17 @@ export function GuestItemSelector({ items, mine, currency, onChange }: Props) {
 
   return (
     <div className="mt-5 space-y-2.5">
-      <p className="text-xs text-muted-foreground">{t("selectYourItems")}</p>
+      <p className="field-label">{t("selectYourItems")}</p>
 
       {items.map((item) => {
         const max = item.quantity ?? 1;
         const qty = mine[item.id] ?? 0;
         const on = qty > 0;
         const lineTotal = (BigInt(item.subtotalMinor) * BigInt(qty)) / BigInt(max || 1);
-        const frame = `rounded-2xl border transition-colors ${
-          on ? "border-primary bg-primary/[0.06]" : "border-border bg-card"
+        // El mismo trazo que las opciones de arriba: cada fila es algo que se
+        // toca. Marcada, el verde translúcido de lo elegido.
+        const frame = `rounded-2xl border-[1.5px] transition-colors ${
+          on ? "border-primary bg-primary/10" : "border-border-strong bg-card"
         }`;
 
         // Una sola unidad: la fila entera marca y desmarca, sin contador que
@@ -87,7 +89,7 @@ export function GuestItemSelector({ items, mine, currency, onChange }: Props) {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px]">{item.name}</span>
               </span>
-              <span className={`money-sm shrink-0 ${on ? "" : "text-muted-foreground"}`}>
+              <span className={`money-md shrink-0 ${on ? "" : "text-muted-foreground"}`}>
                 {formatMoney(item.subtotalMinor, currency)}
               </span>
             </button>
@@ -110,7 +112,7 @@ export function GuestItemSelector({ items, mine, currency, onChange }: Props) {
                   {formatMoney(item.unitPriceMinor, currency)} {t("perUnit")}
                 </span>
               </span>
-              <span className={`money-sm shrink-0 ${on ? "" : "text-muted-foreground"}`}>
+              <span className={`money-md shrink-0 ${on ? "" : "text-muted-foreground"}`}>
                 {formatMoney(lineTotal.toString(), currency)}
               </span>
             </button>
@@ -122,24 +124,22 @@ export function GuestItemSelector({ items, mine, currency, onChange }: Props) {
                 aria-label={`${t("removeOne")} ${item.name}`}
                 onClick={() => onChange(item.id, qty - 1, max)}
                 disabled={qty <= 0}
-                className="h-11 w-11 rounded-full border border-border bg-card text-lg leading-none disabled:opacity-30"
+                className="h-11 w-11 rounded-full border-[1.5px] border-border-strong bg-card text-lg leading-none transition-colors hover:bg-secondary disabled:opacity-30"
               >
                 −
               </button>
-              <span className="figure min-w-[1.5rem] text-center text-lg">{qty}</span>
+              <span className="figure min-w-8 text-center text-xl">{qty}</span>
               <button
                 type="button"
                 data-testid={`guest-item-plus-${item.id}`}
                 aria-label={`${t("addOne")} ${item.name}`}
                 onClick={() => onChange(item.id, qty + 1, max)}
                 disabled={qty >= max}
-                className="h-11 w-11 rounded-full border border-border bg-card text-lg leading-none disabled:opacity-30"
+                className="h-11 w-11 rounded-full border-[1.5px] border-border-strong bg-card text-lg leading-none transition-colors hover:bg-secondary disabled:opacity-30"
               >
                 +
               </button>
-              <span className="text-xs text-muted-foreground">
-                {t("ofAvailable").replace("{max}", String(max))}
-              </span>
+              <span className="hint">{t("ofAvailable").replace("{max}", String(max))}</span>
             </div>
           </div>
         );

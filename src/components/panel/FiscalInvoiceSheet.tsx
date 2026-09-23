@@ -1,6 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Download } from "lucide-react";
 
-import { fiscalInvoices, formatMoney, type FiscalInvoice } from "@/lib/api";
+import { fiscalInvoices, formatMoney, saveBlob, type FiscalInvoice } from "@/lib/api";
 import { useI18n, type Key } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/dates";
 import {
@@ -43,6 +45,18 @@ export function FiscalInvoiceSheet({
 
   const invoice = query.data;
 
+  /*
+   * La factura en PDF, para guardarla o imprimirla. Es el mismo documento que
+   * recibe el cliente por correo, generado en el servidor desde los mismos
+   * datos: aquí no se dibuja nada.
+   */
+  const download = useMutation({
+    mutationFn: () => fiscalInvoices.pdf(invoiceId as string),
+    onSuccess: ({ blob, filename }) =>
+      saveBlob(blob, filename ?? `factura-${invoice?.documentNumber ?? invoiceId}.pdf`),
+    onError: () => toast.error(t("fiscalPdfFailed")),
+  });
+
   return (
     <Sheet open={Boolean(invoiceId)} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
@@ -57,6 +71,17 @@ export function FiscalInvoiceSheet({
           <p className="mt-6 text-sm text-destructive">{t("apiDown")}</p>
         ) : (
           <div className="mt-6 space-y-6 text-sm">
+            <button
+              type="button"
+              data-testid="fiscal-invoice-pdf"
+              onClick={() => download.mutate()}
+              disabled={download.isPending}
+              className="btn-primary w-full"
+            >
+              <Download aria-hidden className="h-4 w-4" />
+              {download.isPending ? t("loading") : t("fiscalDownloadPdf")}
+            </button>
+
             <dl className="space-y-1.5">
               {/* El número de control lo asigna la imprenta autorizada. Se
                   enseña tal cual, sin reformatearlo. */}

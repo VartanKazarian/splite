@@ -111,6 +111,9 @@ export function GuestBillScreen({
   const { t } = useI18n();
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState<unknown>(null);
+  // Con el aviso enviado no queda paso al que volver: «Volver a la propina»
+  // debajo de «Aviso enviado» invitaba a cambiar una propina ya declarada.
+  const [claimSent, setClaimSent] = useState(false);
 
   // El QR trae un token firmado: se canjea una sola vez por sesión de invitado.
   useEffect(() => {
@@ -670,9 +673,7 @@ export function GuestBillScreen({
             billIsEmpty ? "hidden" : ""
           }`}
         >
-          <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
-            {partlyPaid ? t("outstanding") : t("totalPayable")}
-          </span>
+          <span className="eyebrow">{partlyPaid ? t("outstanding") : t("totalPayable")}</span>
           <span className="money-xl">
             {formatMoney(partlyPaid ? bill.remainingVes : bill.totalDueVes, "VES")}
           </span>
@@ -777,20 +778,18 @@ export function GuestBillScreen({
 
           {step === 1 && mode === "EQUAL" && (
             <div className="mt-5">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                {t("howManyDiners")}
-              </p>
+              <p className="field-label">{t("howManyDiners")}</p>
               <div className="mt-3 flex items-center gap-4">
                 <button
                   onClick={() => setDiners((n) => Math.max(2, n - 1))}
-                  className="h-10 w-10 rounded-full border border-border text-lg text-muted-foreground"
+                  className="h-11 w-11 rounded-full border-[1.5px] border-border-strong bg-card text-lg text-foreground transition-colors hover:bg-secondary"
                 >
                   −
                 </button>
-                <span className="figure text-3xl">{diners}</span>
+                <span className="figure min-w-8 text-center text-xl">{diners}</span>
                 <button
                   onClick={() => setDiners((n) => Math.min(50, n + 1))}
-                  className="h-10 w-10 rounded-full border border-border text-lg text-muted-foreground"
+                  className="h-11 w-11 rounded-full border-[1.5px] border-border-strong bg-card text-lg text-foreground transition-colors hover:bg-secondary"
                 >
                   +
                 </button>
@@ -809,22 +808,18 @@ export function GuestBillScreen({
 
           {step === 1 && mode === "CUSTOM" && (
             <div className="mt-5">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                {t("yourAmount")}
-              </p>
+              <p className="field-label">{t("yourAmount")}</p>
               <input
                 inputMode="decimal"
                 placeholder="0,00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="mt-3 w-full rounded-lg border border-input bg-secondary px-3 py-2.5 text-sm outline-none focus:border-ring"
+                className="mt-3 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base outline-none focus:border-ring"
               />
             </div>
           )}
 
-          {splitMutation.isPending && (
-            <p className="mt-5 text-xs text-muted-foreground">{t("calculating")}</p>
-          )}
+          {splitMutation.isPending && <p className="hint mt-5">{t("calculating")}</p>}
 
           {splitMutation.isError && <GuestError error={splitMutation.error} />}
 
@@ -832,8 +827,12 @@ export function GuestBillScreen({
               "Tu parte" era el total dicho por tercera vez en la misma
               pantalla, y presentado como una decisión ya tomada: o divides, o
               pagas todo, y eso se elige abajo. */}
+          {/* En el paso 2 esto es lo primero de la tarjeta -- el selector y
+              sus paneles son del paso 1 -- y su margen y su línea de arriba
+              dejaban una franja blanca vacía de cien píxeles encima de «Tu
+              parte», que parecía una tarjeta a medio cargar. */}
           {preview && !splitMutation.isPending && !(step === 1 && mode === "FULL") && (
-            <div className="mt-5 border-t border-border pt-4">
+            <div className="mt-5 border-t border-border pt-4 first:mt-0 first:border-t-0 first:pt-0">
               {/* Una cifra grande por tarjeta, y es la que se puede pagar
                   desde ella. Sin propina puesta, eso es tu parte; en cuanto
                   hay propina, el importe con propina toma el sitio y esto baja
@@ -841,15 +840,23 @@ export function GuestBillScreen({
                   pequeña era la única que se transfiere de verdad. */}
               {tipMinor === "0" ? (
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                    {mode === "EQUAL" ? t("perPerson") : t("yourShare")}
+                  <span className="eyebrow">
+                    {mode === "EQUAL"
+                      ? t("perPerson")
+                      : mode === "FULL"
+                        ? t("theWholeBill")
+                        : t("yourShare")}
                   </span>
                   <span className="money-xl">{formatMoney(myShare(preview, mode), "VES")}</span>
                 </div>
               ) : (
                 <div className="flex justify-between gap-3">
                   <span className="text-sm text-muted-foreground">
-                    {mode === "EQUAL" ? t("perPerson") : t("yourShare")}
+                    {mode === "EQUAL"
+                      ? t("perPerson")
+                      : mode === "FULL"
+                        ? t("theWholeBill")
+                        : t("yourShare")}
                   </span>
                   <span className="money-md">{formatMoney(myShare(preview, mode), "VES")}</span>
                 </div>
@@ -877,10 +884,8 @@ export function GuestBillScreen({
               {/* La propina se pregunta cuando ya hay una cifra, no a media
                   pantalla y antes de que nadie se haya comprometido a pagar. */}
               <div className={`mt-5 border-t border-border pt-4 ${step === 2 ? "" : "hidden"}`}>
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                  {t("tipTitle")}
-                </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">{t("tipHint")}</p>
+                <p className="field-label">{t("tipTitle")}</p>
+                <p className="hint mt-1">{t("tipHint")}</p>
                 {/* Seis columnas y la primera ocupa dos: con cinco iguales,
                     "Sin propina" era la única etiqueta de dos palabras y se
                     partía en dos líneas, así que la fila de propina salía más
@@ -898,12 +903,12 @@ export function GuestBillScreen({
                         setTipPct(p);
                         setTipCustom("");
                       }}
-                      className={`min-h-11 rounded-lg border px-2 text-xs transition-colors ${
+                      className={`min-h-11 rounded-lg border-[1.5px] px-2 text-sm font-medium text-foreground transition-colors ${
                         p === 0 ? "col-span-2" : ""
                       } ${
                         tipPct === p
-                          ? "border-primary bg-primary/15 text-foreground"
-                          : "border-border text-muted-foreground hover:bg-secondary"
+                          ? "border-primary bg-primary/10"
+                          : "border-border-strong bg-card hover:bg-secondary"
                       }`}
                     >
                       {p === 0 ? t("tipNone") : `${p}%`}
@@ -911,10 +916,10 @@ export function GuestBillScreen({
                   ))}
                   <button
                     onClick={() => setTipPct(null)}
-                    className={`min-h-11 rounded-lg border px-2 text-xs transition-colors ${
+                    className={`min-h-11 rounded-lg border-[1.5px] px-2 text-sm font-medium text-foreground transition-colors ${
                       tipPct === null
-                        ? "border-primary bg-primary/15 text-foreground"
-                        : "border-border text-muted-foreground hover:bg-secondary"
+                        ? "border-primary bg-primary/10"
+                        : "border-border-strong bg-card hover:bg-secondary"
                     }`}
                   >
                     {t("tipOther")}
@@ -926,7 +931,7 @@ export function GuestBillScreen({
                     placeholder="0,00"
                     value={tipCustom}
                     onChange={(e) => setTipCustom(e.target.value)}
-                    className="mt-3 min-h-11 w-full rounded-lg border border-input bg-secondary px-3 text-sm outline-none focus:border-ring"
+                    className="mt-3 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base outline-none focus:border-ring"
                   />
                 )}
                 <div className="mt-3 flex justify-between gap-3 text-sm text-muted-foreground">
@@ -935,9 +940,7 @@ export function GuestBillScreen({
                 </div>
                 {tipMinor !== "0" && (
                   <div className="mt-3 flex flex-col gap-0.5 border-t border-border pt-3 text-foreground">
-                    <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                      {t("yourTotalWithTip")}
-                    </span>
+                    <span className="eyebrow">{t("yourTotalWithTip")}</span>
                     <span className="money-xl">
                       {formatMoney(
                         (BigInt(myShare(preview, mode)) + BigInt(tipMinor)).toString(),
@@ -969,7 +972,7 @@ export function GuestBillScreen({
                       reemplazar se queda: ésa es otra decisión. */}
                   {!activeSplit && (
                     <>
-                      <label className="block text-xs uppercase tracking-widest text-muted-foreground">
+                      <label className="field-label block">
                         {t("yourNameOptional")}
                         <input
                           data-testid="guest-my-name"
@@ -978,19 +981,17 @@ export function GuestBillScreen({
                           maxLength={80}
                           autoComplete="given-name"
                           placeholder={t("yourNamePlaceholder")}
-                          className="mt-1 min-h-[44px] w-full rounded-lg border border-border bg-transparent px-3 text-base"
+                          className="mt-1.5 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base font-normal outline-none focus:border-ring"
                         />
                       </label>
-                      <p className="mb-4 mt-1.5 text-[11px] text-muted-foreground">
-                        {t("yourNameWhy")}
-                      </p>
+                      <p className="hint mb-4 mt-1.5">{t("yourNameWhy")}</p>
                     </>
                   )}
                   <button
                     data-testid="guest-split-confirm"
                     disabled={confirmSplit.isPending}
                     onClick={() => confirmSplit.mutate()}
-                    className="w-full rounded-lg border border-primary bg-primary/15 px-4 py-3 text-sm text-foreground disabled:opacity-40"
+                    className="btn-choice w-full"
                   >
                     {confirmSplit.isPending
                       ? t("loading")
@@ -1003,7 +1004,7 @@ export function GuestBillScreen({
                       anterior se anula. El servidor sólo lo permite mientras
                       nadie haya pagado -- en cuanto hay dinero contra una
                       parte, responde y el reparto viejo se queda. */}
-                  <p className="mt-2 text-[11px] text-muted-foreground">
+                  <p className="hint mt-2">
                     {activeSplit ? t("splitReplaceNote") : t("splitConfirmNote")}
                   </p>
                   {confirmSplit.isError && <GuestError error={confirmSplit.error} />}
@@ -1022,12 +1023,6 @@ export function GuestBillScreen({
           onChanged={() => void activeSplitQuery.refetch()}
         />
       )}
-
-      {/* Fuera del panel de pago a propósito: el panel se desmonta en cuanto la
-          cuenta no debe nada, que es justo cuando la factura pasa a poder
-          pedirse. Vivía dentro y por eso desaparecía al confirmarse el cobro. */}
-      {!demo && <GuestInvoiceOffer />}
-      {!demo && <GuestReceipt />}
 
       {/* Cierra la rama de "hay algo que pagar": sin nada en la cuenta no se
           enseñan ni las formas de dividir ni el panel de pago. */}
@@ -1059,8 +1054,21 @@ export function GuestBillScreen({
               preview
               ? { shareRemainingVes: shareMinor.toString() }
               : {})}
+          onClaimSent={() => setClaimSent(true)}
         />
       )}
+
+      {/* Fuera del panel de pago a propósito: el panel se desmonta en cuanto la
+          cuenta no debe nada, que es justo cuando la factura pasa a poder
+          pedirse. Vivía dentro y por eso desaparecía al confirmarse el cobro.
+
+          Y debajo del panel, no encima. El recibo aparece en el momento en que
+          se envía el aviso, y montado arriba empujaba «Aviso enviado» dos
+          pantallas hacia abajo justo cuando el comensal esperaba verlo: lo que
+          quedaba a la vista era un recibo, que parece que todo terminó, en vez
+          de «por verificar». El propio recibo dice que va debajo de todo. */}
+      {!demo && <GuestInvoiceOffer />}
+      {!demo && <GuestReceipt />}
 
       {/* ---------------------------------------------------------------
           La barra flotante.
@@ -1128,33 +1136,61 @@ export function GuestBillScreen({
               decir que no. Mientras no se elija cómo repartir no hay importe
               que confirmar, así que tampoco hay botón -- la decisión está
               arriba, en las cuatro opciones. */}
-          {step < 3 && !(step === 1 && !splitOpen) && !(step === 1 && mode === "FULL") && (
+          {/* Dividiendo por productos o por importe, hasta que no hay algo
+              elegido no hay parte. La barra caía entonces en lo que queda de
+              la cuenta -- que es lo correcto para «Pagar toda la cuenta» y
+              falso para todo lo demás -- y ofrecía «Pagar mi parte · 69.812,94
+              Bs» con nada marcado: la mesa entera con la etiqueta de tu parte,
+              y el botón se podía pulsar. Ahora, sin parte, el botón dice qué
+              falta y no hace nada; y no va en verde, porque todavía no hay
+              nada que confirmar. */}
+          {step === 1 && splitOpen && mode !== "FULL" && !preview && (
             <button
               type="button"
-              data-testid="guest-continue"
-              onClick={() => setStep(step === 1 ? 2 : 3)}
-              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground shadow-[0_12px_26px_-14px] shadow-primary transition-opacity hover:opacity-95"
+              data-testid="guest-continue-pending"
+              disabled
+              className="flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-full border-[1.5px] border-dashed border-border-strong px-6 text-[15px] text-muted-foreground"
             >
-              <span>
-                {step === 1
-                  ? mode === "FULL"
-                    ? t("payTheBill")
-                    : t("payMyShare")
-                  : t("stepContinue")}
-              </span>
-              <span aria-hidden className="opacity-50">
-                ·
-              </span>
-              <span className="money-md">{formatMoney(dockTotal.toString(), "VES")}</span>
+              {canSplit || splitMutation.isPending
+                ? t("calculating")
+                : mode === "ITEMS"
+                  ? t("dockPickItems")
+                  : t("dockEnterAmount")}
             </button>
           )}
-          {step > 1 && (
+          {step < 3 &&
+            !(step === 1 && !splitOpen) &&
+            !(step === 1 && mode === "FULL") &&
+            !(step === 1 && !preview) && (
+              <button
+                type="button"
+                data-testid="guest-continue"
+                onClick={() => setStep(step === 1 ? 2 : 3)}
+                className="btn-primary w-full"
+              >
+                <span>
+                  {step === 1
+                    ? mode === "FULL"
+                      ? t("payTheBill")
+                      : t("payMyShare")
+                    : t("stepContinue")}
+                </span>
+                <span aria-hidden className="opacity-50">
+                  ·
+                </span>
+                <span className="money-md">{formatMoney(dockTotal.toString(), "VES")}</span>
+              </button>
+            )}
+          {step > 1 && !claimSent && (
             <button
               type="button"
               data-testid="guest-step-back"
               onClick={() => setStep(step === 2 ? 1 : 2)}
-              className={`min-h-11 w-full rounded-full border border-border text-[13px] text-muted-foreground transition-colors hover:bg-secondary ${
-                step < 3 ? "mt-2" : ""
+              // Texto y no caja. Con borde pesaba lo mismo que «Continuar»
+              // encima, y su borde de 1,23:1 lo hacía parecer desactivado.
+              // Sigue midiendo 44 px de alto para el dedo.
+              className={`min-h-11 w-full text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline ${
+                step < 3 ? "mt-1" : ""
               }`}
             >
               {step === 2 ? t("backToBill") : t("backToTip")}
@@ -1166,7 +1202,7 @@ export function GuestBillScreen({
               tranquilizar por escrito algo que el importe y los dos botones ya
               dicen. */}
           {step === 1 && (splitOpen ? mode === "FULL" : partlyPaid) && (
-            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+            <p className="hint mt-2 text-center">
               {splitOpen
                 ? t("chooseHowToSplit")
                 : t("overRemaining").replace(

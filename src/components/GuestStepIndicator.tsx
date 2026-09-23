@@ -40,7 +40,7 @@ export function GuestStepIndicator({ current }: Props) {
           >
             {index > 0 && <span aria-hidden="true" className="h-px w-4 bg-border" />}
             <span
-              className={`flex items-center gap-1 text-[11px] uppercase tracking-[0.14em] ${
+              className={`flex items-center gap-1 text-[11px] uppercase tracking-widest ${
                 active ? "font-medium text-primary" : "text-muted-foreground"
               }`}
             >

@@ -154,7 +154,7 @@ export function GuestInvoiceOffer() {
   if (outcome?.kind === "issued") {
     return (
       <div role="status" className="surface mt-4 border border-emerald-500/40 bg-emerald-500/5 p-5">
-        <p className="font-display text-xl">{t("invoiceIssued")}</p>
+        <p className="text-xl font-semibold tracking-tight">{t("invoiceIssued")}</p>
         <p className="mt-1 text-sm text-muted-foreground">
           {t("invoiceIssuedBody").replace("{control}", outcome.controlNumber)}
         </p>
@@ -185,10 +185,10 @@ export function GuestInvoiceOffer() {
     const copy = COPY[outcome.kind];
     return (
       <div role="status" className="surface mt-4 border border-amber-500/40 bg-amber-500/5 p-5">
-        <p className="font-display text-xl">{t(copy.title)}</p>
+        <p className="text-xl font-semibold tracking-tight">{t(copy.title)}</p>
         <p className="mt-1 text-sm text-muted-foreground">{t(copy.body)}</p>
         {/* Lo primero que hay que despejar, pase lo que pase con el documento. */}
-        <p className="mt-2 text-[11px] text-muted-foreground">{t("invoicePaymentIntact")}</p>
+        <p className="hint mt-2">{t("invoicePaymentIntact")}</p>
         {/*
           Reintentar sólo donde de verdad puede haber cambiado algo: una red que
           se cortó. Si la petición sí llegó, el segundo intento contesta 409 y
@@ -198,7 +198,7 @@ export function GuestInvoiceOffer() {
         {copy.retry ? (
           <button
             type="button"
-            className="mt-4 min-h-[44px] w-full rounded-lg border border-border text-sm transition-colors hover:bg-muted disabled:opacity-40"
+            className="btn-choice mt-4 w-full"
             disabled={mutation.isPending}
             onClick={() => {
               setOutcome(null);
@@ -214,7 +214,7 @@ export function GuestInvoiceOffer() {
 
   return (
     <div className="surface mt-4 p-5">
-      <p className="font-display text-xl">{t("invoiceAskTitle")}</p>
+      <p className="text-xl font-semibold tracking-tight">{t("invoiceAskTitle")}</p>
       <p className="mt-1 text-sm text-muted-foreground">{t("invoiceAskBody")}</p>
 
       {!settled ? (
@@ -236,10 +236,10 @@ export function GuestInvoiceOffer() {
             como antes. Lo que cambia es que ahora es una decisión suya y no una
             consecuencia que no vio venir.
           */}
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">
+          <label className="field-label block">
             {t("invoiceMailTo")}
             <input
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-border bg-transparent px-3 text-base"
+              className="mt-1.5 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base font-normal outline-none focus:border-ring"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -247,7 +247,7 @@ export function GuestInvoiceOffer() {
               placeholder="tu@correo.com"
             />
           </label>
-          <p className="-mt-1 text-[11px] text-muted-foreground">{t("invoiceMailOptional")}</p>
+          <p className="hint -mt-1">{t("invoiceMailOptional")}</p>
 
           {/*
             La casilla comercial sólo cuando hay correo, y con su explicación
@@ -264,28 +264,26 @@ export function GuestInvoiceOffer() {
               />
               <span className="text-sm">
                 {t("marketingOptIn")}
-                <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                  {t("marketingWhy")}
-                </span>
+                <span className="hint mt-0.5 block">{t("marketingWhy")}</span>
               </span>
             </label>
           ) : null}
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
+          {/* Neutro, igual que «A mi nombre» debajo: son dos respuestas a la
+              misma pregunta y la elige quien pide la factura. En verde, una
+              parecía la buena. El verde es para «Enviar», dentro del
+              formulario, cuando ya no queda nada que elegir. */}
           <button
             type="button"
-            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="btn-choice w-full"
             disabled={mutation.isPending}
             onClick={() => mutation.mutate()}
           >
             {t("invoiceFinalConsumer")}
           </button>
-          <button
-            type="button"
-            className="min-h-[44px] w-full rounded-lg border border-border text-sm transition-colors hover:bg-muted"
-            onClick={() => setOpen(true)}
-          >
+          <button type="button" className="btn-choice w-full" onClick={() => setOpen(true)}>
             {t("invoiceWithData")}
           </button>
           <button
@@ -305,19 +303,19 @@ export function GuestInvoiceOffer() {
             if (!mutation.isPending) mutation.mutate();
           }}
         >
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">
+          <label className="field-label block">
             {t("invoiceName")}
             <input
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-border bg-transparent px-3 text-base"
+              className="mt-1.5 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base font-normal outline-none focus:border-ring"
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoComplete="name"
             />
           </label>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">
+          <label className="field-label block">
             {t("invoiceTaxId")}
             <input
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-border bg-transparent px-3 text-base"
+              className="mt-1.5 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base font-normal outline-none focus:border-ring"
               value={taxId}
               onChange={(e) => setTaxId(e.target.value)}
               placeholder="V12345678"
@@ -326,10 +324,10 @@ export function GuestInvoiceOffer() {
               style={{ textTransform: "uppercase" }}
             />
           </label>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">
+          <label className="field-label block">
             {t("invoiceEmail")}
             <input
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-border bg-transparent px-3 text-base"
+              className="mt-1.5 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base font-normal outline-none focus:border-ring"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -352,20 +350,14 @@ export function GuestInvoiceOffer() {
               />
               <span className="text-sm">
                 {t("marketingOptIn")}
-                <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                  {t("marketingWhy")}
-                </span>
+                <span className="hint mt-0.5 block">{t("marketingWhy")}</span>
               </span>
             </label>
           ) : null}
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-          <button
-            type="submit"
-            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
-            disabled={mutation.isPending}
-          >
+          <button type="submit" className="btn-primary w-full" disabled={mutation.isPending}>
             {t("invoiceSend")}
           </button>
 

@@ -60,7 +60,7 @@ function CopyRow({
         lead ? "flex-col" : "items-center justify-between"
       }`}
     >
-      <span className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="eyebrow">{label}</span>
       <span className={`flex items-center gap-2 ${lead ? "justify-between" : ""}`}>
         {/* El monto es lo que se teclea en el banco, y medía 14 px como el
             código de la sucursal. Sube a la escala grande y se lleva la fila
@@ -73,7 +73,7 @@ function CopyRow({
           // 44 px. Copiar el banco, el teléfono y el RIF es literalmente el
           // trámite del Pago Móvil: se hace tres veces seguidas, de pie y con
           // el banco abierto al lado. Fallar el toque cuesta volver a empezar.
-          className="inline-flex h-11 min-w-11 items-center justify-center gap-1 rounded-lg border border-border px-2 text-[11px] text-muted-foreground transition-colors hover:bg-secondary"
+          className="inline-flex h-11 min-w-11 items-center justify-center gap-1 rounded-lg border-[1.5px] border-border-strong bg-card px-2 text-xs text-foreground transition-colors hover:bg-secondary"
         >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           {copied && <span>{t("copied")}</span>}
@@ -195,6 +195,7 @@ export function GuestPaymentPanel({
   splitParticipantId,
   shareRemainingVes,
   tipVes = "0",
+  onClaimSent,
 }: {
   bill: Bill;
   demo?: boolean;
@@ -204,6 +205,8 @@ export function GuestPaymentPanel({
   shareRemainingVes?: string;
   /** Lo que el comensal eligió dejar de propina, en céntimos. */
   tipVes?: string;
+  /** Avisa a la pantalla de que el aviso salió: ya no hay paso al que volver. */
+  onClaimSent?: () => void;
 }) {
   const { t } = useI18n();
   const payee: Payee | null =
@@ -334,6 +337,7 @@ export function GuestPaymentPanel({
     onSuccess: (data) => {
       setError(null);
       setClaim(data);
+      onClaimSent?.();
       // Aparte del cobro y sin bloquearlo: el pago del comensal importa más
       // que nuestra lista, así que si esto falla no se entera ni lo nota.
       if (!demo && email.trim()) {
@@ -383,7 +387,7 @@ export function GuestPaymentPanel({
   const invalid = (name: string) => Boolean(error?.fields?.includes(name));
 
   const field =
-    "mt-2 min-h-11 w-full rounded-lg border border-input bg-secondary px-3 text-base outline-none focus:border-ring aria-[invalid=true]:border-destructive";
+    "mt-1.5 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base outline-none focus:border-ring aria-[invalid=true]:border-destructive";
 
   return (
     <div className="surface mt-4 p-6">
@@ -403,10 +407,10 @@ export function GuestPaymentPanel({
             data-testid={`guest-pay-tab-${x.id}`}
             onClick={() => setTab(x.id)}
             aria-pressed={tab === x.id}
-            className={`min-h-11 rounded-lg border px-3 text-xs transition-colors ${
+            className={`min-h-11 rounded-lg border-[1.5px] px-3 text-sm font-medium text-foreground transition-colors ${
               tab === x.id
-                ? "border-primary bg-primary/15 text-foreground"
-                : "border-border text-muted-foreground hover:bg-secondary"
+                ? "border-primary bg-primary/10"
+                : "border-border-strong bg-card hover:bg-secondary"
             }`}
           >
             {x.label}
@@ -416,7 +420,7 @@ export function GuestPaymentPanel({
 
       {tab === "payee" && (
         <div className="mt-5">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Paga desde tu app del banco y luego confírmanos aquí.
           </p>
           <div className="mt-3 rounded-lg border border-border px-3">
@@ -438,7 +442,22 @@ export function GuestPaymentPanel({
               copyValue={formatMinor(dueVes).replace(/\./g, "")}
             />
           </div>
-          <p className="mt-3 text-[11px] text-muted-foreground">{t("guestDirectNote")}</p>
+          <p className="hint mt-3">{t("guestDirectNote")}</p>
+          {/* La acción que lleva hacia delante en este paso. El comensal copia
+              los datos, se va a su banco y vuelve: lo siguiente que tiene que
+              hacer es decir que pagó, y eso vivía en una pestaña gris de 12 px
+              con el mismo peso que la que ya estaba mirando. El paso entero
+              no tenía un solo botón que llevara adelante. */}
+          {!demo && (
+            <button
+              type="button"
+              data-testid="guest-payee-done"
+              onClick={() => setTab("claim")}
+              className="btn-primary mt-5 w-full"
+            >
+              {t("payeeDone")}
+            </button>
+          )}
         </div>
       )}
 
@@ -459,8 +478,8 @@ export function GuestPaymentPanel({
         <div className="mt-5">
           {billPaid ? (
             <div className="rounded-lg border border-primary/50 bg-primary/10 p-4">
-              <p className="font-display text-2xl">{t("billSettledTitle")}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{t("guestNothingLeft")}</p>
+              <p className="text-xl font-semibold tracking-tight">{t("billSettledTitle")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t("guestNothingLeft")}</p>
             </div>
           ) : claim ? (
             <div
@@ -470,15 +489,16 @@ export function GuestPaymentPanel({
               role="status"
               className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 outline-none"
             >
-              <p className="font-display text-2xl">{t("guestClaimSent")}</p>
+              {/* Sans y no serif: la serif es para los nombres -- el del
+                  restaurante, el de la mesa --, nunca para un rótulo de la
+                  interfaz. */}
+              <p className="text-xl font-semibold tracking-tight">{t("guestClaimSent")}</p>
               <p className="mt-2 text-sm text-muted-foreground">
                 {t("guestClaimSentBody")
                   .replace("{amount}", `${formatMinor(claim.amountVes)} Bs`)
                   .replace("{reference}", claim.declaredReference ?? "—")}
               </p>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                {t("guestClaimClosesOnConfirm")}
-              </p>
+              <p className="hint mt-2">{t("guestClaimClosesOnConfirm")}</p>
               <div className="mt-3 flex items-center justify-between border-t border-amber-500/30 pt-3 text-xs text-muted-foreground">
                 <span>{t("guestClaimStatus")}</span>
                 <span className="rounded-full border border-amber-500/50 px-2 py-0.5 uppercase tracking-widest">
@@ -504,10 +524,7 @@ export function GuestPaymentPanel({
               noValidate
             >
               <div>
-                <label
-                  htmlFor="claim-amount"
-                  className="text-xs uppercase tracking-widest text-muted-foreground"
-                >
+                <label htmlFor="claim-amount" className="field-label">
                   Monto pagado (Bs)
                 </label>
                 <input
@@ -522,16 +539,13 @@ export function GuestPaymentPanel({
                   aria-describedby="claim-amount-help"
                   className={field}
                 />
-                <p id="claim-amount-help" className="mt-1 text-[11px] text-muted-foreground">
+                <p id="claim-amount-help" className="hint mt-1">
                   Puedes pagar solo tu parte: cambia el monto si pagaste menos.
                 </p>
               </div>
 
               <div className="mt-4">
-                <label
-                  htmlFor="claim-reference"
-                  className="text-xs uppercase tracking-widest text-muted-foreground"
-                >
+                <label htmlFor="claim-reference" className="field-label">
                   Referencia de tu pago
                 </label>
                 <input
@@ -544,16 +558,13 @@ export function GuestPaymentPanel({
                   aria-describedby="claim-reference-help"
                   className={field}
                 />
-                <p id="claim-reference-help" className="mt-1 text-[11px] text-muted-foreground">
+                <p id="claim-reference-help" className="hint mt-1">
                   El número que te dio tu banco al confirmar el pago móvil.
                 </p>
               </div>
 
               <div className="mt-4">
-                <label
-                  htmlFor="claim-phone"
-                  className="text-xs uppercase tracking-widest text-muted-foreground"
-                >
+                <label htmlFor="claim-phone" className="field-label">
                   Teléfono desde el que pagaste (opcional)
                 </label>
                 <input
@@ -565,16 +576,13 @@ export function GuestPaymentPanel({
                   aria-describedby="claim-phone-help"
                   className={field}
                 />
-                <p id="claim-phone-help" className="mt-1 text-[11px] text-muted-foreground">
+                <p id="claim-phone-help" className="hint mt-1">
                   Nos ayuda a encontrar tu pago más rápido.
                 </p>
               </div>
 
               <div className="mt-4">
-                <label
-                  htmlFor="claim-bank"
-                  className="text-xs uppercase tracking-widest text-muted-foreground"
-                >
+                <label htmlFor="claim-bank" className="field-label">
                   Tu banco (opcional)
                 </label>
                 {/*
@@ -601,10 +609,7 @@ export function GuestPaymentPanel({
               </div>
 
               <div className="mt-4">
-                <label
-                  htmlFor="claim-email"
-                  className="text-xs uppercase tracking-widest text-muted-foreground"
-                >
+                <label htmlFor="claim-email" className="field-label">
                   {t("payerEmailLabel")}
                 </label>
                 <input
@@ -618,14 +623,14 @@ export function GuestPaymentPanel({
                   aria-describedby="claim-email-help"
                   className={field}
                 />
-                <p id="claim-email-help" className="mt-1 text-[11px] text-muted-foreground">
+                <p id="claim-email-help" className="hint mt-1">
                   {t("payerEmailWhy")}
                 </p>
                 {/* Sólo cuando hay un correo que consentir. Una casilla de
                     permiso sobre un campo vacío no consiente nada y sólo añade
                     una decisión más a una pantalla donde se está pagando. */}
                 {email.trim() && (
-                  <label className="mt-2 flex items-start gap-2 text-[11px] text-muted-foreground">
+                  <label className="hint mt-2 flex items-start gap-2">
                     <input
                       type="checkbox"
                       checked={marketing}
@@ -647,7 +652,7 @@ export function GuestPaymentPanel({
                         setAmount(formatMinor(error.suggestVes!));
                         setError(null);
                       }}
-                      className="mt-2 rounded-lg border border-border px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-secondary"
+                      className="btn-choice mt-2 min-h-10 px-4 text-sm"
                     >
                       Usar ese monto
                     </button>
@@ -657,7 +662,7 @@ export function GuestPaymentPanel({
                       Es el número con el que el personal puede buscar qué pasó,
                       y así lo dice ahora. */}
                   {error.requestId && (
-                    <p className="mt-2 text-[11px] text-muted-foreground">
+                    <p className="hint mt-2">
                       {t("guestErrIncidentCode")}{" "}
                       <span className="font-mono">{error.requestId.slice(0, 8)}</span>
                     </p>
@@ -669,7 +674,7 @@ export function GuestPaymentPanel({
                 type="submit"
                 data-testid="guest-claim-submit"
                 disabled={!canSubmit}
-                className="mt-5 min-h-12 w-full rounded-lg border border-primary bg-primary/15 px-4 text-sm text-foreground transition-colors disabled:opacity-40"
+                className="btn-primary mt-5 w-full"
               >
                 {mutation.isPending
                   ? t("loading")
@@ -677,7 +682,7 @@ export function GuestPaymentPanel({
                     ? t("guestWaitSeconds").replace("{n}", String(cooldown))
                     : t("guestIPaid")}
               </button>
-              <p className="mt-2 text-[11px] text-muted-foreground">{t("guestClaimNote")}</p>
+              <p className="hint mt-2">{t("guestClaimNote")}</p>
             </form>
           )}
         </div>

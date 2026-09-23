@@ -195,9 +195,21 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
   }
 
   if (contextQuery.isError) {
-    const code = contextQuery.error instanceof ApiError ? contextQuery.error.code : undefined;
+    const err = contextQuery.error instanceof ApiError ? contextQuery.error : undefined;
+    const code = err?.code;
     // Un código rotado y una mesa que no existe responden lo mismo, a propósito.
-    if (code === "QR_INVALID" || code === "QR_TOKEN_INVALID") {
+    //
+    // Y un código cortado también es un código que no vale. Un escaneo a
+    // medias o un enlace copiado sin el final no llegan a comprobarse: la API
+    // los rechaza antes, por la forma, con VALIDATION_FAILED sobre `qrToken`.
+    // Eso caía en el error genérico -- «Algo falló» y «Reintentar» --, y
+    // reintentar un código roto falla siempre: un bucle sin salida justo para
+    // quien más necesita la de reescanear.
+    const qrMalformed =
+      code === "VALIDATION_FAILED" &&
+      Array.isArray(err?.details["fieldPaths"]) &&
+      (err.details["fieldPaths"] as unknown[]).includes("qrToken");
+    if (code === "QR_INVALID" || code === "QR_TOKEN_INVALID" || qrMalformed) {
       return (
         <Shell>
           <h1 className="text-3xl">{t("qrInvalidTitle")}</h1>
@@ -225,7 +237,7 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
               guestSession.set(null);
               setToken(null);
             }}
-            className="mt-5 min-h-11 w-full rounded-full border border-border bg-background px-4 text-sm transition-colors hover:bg-secondary"
+            className="btn-choice mt-5 w-full"
           >
             {t("qrRescan")}
           </button>
@@ -359,12 +371,16 @@ function Choice({
       {...(testId ? { "data-testid": testId } : {})}
       onClick={onClick}
       disabled={disabled}
-      className="flex w-full items-center gap-4 rounded-lg border border-border bg-secondary px-4 py-4 text-left transition-colors hover:border-primary disabled:opacity-60"
+      // La misma pieza que las cuatro formas de repartir: dos opciones entre
+      // iguales, blancas y con trazo. Iban en gris relleno con un borde de
+      // 1,23:1, y el gris de `secondary` contra el blanco de la tarjeta no
+      // llega a 1,1:1 -- se leían como dos manchas, no como dos botones.
+      className="flex w-full items-center gap-4 rounded-2xl border-[1.5px] border-border-strong bg-card px-4 py-4 text-left transition-colors hover:bg-secondary disabled:opacity-60"
     >
       <span className="text-muted-foreground">{icon}</span>
       <span className="min-w-0">
-        <span className="block text-sm">{title}</span>
-        <span className="mt-0.5 block text-xs text-muted-foreground">{hint}</span>
+        <span className="block text-[15px] font-medium">{title}</span>
+        <span className="hint mt-0.5 block">{hint}</span>
       </span>
     </button>
   );

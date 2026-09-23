@@ -102,7 +102,7 @@ export function GuestSplitModeSelector({ selected, onSelect }: Props) {
                control -- y sobre esta pantalla se leían como texto suelto. */
             className={`flex min-h-[56px] w-full items-center gap-3.5 rounded-2xl border-[1.5px] px-4 py-3 text-left transition-colors ${
               isSelected
-                ? "border-primary bg-primary/[0.06] text-foreground"
+                ? "border-primary bg-primary/10 text-foreground"
                 : "border-border-strong bg-card text-foreground hover:bg-secondary"
             }`}
           >
@@ -114,7 +114,7 @@ export function GuestSplitModeSelector({ selected, onSelect }: Props) {
               strokeWidth={1.6}
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-[22px] w-[22px] shrink-0 text-primary"
+              className={`h-[22px] w-[22px] shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground"}`}
             >
               {ICONS[option.id]}
             </svg>

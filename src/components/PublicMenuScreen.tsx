@@ -274,9 +274,7 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
             className="relative max-h-[75vh] overflow-y-auto rounded-t-2xl border-t border-border bg-background pb-6"
           >
             <div className="sticky top-0 flex items-center justify-between border-b border-border bg-background px-5 py-4">
-              <span className="text-xs uppercase tracking-widest text-muted-foreground">
-                {t("browseMenu")}
-              </span>
+              <span className="eyebrow">{t("browseMenu")}</span>
               <button onClick={() => setBrowsing(false)} aria-label={t("cancel")}>
                 <X className="h-5 w-5 text-muted-foreground" />
               </button>
@@ -314,9 +312,7 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
           // Deja sitio a la cabecera fija cuando se salta a esta sección.
           className="scroll-mt-16 pt-7 first:pt-5"
         >
-          <h2 className="px-5 text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
-            {group.name ?? t("menuOther")}
-          </h2>
+          <h2 className="eyebrow px-5 font-medium">{group.name ?? t("menuOther")}</h2>
           <ul className="mt-2">
             {group.products.map((product) => (
               <ProductRow key={product.id} product={product} />
@@ -354,7 +350,7 @@ function ProductRow({ product }: { product: PublicProduct }) {
               {product.description}
             </p>
           )}
-          <p className="mt-2 text-[15px] figure">
+          <p className="money-md mt-1.5">
             {formatMoney(product.priceMinorUnits, product.currency)}
           </p>
         </div>
@@ -381,7 +377,11 @@ function ProductRow({ product }: { product: PublicProduct }) {
             <button
               type="button"
               onClick={() => cart.bump(product.id, 1)}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-primary px-4 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+              // Neutro, no verde: se repite en cada plato de la carta, y veinte
+              // botones verdes seguidos no dejan ninguno como la acción de la
+              // pantalla. Ésa es «Ver pedido», abajo. Con el plato ya elegido
+              // el contador sí va en verde translúcido: es lo elegido.
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border-[1.5px] border-border-strong bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
             >
               <Plus aria-hidden className="h-4 w-4" /> {t("guestAdd")}
             </button>

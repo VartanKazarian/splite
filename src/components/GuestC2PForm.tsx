@@ -188,7 +188,7 @@ export function GuestC2PForm({
     BigInt(billMinor) > 0n;
 
   const field =
-    "mt-2 min-h-11 w-full rounded-lg border border-input bg-secondary px-3 text-base outline-none focus:border-ring";
+    "mt-1.5 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base font-normal outline-none focus:border-ring";
 
   if (result) {
     const tone =
@@ -225,14 +225,14 @@ export function GuestC2PForm({
               idemRef.current = newIdempotencyKey();
               setResult(null);
             }}
-            className="mt-3 min-h-11 rounded-lg border border-border px-4 text-xs text-muted-foreground hover:bg-secondary"
+            className="btn-choice mt-3 min-h-11 px-4 text-sm"
           >
             {t("retry")}
           </button>
         )}
-        {result.reason && <p className="mt-2 text-[11px] text-muted-foreground">{result.reason}</p>}
+        {result.reason && <p className="hint mt-2">{result.reason}</p>}
         {result.bankReference && (
-          <p className="mt-2 text-[11px] text-muted-foreground">
+          <p className="hint mt-2">
             {t("c2pBankRef")}: {result.bankReference}
           </p>
         )}
@@ -253,10 +253,7 @@ export function GuestC2PForm({
       <p className="text-xs text-muted-foreground">{t("c2pIntro")}</p>
 
       <div className="mt-4">
-        <label
-          htmlFor="c2p-bank"
-          className="text-xs uppercase tracking-widest text-muted-foreground"
-        >
+        <label htmlFor="c2p-bank" className="field-label">
           {t("c2pYourBank")}
         </label>
         <select
@@ -272,13 +269,11 @@ export function GuestC2PForm({
             </option>
           ))}
         </select>
-        {banksQuery.isError && (
-          <p className="mt-1 text-[11px] text-muted-foreground">{t("c2pBanksFailed")}</p>
-        )}
+        {banksQuery.isError && <p className="hint mt-1">{t("c2pBanksFailed")}</p>}
       </div>
 
       {selected && (
-        <div className="mt-3 rounded-lg border border-border p-3 text-[11px] text-muted-foreground">
+        <div className="hint mt-3 rounded-lg border border-border p-3">
           <p>{t("c2pTtl").replace("{ttl}", selected.ttlLabel)}</p>
           {selected.channels.map((c) => (
             <p key={c.channel} className="mt-1">
@@ -291,10 +286,7 @@ export function GuestC2PForm({
 
       <div className="mt-4 grid grid-cols-[80px_1fr] gap-2">
         <div>
-          <label
-            htmlFor="c2p-idtype"
-            className="text-xs uppercase tracking-widest text-muted-foreground"
-          >
+          <label htmlFor="c2p-idtype" className="field-label">
             {t("c2pIdType")}
           </label>
           <select
@@ -311,10 +303,7 @@ export function GuestC2PForm({
           </select>
         </div>
         <div>
-          <label
-            htmlFor="c2p-id"
-            className="text-xs uppercase tracking-widest text-muted-foreground"
-          >
+          <label htmlFor="c2p-id" className="field-label">
             {t("c2pIdNumber")}
           </label>
           <input
@@ -328,10 +317,7 @@ export function GuestC2PForm({
       </div>
 
       <div className="mt-4">
-        <label
-          htmlFor="c2p-phone"
-          className="text-xs uppercase tracking-widest text-muted-foreground"
-        >
+        <label htmlFor="c2p-phone" className="field-label">
           {t("payoutPhone")}
         </label>
         <input
@@ -345,10 +331,7 @@ export function GuestC2PForm({
       </div>
 
       <div className="mt-4">
-        <label
-          htmlFor="c2p-amount"
-          className="text-xs uppercase tracking-widest text-muted-foreground"
-        >
+        <label htmlFor="c2p-amount" className="field-label">
           {t("c2pAmount")}
         </label>
         <input
@@ -361,13 +344,11 @@ export function GuestC2PForm({
           }}
           className={field}
         />
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          {t("c2pMax").replace("{amount}", formatMoney(totalVes, "VES"))}
-        </p>
+        <p className="hint mt-1">{t("c2pMax").replace("{amount}", formatMoney(totalVes, "VES"))}</p>
         {/* Cómo se reparte lo de la casilla, no una suma que hay que hacer: la
             cifra de arriba es la del cargo y ésta dice qué parte es propina. */}
         {tipMinor > 0n && (
-          <p className="mt-1 text-[11px] text-muted-foreground">
+          <p className="hint mt-1">
             {t("c2pWithTip")
               .replace("{tip}", formatMoney(tipVes, "VES"))
               .replace("{bill}", formatMoney(billMinor, "VES"))}
@@ -376,17 +357,14 @@ export function GuestC2PForm({
         {/* Bajar el importe por debajo de la propina no deja nada para la
             cuenta. Se dice, en vez de dejar el botón apagado sin motivo. */}
         {tipMinor > 0n && BigInt(billMinor) === 0n && (
-          <p className="mt-1 text-[11px] text-destructive">
+          <p className="mt-1 text-xs text-destructive">
             {t("c2pBelowTip").replace("{tip}", formatMoney(tipVes, "VES"))}
           </p>
         )}
       </div>
 
       <div className="mt-4">
-        <label
-          htmlFor="c2p-clave"
-          className="text-xs uppercase tracking-widest text-muted-foreground"
-        >
+        <label htmlFor="c2p-clave" className="field-label">
           {t("c2pClave")}
         </label>
         <input
@@ -398,28 +376,24 @@ export function GuestC2PForm({
           onChange={(e) => setClave(e.target.value.replace(/\D/g, "").slice(0, 16))}
           className={field}
         />
-        <p className="mt-1 text-[11px] text-muted-foreground">{t("c2pClaveNote")}</p>
+        <p className="hint mt-1">{t("c2pClaveNote")}</p>
       </div>
 
       {error && (
         <div className="mt-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs">
           <p>{error.message}</p>
           {error.requestId && (
-            <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+            <p className="hint mt-2 font-mono">
               {t("c2pRef")}: {error.requestId}
             </p>
           )}
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={!canSubmit}
-        className="mt-5 min-h-12 w-full rounded-lg border border-primary bg-primary/15 px-4 text-sm text-foreground transition-colors disabled:opacity-40"
-      >
+      <button type="submit" disabled={!canSubmit} className="btn-primary mt-5 w-full">
         {charge.isPending ? t("c2pContacting") : t("c2pPay")}
       </button>
-      <p className="mt-2 text-[11px] text-muted-foreground">{t("c2pMoneyNote")}</p>
+      <p className="hint mt-2">{t("c2pMoneyNote")}</p>
     </form>
   );
 }

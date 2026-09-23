@@ -51,7 +51,7 @@ export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props)
 
   return (
     <div className="surface mt-4 p-6">
-      <h2 className="text-xl">{t("splitAgreed")}</h2>
+      <h2 className="text-xl font-semibold">{t("splitAgreed")}</h2>
 
       <div
         role="progressbar"
@@ -82,14 +82,18 @@ export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props)
                 data-testid={`guest-share-${i}`}
                 aria-pressed={isMine}
                 onClick={() => onPick(p.ref)}
-                className={`flex min-h-[52px] w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                  isMine ? "border-primary bg-primary/[0.06]" : "border-border"
+                className={`flex min-h-[52px] w-full items-center gap-3 rounded-xl border-[1.5px] px-3 py-2.5 text-left transition-colors ${
+                  isMine
+                    ? "border-primary bg-primary/10"
+                    : "border-border-strong bg-card hover:bg-secondary"
                 }`}
               >
                 <span
                   aria-hidden="true"
                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                    p.settled ? "bg-primary text-primary-foreground" : "border border-input"
+                    p.settled
+                      ? "bg-primary text-primary-foreground"
+                      : "border-[1.5px] border-border-strong"
                   }`}
                 >
                   {p.settled && (
@@ -110,9 +114,9 @@ export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props)
                   {p.name ?? (isMine ? t("yourShare") : `${t("diner")} ${i + 1}`)}
                 </span>
                 <span className="shrink-0 text-right">
-                  <span className="money-sm block">{formatMoney(p.amountVes, "VES")}</span>
+                  <span className="money-md block">{formatMoney(p.amountVes, "VES")}</span>
                   {!p.settled && BigInt(p.amountPaidVes) > 0n && (
-                    <span className="money-sm block text-[11px] text-muted-foreground">
+                    <span className="money-sm block text-muted-foreground">
                       {t("stillOwes").replace("{amount}", formatMoney(p.remainingVes, "VES"))}
                     </span>
                   )}
@@ -125,7 +129,7 @@ export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props)
 
       {/* Sólo mientras haga falta: quien ya eligió su parte no necesita que se
           le explique cómo elegirla. */}
-      {!mineRef && <p className="mt-3 text-[11px] text-muted-foreground">{t("pickYourShare")}</p>}
+      {!mineRef && <p className="hint mt-3">{t("pickYourShare")}</p>}
 
       {/* Y el nombre se pide justo aquí, a quien acaba de tomar una parte: el
           momento en que empieza a servir de algo. Sólo si esa parte no tiene
@@ -139,7 +143,7 @@ export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props)
             if (name.trim()) rename.mutate();
           }}
         >
-          <label className="block text-xs uppercase tracking-widest text-muted-foreground">
+          <label className="field-label block">
             {t("yourNameOptional")}
             <input
               data-testid="guest-share-name"
@@ -148,14 +152,14 @@ export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props)
               maxLength={80}
               autoComplete="given-name"
               placeholder={t("yourNamePlaceholder")}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-border bg-transparent px-3 text-base"
+              className="mt-1.5 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base font-normal outline-none focus:border-ring"
             />
           </label>
           <button
             type="submit"
             data-testid="guest-share-name-save"
             disabled={!name.trim() || rename.isPending}
-            className="mt-2 min-h-11 w-full rounded-full border border-primary bg-primary/15 px-4 text-sm disabled:opacity-40"
+            className="btn-choice mt-2 w-full"
           >
             {rename.isPending ? t("loading") : t("saveName")}
           </button>

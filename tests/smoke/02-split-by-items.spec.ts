@@ -36,6 +36,12 @@ test("un comensal elige lo suyo y paga su parte", async ({ page, seed }) => {
   await page.getByTestId("guest-split-open").click();
   await page.getByTestId("guest-split-mode-ITEMS").click();
 
+  // Con nada marcado no hay parte, y no se ofrece pagar nada. La barra caía en
+  // lo que queda de la cuenta y decía «Pagar mi parte» con el total de la mesa
+  // -- y se podía pulsar.
+  await expect(page.getByTestId("guest-continue")).toHaveCount(0);
+  await expect(page.getByTestId("guest-continue-pending")).toBeDisabled();
+
   // Una sola línea de las dos.
   await page.getByTestId(`guest-item-${mine!.id}`).click();
   await expect(page.getByTestId(`guest-item-${mine!.id}`)).toHaveAttribute("aria-pressed", "true");

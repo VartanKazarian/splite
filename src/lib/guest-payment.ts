@@ -83,3 +83,29 @@ export function useRememberedPayment(): string | null {
     () => null,
   );
 }
+
+/**
+ * El correo que el comensal escribió al avisar del pago.
+ *
+ * Para no pedírselo dos veces: la oferta de factura aparece después, a veces
+ * en otra carga de la página, y llegaba con el campo vacío aunque la persona
+ * acabara de escribir su dirección un paso antes. Misma pestaña y misma sesión
+ * que el pago, por las mismas razones.
+ */
+const EMAIL_KEY = "splite:payeremail";
+
+export function rememberPayerEmail(email: string) {
+  try {
+    sessionStorage.setItem(EMAIL_KEY, email);
+  } catch {
+    /* sin almacenamiento, el campo sale vacío como antes */
+  }
+}
+
+export function recallPayerEmail(): string {
+  try {
+    return sessionStorage.getItem(EMAIL_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}

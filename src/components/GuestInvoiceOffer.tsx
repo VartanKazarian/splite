@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { guest, ApiError } from "@/lib/api";
 import { useI18n, type Key } from "@/lib/i18n";
-import { useRememberedPayment } from "@/lib/guest-payment";
+import { recallPayerEmail, useRememberedPayment } from "@/lib/guest-payment";
 
 /**
  * «¿Necesitas factura?», al final y junto al recibo.
@@ -53,7 +53,9 @@ export function GuestInvoiceOffer() {
   const [dismissed, setDismissed] = useState(false);
   const [name, setName] = useState("");
   const [taxId, setTaxId] = useState("");
-  const [email, setEmail] = useState("");
+  // Relleno con el que dio al avisar del pago: pedírselo dos veces seguidas
+  // era la forma más fácil de que la segunda no la escribiera.
+  const [email, setEmail] = useState(() => recallPayerEmail());
   /**
    * El consentimiento comercial, **sin marcar** y aparte.
    *
@@ -129,11 +131,51 @@ export function GuestInvoiceOffer() {
     },
   });
 
-  // Sin pago recordado no hay nada que ofrecer. Y si ya tiene factura tampoco:
-  // ofrecerla otra vez invitaría a pedir un segundo documento del mismo cobro.
-  if (!paymentId || dismissed || alreadyInvoiced) return null;
+  if (!paymentId || dismissed) return null;
   // Hasta saber en qué quedó, no se promete nada.
   if (payment.isPending || payment.isError) return null;
+
+  /*
+   * Ya hay factura. Antes esto no pintaba nada -- ofrecerla otra vez invitaría
+   * a pedir un segundo documento --, y eso estaba bien mientras la única forma
+   * de tenerla era pedirla aquí mismo y ver la respuesta. Ahora puede salir
+   * sola al confirmarse el cobro, y quien la pidió al avisar del pago no se
+   * enteraba de que ya estaba hecha.
+   */
+  const existing = payment.data?.invoice;
+  if (alreadyInvoiced && !outcome) {
+    return existing ? (
+      <div role="status" className="surface mt-4 border border-emerald-500/40 bg-emerald-500/5 p-5">
+        <p className="text-xl font-semibold tracking-tight">{t("invoiceIssued")}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t("invoiceIssuedBody").replace("{control}", existing.controlNumber)}
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {existing.email
+            ? t("invoiceIssuedMailed").replace("{email}", existing.email)
+            : t("invoiceIssuedNotMailed")}
+        </p>
+      </div>
+    ) : null;
+  }
+
+  /*
+   * Pedida al avisar del pago y todavía sin confirmar: no hay formulario que
+   * enseñar, hay una promesa que decir -- y es cierta, porque sale sola en
+   * cuanto el restaurante confirme. Si al confirmar no puede salir, el estado
+   * pasa a FAILED y vuelve el formulario de siempre, con el correo puesto.
+   */
+  const asked = payment.data?.invoiceRequest;
+  if (asked?.status === "WAITING") {
+    return (
+      <div role="status" className="surface mt-4 p-5">
+        <p className="text-xl font-semibold tracking-tight">{t("invoiceComingTitle")}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t("invoiceComingBody").replace("{email}", asked.email)}
+        </p>
+      </div>
+    );
+  }
   /*
    * Y si aquí no se factura, no se abre la boca.
    *

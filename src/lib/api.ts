@@ -1337,6 +1337,8 @@ export type Account = {
   fiscalInvoicePolicy?: "PER_DINER" | "SINGLE_BILL";
   /** El domicilio que encabeza el recibo. Nulo si no se ha registrado. */
   fiscalAddress?: string | null;
+  /** Adónde responden los clientes a su factura (Reply-To). */
+  contactEmail?: string | null;
   createdAt?: string;
 };
 
@@ -2050,7 +2052,7 @@ export const account = {
    * es como se renombra un restaurante sin querer al corregir su dirección.
    * `fiscalAddress: ""` **borra** la dirección; omitirlo la deja como estaba.
    */
-  updateProfile: (body: { name?: string; fiscalAddress?: string }) =>
+  updateProfile: (body: { name?: string; fiscalAddress?: string; contactEmail?: string }) =>
     apiRequest<Account>("/api/v1/account", { method: "PATCH", auth: "staff", body }),
   /**
    * La serie autorizada. `null` significa «todavía no la ha configurado», que

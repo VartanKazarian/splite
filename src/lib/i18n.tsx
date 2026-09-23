@@ -629,6 +629,10 @@ const dict = {
     restaurantNameHint:
       "Es lo primero que lee un comensal al escanear el código de la mesa, encima del número de mesa.",
     restaurantAddress: "Domicilio del local",
+    restaurantContactEmail: "Correo para respuestas de clientes",
+    restaurantContactEmailHint:
+      "Si un cliente responde al correo de su factura, le llega aquí. Vacío: la factura dice que esa dirección no recibe respuestas.",
+    restaurantContactEmailBad: "Ese correo no parece válido.",
     restaurantAddressPlaceholder: "Av. Francisco de Miranda, Chacao, Caracas",
     restaurantAddressHint:
       "Encabeza el recibo del comensal. Si lo dejas vacío, el recibo no enseña ninguna dirección.",
@@ -1625,6 +1629,10 @@ const dict = {
     restaurantNameHint:
       "The first thing a diner reads after scanning the table code, above the table number.",
     restaurantAddress: "Premises address",
+    restaurantContactEmail: "Email for customer replies",
+    restaurantContactEmailHint:
+      "If a customer replies to their invoice email, it reaches you here. Empty: the invoice says that address does not take replies.",
+    restaurantContactEmailBad: "That email does not look valid.",
     restaurantAddressPlaceholder: "Av. Francisco de Miranda, Chacao, Caracas",
     restaurantAddressHint:
       "Heads the diner's receipt. Leave it empty and the receipt shows no address at all.",

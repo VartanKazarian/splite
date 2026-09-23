@@ -4,7 +4,7 @@ import { Check, Copy } from "lucide-react";
 
 import { GuestC2PForm } from "@/components/GuestC2PForm";
 import { useI18n } from "@/lib/i18n";
-import { rememberPayment } from "@/lib/guest-payment";
+import { rememberPayment, rememberPayerEmail } from "@/lib/guest-payment";
 
 import {
   ApiError,
@@ -98,6 +98,9 @@ const FIELD_PROBLEMS: Record<string, string> = {
   bankOrigin: "guestErrBadBank",
   idOrigin: "guestErrBadId",
   tipVes: "guestErrBadTip",
+  "invoice.email": "invoiceEmailBad",
+  "invoice.taxId": "invoiceTaxIdBad",
+  "invoice.name": "invoiceNameBad",
 };
 
 type ClaimError = {
@@ -309,6 +312,24 @@ export function GuestPaymentPanel({
    */
   const [email, setEmail] = useState("");
   const [marketing, setMarketing] = useState(false);
+  /*
+   * «Envíame la factura», aquí y no sólo después.
+   *
+   * La factura se puede emitir cuando el restaurante confirma el cobro, y eso
+   * pasa minutos después, a menudo con el comensal ya fuera. Pedirla sólo
+   * entonces obligaba a quedarse mirando la pantalla. Marcada aquí, sale sola
+   * al confirmar y llega al correo de arriba.
+   *
+   * Sin marcar por defecto: una factura fiscal gasta un número de la serie del
+   * restaurante y es un documento que éste declara. No se emite porque alguien
+   * haya escrito su correo, sino porque la pidió.
+   */
+  const [wantsInvoice, setWantsInvoice] = useState(false);
+  const [inName, setInName] = useState(false);
+  const [invoiceName, setInvoiceName] = useState("");
+  const [invoiceTaxId, setInvoiceTaxId] = useState("");
+  const canInvoice = bill.canRequestInvoice === true && !demo;
+  const invoiceWanted = canInvoice && wantsInvoice && Boolean(email.trim());
 
   const mutation = useMutation({
     mutationFn: async (): Promise<PaymentClaim> => {
@@ -332,6 +353,20 @@ export function GuestPaymentPanel({
         ...(phoneOrigin.trim() ? { phoneOrigin: phoneOrigin.trim() } : {}),
         ...(bankOrigin.trim() ? { bankOrigin: bankOrigin.trim() } : {}),
         ...(splitParticipantId ? { splitParticipantId } : {}),
+        ...(invoiceWanted
+          ? {
+              invoice: {
+                email: email.trim(),
+                ...(inName && invoiceName.trim() ? { name: invoiceName.trim() } : {}),
+                // Sin guiones ni espacios: así se escribe en el papel del RIF
+                // («J-12345678-9») y así lo rechazaba el servidor, que espera
+                // la letra y los dígitos seguidos.
+                ...(inName && invoiceTaxId.trim()
+                  ? { taxId: invoiceTaxId.toUpperCase().replace(/[^A-Z0-9]/g, "") }
+                  : {}),
+              },
+            }
+          : {}),
       });
     },
     onSuccess: (data) => {
@@ -348,6 +383,7 @@ export function GuestPaymentPanel({
       // El único hilo que le queda al comensal con su propio pago cuando la
       // cuenta se cierre y esta pantalla desaparezca.
       rememberPayment(data.id);
+      if (email.trim()) rememberPayerEmail(email.trim());
       setTimeout(() => successRef.current?.focus(), 0);
     },
     onError: (err) => {
@@ -623,9 +659,64 @@ export function GuestPaymentPanel({
                   aria-describedby="claim-email-help"
                   className={field}
                 />
+                {/* Lo que dice tiene que ser verdad. Prometía «el comprobante
+                    y, si la pides, tu factura», y el correo se guardaba como
+                    contacto sin llegar a ninguna de las dos. Ahora, donde se
+                    factura, sirve para la factura de abajo; donde no, sólo para
+                    lo que se marque. */}
                 <p id="claim-email-help" className="hint mt-1">
-                  {t("payerEmailWhy")}
+                  {canInvoice ? t("payerEmailWhyInvoice") : t("payerEmailWhyContact")}
                 </p>
+                {canInvoice && email.trim() && (
+                  <div className="mt-3 rounded-lg border border-border-strong p-3">
+                    <label className="flex items-start gap-2.5 text-sm font-medium">
+                      <input
+                        type="checkbox"
+                        data-testid="guest-claim-invoice"
+                        checked={wantsInvoice}
+                        onChange={(e) => setWantsInvoice(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0"
+                      />
+                      <span>{t("claimInvoiceAsk")}</span>
+                    </label>
+                    {wantsInvoice && (
+                      <>
+                        <p className="hint mt-1.5 pl-6.5">{t("claimInvoiceWhen")}</p>
+                        <label className="hint mt-2 flex items-start gap-2 pl-6.5">
+                          <input
+                            type="checkbox"
+                            checked={inName}
+                            onChange={(e) => setInName(e.target.checked)}
+                            className="mt-0.5 h-4 w-4 shrink-0"
+                          />
+                          <span>{t("claimInvoiceInName")}</span>
+                        </label>
+                        {inName && (
+                          <div className="mt-2 space-y-2 pl-6.5">
+                            <input
+                              aria-label={t("invoiceName")}
+                              placeholder={t("invoiceName")}
+                              value={invoiceName}
+                              onChange={(e) => setInvoiceName(e.target.value)}
+                              autoComplete="name"
+                              aria-invalid={invalid("invoice.name")}
+                              className={field}
+                            />
+                            <input
+                              aria-label={t("invoiceTaxId")}
+                              placeholder="V12345678 / J123456789"
+                              value={invoiceTaxId}
+                              onChange={(e) => setInvoiceTaxId(e.target.value)}
+                              autoCapitalize="characters"
+                              aria-invalid={invalid("invoice.taxId")}
+                              className={field}
+                            />
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
                 {/* Sólo cuando hay un correo que consentir. Una casilla de
                     permiso sobre un campo vacío no consiente nada y sólo añade
                     una decisión más a una pantalla donde se está pagando. */}

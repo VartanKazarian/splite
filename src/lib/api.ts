@@ -765,6 +765,17 @@ export const guest = {
        * por esa promesa es uno que no se la pidió al personal mientras podía.
        */
       canRequestInvoice: boolean;
+      /** La factura de este cobro, cuando existe: su número y adónde se manda. */
+      invoice?: { controlNumber: string; email: string | null } | null;
+      /**
+       * La factura pedida al avisar del pago. WAITING mientras el cobro está
+       * por confirmar; FAILED si al confirmarlo no se pudo emitir, que es
+       * cuando vuelve a ofrecerse pedirla a mano.
+       */
+      invoiceRequest?: {
+        email: string;
+        status: "WAITING" | "ISSUED" | "FAILED" | "SKIPPED";
+      } | null;
     }>(`/api/v1/guest/payments/${paymentId}`, { auth: "guest" }),
 
   /**
@@ -902,6 +913,11 @@ export type Bill = {
    * del invitado; el panel no lo necesita.
    */
   c2pAvailable?: boolean;
+  /**
+   * Si aquí se puede pedir factura, dicho antes de pagar: decide si el aviso
+   * de pago ofrece «envíame la factura». Sólo en la cuenta del invitado.
+   */
+  canRequestInvoice?: boolean;
   itemCount?: number;
   /**
    * Los tres de abajo sólo vienen en el resumen de `/tables/floor`, no en
@@ -1133,6 +1149,12 @@ export type PaymentClaimInput = {
   tipVes?: Money;
   /** Atribuye el aviso a una parte del reparto persistente. */
   splitParticipantId?: string;
+  /**
+   * «Envíame la factura». Se emite sola cuando el restaurante confirme el
+   * cobro, y llega a `email`. Ofrecerla sólo si la cuenta trae
+   * `canRequestInvoice`.
+   */
+  invoice?: { email: string; name?: string; taxId?: string };
 };
 
 export type SplitMode = "FULL" | "EQUAL" | "ITEMS" | "CUSTOM";

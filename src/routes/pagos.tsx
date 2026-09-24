@@ -650,7 +650,7 @@ function PaymentsPage() {
 
         {current === "tasas" && <FxRatesCard />}
 
-        {current === "facturacion" && <FiscalPanel />}
+        {current === "facturacion" && <FiscalPanel canExport={canAssign} />}
       </main>
     </div>
   );

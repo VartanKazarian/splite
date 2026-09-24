@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as InvitacionRouteImport } from './routes/invitacion'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as MesasRouteImport } from './routes/mesas'
@@ -33,6 +34,11 @@ const IndexRoute = IndexRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvitacionRoute = InvitacionRouteImport.update({
+  id: '/invitacion',
+  path: '/invitacion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -104,6 +110,7 @@ const TSplatRoute = TSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/invitacion': typeof InvitacionRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/mesas': typeof MesasRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/invitacion': typeof InvitacionRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/mesas': typeof MesasRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/invitacion': typeof InvitacionRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/mesas': typeof MesasRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/invitacion'
     | '/login'
     | '/menu'
     | '/mesas'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/invitacion'
     | '/login'
     | '/menu'
     | '/mesas'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/invitacion'
     | '/login'
     | '/menu'
     | '/mesas'
@@ -210,6 +222,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  InvitacionRoute: typeof InvitacionRoute
   LoginRoute: typeof LoginRoute
   MenuRoute: typeof MenuRoute
   MesasRoute: typeof MesasRoute
@@ -239,6 +252,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitacion': {
+      id: '/invitacion'
+      path: '/invitacion'
+      fullPath: '/invitacion'
+      preLoaderRoute: typeof InvitacionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -338,6 +358,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  InvitacionRoute: InvitacionRoute,
   LoginRoute: LoginRoute,
   MenuRoute: MenuRoute,
   MesasRoute: MesasRoute,

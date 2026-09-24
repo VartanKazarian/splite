@@ -1024,7 +1024,16 @@ export type PaymentClaim = {
 export type StaffPaymentClaim = PaymentClaim & {
   phoneOrigin?: string | null;
   bankOrigin?: string | null;
+  /** El nombre del banco, resuelto por el servidor; null si el código no se conoce. */
+  bankOriginName?: string | null;
   declaredAt?: string | null;
+  /** Lo que el comensal añadió de propina en la misma transferencia. */
+  tipVes?: Money;
+  /** Parte + propina: la cifra que llegó al banco y que se busca en su app. */
+  totalPaidVes?: Money;
+  /** Sólo en la cola: de qué mesa es y, si lo dio, quién paga. */
+  tableName?: string | null;
+  payerName?: string | null;
 };
 
 /** Cuántos avisos esperan y desde cuándo. La antigüedad la calcula el servidor. */
@@ -1550,14 +1559,27 @@ async function listAll<T>(path: string): Promise<T[]> {
   return out;
 }
 
+/**
+ * Orden de mesas como las cuenta una persona: «Mesa 5» antes que «Mesa 31».
+ *
+ * El servidor ordena por texto, carácter a carácter, y así «Mesa 31» salía
+ * antes que «Mesa 5» y todas las mayúsculas antes que cualquier minúscula. Se
+ * ordena aquí, en el único sitio por el que pasan todas las listas de mesas,
+ * para que ninguna pantalla pueda olvidarlo.
+ */
+const tableNameOrder = new Intl.Collator("es", { numeric: true, sensitivity: "base" });
+export function sortTablesByName<T extends { name: string }>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => tableNameOrder.compare(a.name, b.name));
+}
+
 export const tables = {
-  list: () => listAll<Table>("/api/v1/tables"),
+  list: () => listAll<Table>("/api/v1/tables").then(sortTablesByName),
 
   /** Un solo GET con todas las mesas: openBill = null significa mesa libre, no error. */
   floor: () =>
     apiRequest<{ data: FloorTable[] } | FloorTable[]>("/api/v1/tables/floor", {
       auth: "staff",
-    }).then((r) => (Array.isArray(r) ? r : r.data)),
+    }).then((r) => sortTablesByName(Array.isArray(r) ? r : r.data)),
   /**
    * Crea de golpe las mesas que dice tener el restaurante.
    *

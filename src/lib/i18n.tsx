@@ -535,6 +535,8 @@ const dict = {
     payToVerify: "Por verificar",
     payConfirmArrived: "Confirmar: el dinero llegó",
     payNotThere: "No aparece",
+    payRejectClaim: "Rechazar aviso",
+    payIncludesTip: "{bill} de la cuenta + {tip} de propina",
     tipsTodayHint:
       "El efectivo ya está en caja; lo electrónico lo tiene el restaurante y se le debe al personal.",
     c2pUnresolvedHint:
@@ -624,6 +626,12 @@ const dict = {
     fxSourceBCVLastInForce: "última publicada por el BCV",
     fxSourceIdentity: "sin conversión",
     deleteForever: "Borrar",
+    payoutDeleteTitle: "¿Borrar los datos de cobro?",
+    payoutDeleteBody:
+      "Los comensales dejarán de ver a qué cuenta pagarte y no podrán pagar por Pago Móvil hasta que los vuelvas a poner. Los cobros ya registrados no se tocan.",
+    c2pDeleteTitle: "¿Borrar las credenciales C2P?",
+    c2pDeleteBody:
+      "El cobro C2P deja de funcionar hasta que las vuelvas a poner. Los cobros ya hechos no se tocan.",
     paymentsNav: "Pagos",
     chargesInMenuHint: "El IVA y el servicio se configuran en",
     chargesInMenuLink: "Configuración → Cobros",
@@ -1533,6 +1541,8 @@ const dict = {
     payToVerify: "To verify",
     payConfirmArrived: "Confirm: the money arrived",
     payNotThere: "Not there",
+    payRejectClaim: "Reject claim",
+    payIncludesTip: "{bill} for the bill + {tip} tip",
     tipsTodayHint:
       "Cash is already in the till; electronic tips are held by the restaurant and owed to staff.",
     c2pUnresolvedHint:
@@ -1621,6 +1631,12 @@ const dict = {
     fxSourceBCVLastInForce: "last one published by the BCV",
     fxSourceIdentity: "no conversion",
     deleteForever: "Delete",
+    payoutDeleteTitle: "Delete the payment details?",
+    payoutDeleteBody:
+      "Diners will no longer see which account to pay and won't be able to pay by Pago Móvil until you add them again. Payments already recorded are not affected.",
+    c2pDeleteTitle: "Delete the C2P credentials?",
+    c2pDeleteBody:
+      "C2P payments stop working until you add them again. Payments already made are not affected.",
     paymentsNav: "Payments",
     chargesInMenuHint: "VAT and service are configured in",
     chargesInMenuLink: "Settings → Getting paid",

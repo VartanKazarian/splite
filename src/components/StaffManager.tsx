@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, ShieldOff, UserPlus, Users } from "lucide-react";
+import { KeyRound, ShieldOff, UserPlus, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -159,12 +159,27 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
         <h2 className="inline-flex items-center gap-2 text-xl">
           <Users className="h-5 w-5 text-muted-foreground" /> Personal
         </h2>
+        {/* Abierto el formulario, el mismo botón lo cierra, y entonces deja de
+            ser verde: el verde es para lo que hace avanzar, y cancelar no. El
+            que avanza es «Añadir», dentro del formulario. */}
         <button
           onClick={() => setAdding((v) => !v)}
           disabled={busy || grantable.length === 0}
-          className="inline-flex items-center gap-1.5 min-h-11 rounded-lg bg-primary px-4 text-sm text-primary-foreground disabled:opacity-60"
+          className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-4 text-sm disabled:opacity-60 ${
+            adding
+              ? "border border-border-strong bg-background text-foreground"
+              : "bg-primary text-primary-foreground"
+          }`}
         >
-          <UserPlus className="h-4 w-4" /> {adding ? "Cancelar" : t("staffAddPerson")}
+          {adding ? (
+            <>
+              <X className="h-4 w-4" /> {t("cancel")}
+            </>
+          ) : (
+            <>
+              <UserPlus className="h-4 w-4" /> {t("staffAddPerson")}
+            </>
+          )}
         </button>
       </div>
 
@@ -179,9 +194,12 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
             e.preventDefault();
             create.mutate();
           }}
-          className="mt-4 grid gap-3 rounded-lg border border-border bg-secondary p-4"
+          // `grid-cols-1` es `minmax(0, 1fr)`: sin él la columna mide lo que
+          // la opción más larga del rol («Mesero — Abrir cuentas y añadir
+          // productos») y en un teléfono el formulario se salía 141 px.
+          className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-border bg-secondary p-4"
         >
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="grid gap-1">
               <span className="text-xs text-muted-foreground">{t("email")}</span>
               <input
@@ -202,7 +220,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as StaffRole)}
-                className="min-h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring"
+                className="min-h-11 w-full min-w-0 truncate rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring"
               >
                 {grantable.map((r) => (
                   <option key={r} value={r}>

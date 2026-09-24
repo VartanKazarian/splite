@@ -62,7 +62,10 @@ export function RestaurantBranding({
           url={data?.restaurant.logoUrl ?? null}
           canEdit={canEdit}
           restaurantId={restaurantId}
-          className="aspect-square"
+          // El logo se ve pequeño encima de la portada, y aquí medía el ancho
+          // entero del teléfono: un cuadrado vacío de una pantalla. Con 160 px
+          // se ve igual de bien y cabe al lado de su botón.
+          className="aspect-square max-w-40"
         />
       </div>
 

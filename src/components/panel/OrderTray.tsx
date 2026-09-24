@@ -161,12 +161,12 @@ function OrderRow({
           <button
             type="button"
             onClick={onOpen}
-            className="font-display text-lg underline-offset-4 hover:underline"
+            className="text-base font-medium tabular-nums underline-offset-4 hover:underline"
           >
             {order.tableName}
           </button>
         ) : (
-          <span className="font-display text-lg">{order.tableName}</span>
+          <span className="text-base font-medium tabular-nums">{order.tableName}</span>
         )}
         <span className="figure text-xs text-muted-foreground">{ago(order.ageSeconds, t)}</span>
       </div>

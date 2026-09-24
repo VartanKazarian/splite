@@ -212,9 +212,27 @@ function PaymentsPage() {
         {/* Actualizar vivía en la cabecera; la cabecera ahora es la misma en
             todas las pantallas, así que baja junto al título -- que es donde
             está en Tasas, la otra pantalla que se recarga a mano. */}
+        {/* El título es el de la pestaña. «Verificación de pagos» encabezaba
+            también propinas, tasa y facturas, que no verifican nada. */}
         <PageHeader
-          title={t("payVerifyTitle")}
-          meta={t("payVerifySub")}
+          title={
+            current === "propinas"
+              ? t("payTabTips")
+              : current === "tasas"
+                ? t("fxRates")
+                : current === "facturacion"
+                  ? t("fiscalTab")
+                  : t("payVerifyTitle")
+          }
+          meta={
+            current === "propinas"
+              ? t("payTipsSub")
+              : current === "tasas"
+                ? t("payRatesSub")
+                : current === "facturacion"
+                  ? t("payInvoicesSub")
+                  : t("payVerifySub")
+          }
           actions={
             current === "cobros" ? (
               <button
@@ -233,7 +251,7 @@ function PaymentsPage() {
             la barra de arriba para dos números, cae aquí: es la misma cuenta.
             Ver `FxRatesCard`. */}
         <nav
-          aria-label={t("payVerifyTitle")}
+          aria-label={t("paymentsNav")}
           className="mt-4 flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {TABS.map(([id, label]) => (
@@ -349,16 +367,28 @@ function PaymentsPage() {
                           {claim.declaredReference ?? "—"}
                         </dd>
                       </div>
-                      <div>
-                        <dt className="inline">{t("payPayerBank")}</dt>
-                        <dd className="inline">
-                          {claim.bankOriginName ?? claim.bankOrigin ?? "—"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="inline">{t("payPhone")}</dt>
-                        <dd className="inline">{claim.phoneOrigin ?? "—"}</dd>
-                      </div>
+                      {/* Sólo lo que el comensal dio. «Banco: —» y
+                          «Teléfono: —» eran dos líneas por tarjeta que no
+                          ayudaban a buscar nada, y con diecisiete avisos en
+                          cola suman una pantalla. */}
+                      {(claim.bankOriginName ?? claim.bankOrigin) && (
+                        <div>
+                          <dt className="inline">{t("payPayerBank")}</dt>
+                          <dd className="inline">{claim.bankOriginName ?? claim.bankOrigin}</dd>
+                        </div>
+                      )}
+                      {claim.phoneOrigin && (
+                        <div>
+                          <dt className="inline">{t("payPhone")}</dt>
+                          <dd className="inline figure">{claim.phoneOrigin}</dd>
+                        </div>
+                      )}
+                      {claim.idOrigin && (
+                        <div>
+                          <dt className="inline">{t("payIdOrigin")}</dt>
+                          <dd className="inline figure">{claim.idOrigin}</dd>
+                        </div>
+                      )}
                       <div>
                         <dt className="inline">{t("payDeclared")}</dt>
                         <dd className="inline">
@@ -394,14 +424,16 @@ function PaymentsPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      // Lado a lado, y confirmar ocupa lo que sobra: apiladas, cada
+                      // tarjeta medía una pantalla y la cola no se podía recorrer.
+                      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                         <button
                           data-testid={`claim-confirm-${claim.id}`}
                           disabled={confirmClaim.isPending}
                           onClick={() => confirmClaim.mutate(claim.id)}
-                          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground disabled:opacity-40"
+                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-4 text-center text-xs font-medium text-primary-foreground disabled:opacity-40"
                         >
-                          <Check className="h-3.5 w-3.5" /> {t("payConfirmArrived")}
+                          <Check className="h-3.5 w-3.5 shrink-0" /> {t("payConfirmArrived")}
                         </button>
                         <button
                           onClick={() => {
@@ -450,12 +482,14 @@ function PaymentsPage() {
                         </span>
                       </div>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {c.payerBankName ?? c.payerBankCode} · teléfono ••••{c.payerPhoneLast4} ·
-                        factura {c.invoiceNumber}
+                        {t("c2pChargeLine")
+                          .replace("{bank}", c.payerBankName ?? c.payerBankCode ?? "")
+                          .replace("{last4}", c.payerPhoneLast4 ?? "")
+                          .replace("{invoice}", c.invoiceNumber ?? "")}
                       </p>
                       {c.candidateReferences.length > 0 && (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Movimientos que coinciden en monto: {c.candidateReferences.join(", ")}
+                          {t("c2pCandidates").replace("{refs}", c.candidateReferences.join(", "))}
                         </p>
                       )}
                       {c.lastReason && (
@@ -467,7 +501,7 @@ function PaymentsPage() {
                         onClick={() => resolveC2P.mutate(c.paymentId)}
                         className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-xs disabled:opacity-40"
                       >
-                        <RefreshCw className="h-3.5 w-3.5" /> Preguntar al banco
+                        <RefreshCw className="h-3.5 w-3.5" /> {t("c2pAskBank")}
                       </button>
 
                       {res && (
@@ -484,13 +518,12 @@ function PaymentsPage() {
                           {res.reason && <p className="mt-1 text-muted-foreground">{res.reason}</p>}
                           {res.resolutionPending && (
                             <p className="mt-1 text-muted-foreground">
-                              La ventana de liquidación no ha pasado. Vuelve a intentarlo en{" "}
-                              {res.retryAfterMinutes ?? 0} min.
+                              {t("c2pRetryIn").replace("{n}", String(res.retryAfterMinutes ?? 0))}
                             </p>
                           )}
                           {res.bankReference && (
                             <p className="mt-1 text-muted-foreground">
-                              Referencia del banco: {res.bankReference}
+                              {t("c2pBankReference").replace("{ref}", res.bankReference)}
                             </p>
                           )}
                         </div>
@@ -509,9 +542,11 @@ function PaymentsPage() {
 
         {current === "propinas" && (
           <>
-            {/* Antes del informe del restaurante, y sin gate de rol: lo tuyo lo ves
-            seas quien seas, y es lo primero que busca un mesero al abrir esto. */}
-            <MyTipsCard from={todayFrom} to={todayTo} />
+            {/* Lo tuyo lo ves seas quien seas. A un mesero es lo primero que le
+            importa, así que va arriba; a quien reparte (dueño, encargado) le
+            importa el reparto del equipo, y lo suyo -- casi siempre cero, porque
+            no sirve mesas -- baja al final. */}
+            {!canAssign && <MyTipsCard from={todayFrom} to={todayTo} />}
 
             {tipsQuery.data && (
               <section className="surface mt-6 p-6">
@@ -608,6 +643,8 @@ function PaymentsPage() {
                 )}
               </section>
             )}
+
+            {canAssign && <MyTipsCard from={todayFrom} to={todayTo} />}
           </>
         )}
 

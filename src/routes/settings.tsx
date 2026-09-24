@@ -305,6 +305,7 @@ function SettingsPage() {
       : [
           ["restaurante", t("settingsGroupRestaurant")],
           ["cobros", t("settingsGroupMoney")],
+          ["facturacion", t("fiscalTab")],
           ["equipo", t("settingsGroupTeam")],
           ["cuenta", t("settingsGroupAccount")],
         ];
@@ -451,7 +452,7 @@ function SettingsPage() {
                       className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
                     />
                     <span className="mt-1 block text-[11px] figure text-muted-foreground">
-                      {formatBps(bpsFromInput(vat) ?? 0)} · {bpsFromInput(vat) ?? "—"} bps
+                      {formatBps(bpsFromInput(vat) ?? 0)}
                     </span>
                   </label>
                   <label className="text-sm">
@@ -464,7 +465,7 @@ function SettingsPage() {
                       className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
                     />
                     <span className="mt-1 block text-[11px] figure text-muted-foreground">
-                      {formatBps(bpsFromInput(service) ?? 0)} · {bpsFromInput(service) ?? "—"} bps
+                      {formatBps(bpsFromInput(service) ?? 0)}
                     </span>
                   </label>
                 </div>
@@ -486,17 +487,22 @@ function SettingsPage() {
 
               {(role === "OWNER" || role === "MANAGER") && <PayoutSection />}
               {role === "OWNER" && <ProvidersSection />}
+            </Group>
 
+            {/* Todo lo de facturar, junto y con su nombre. Estaba al final de
+                Cobros, debajo de las credenciales del banco, y quien venía de
+                Pagos → Facturación a buscar por qué no se emitía no lo
+                encontraba. La lista de facturas sigue en Pagos: aquí se
+                configura, allí se consulta. */}
+            <Group id="facturacion" title={t("fiscalTab")} active={current === "facturacion"}>
               {/* Antes que la serie, y a propósito: el RIF es quién emite y la
                   serie es con qué números. Configurar la segunda sin el primero
                   deja una serie que no puede numerar nada. */}
               <FiscalRif canEdit={role === "OWNER"} />
 
-              {/* Con qué números se emiten las facturas. Va en Cobros y no en
-                  Restaurante porque no es escaparate: es cómo declara el local,
-                  la misma familia que el payee y las credenciales. La lee
-                  cualquiera -- el personal puede necesitar saber por qué número
-                  va -- y sólo el dueño la escribe. */}
+              {/* Con qué números se emiten las facturas. La lee cualquiera --
+                  el personal puede necesitar saber por qué número va -- y sólo
+                  el dueño la escribe. */}
               <FiscalSeries canEdit={role === "OWNER"} />
             </Group>
 
@@ -702,6 +708,20 @@ const MERCANTIL_FIELDS = [
   "terminalId",
 ] as const;
 
+/*
+ * El nombre para una persona, y debajo el que usa el banco. Se enseñaba sólo
+ * el segundo -- «merchantId», «secretKey» -- que es cómo se llama la clave en
+ * la API y no cómo la busca un dueño; pero el portal del banco usa ese mismo
+ * nombre, así que se deja al lado para poder encontrarla allí.
+ */
+const MERCANTIL_FIELD_LABEL = {
+  merchantId: "c2pFieldMerchant",
+  clientId: "c2pFieldClient",
+  secretKey: "c2pFieldSecret",
+  integratorId: "c2pFieldIntegrator",
+  terminalId: "c2pFieldTerminal",
+} as const;
+
 /**
  * Credenciales del banco para cobrar C2P dentro de la app. Sólo OWNER.
  * Nunca se devuelven: la pantalla sólo puede decir si están configuradas.
@@ -726,7 +746,7 @@ function ProvidersSection() {
     onSuccess: () => {
       setValues({});
       queryClient.invalidateQueries({ queryKey: ["payment-providers"] });
-      toast.success("Credenciales guardadas. El banco tiene que validarlas antes de activarse.");
+      toast.success(t("c2pSaved"));
     },
     onError: (error) => {
       if (error instanceof ApiError) toast.error(`${error.code} · ${error.message}`);
@@ -738,7 +758,7 @@ function ProvidersSection() {
     mutationFn: () => account.deleteProvider("MERCANTIL"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payment-providers"] });
-      toast.success("Credenciales eliminadas");
+      toast.success(t("c2pDeleted"));
     },
   });
 
@@ -774,7 +794,8 @@ function ProvidersSection() {
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {MERCANTIL_FIELDS.map((f) => (
           <label key={f} className="text-sm">
-            <span className="text-muted-foreground">{f}</span>
+            <span className="text-muted-foreground">{t(MERCANTIL_FIELD_LABEL[f])}</span>
+            <span className="ml-1.5 text-[11px] text-muted-foreground/80">({f})</span>
             <input
               type="password"
               autoComplete="off"

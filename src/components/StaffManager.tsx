@@ -266,7 +266,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
 
       {list.isLoading && <p className="mt-4 text-sm text-muted-foreground">{t("loading")}</p>}
       {list.isError && !forbidden && (
-        <ErrorBox error={list.error} fallback="No se pudo cargar el personal" />
+        <ErrorBox error={list.error} fallback={t("staffLoadFailed")} />
       )}
 
       <ul className="mt-4 divide-y divide-border">
@@ -274,85 +274,105 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
           const mine = m.id === me.id;
           const editable = canTouch(m);
           return (
-            <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
-              <div className="min-w-0 flex-1">
-                <p className={`truncate text-sm ${m.active ? "" : "text-muted-foreground"}`}>
-                  {m.email}
-                  {mine && (
-                    <span className="ml-2 text-[11px] text-muted-foreground">{t("staffYou")}</span>
+            <li key={m.id} className="py-3">
+              {/* Quién, y su rol al lado. El nombre si se lo ha puesto y el
+                  correo debajo, entero: cortado a «owner@exam…» no se sabía
+                  de quién era la fila. */}
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className={`text-sm ${m.active ? "" : "text-muted-foreground"}`}>
+                    {m.displayName?.trim() || m.email}
+                    {mine && (
+                      <span className="ml-2 text-[11px] text-muted-foreground">
+                        {t("staffYou")}
+                      </span>
+                    )}
+                    {!m.active && (
+                      <span className="ml-2 rounded-full bg-secondary px-1.5 py-px text-[11px] text-muted-foreground">
+                        {t("staffInactive")}
+                      </span>
+                    )}
+                  </p>
+                  {m.displayName?.trim() && (
+                    <p className="break-all text-xs text-muted-foreground">{m.email}</p>
                   )}
-                  {!m.active && (
-                    <span className="ml-2 rounded-full bg-secondary px-1.5 py-px text-[11px] text-muted-foreground">
-                      dado de baja
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground">{t(ROLE_HINT_KEY[m.role])}</p>
+                  <p className="text-xs text-muted-foreground">{t(ROLE_HINT_KEY[m.role])}</p>
+                </div>
+
+                <select
+                  value={m.role}
+                  disabled={busy || !editable}
+                  onChange={(e) =>
+                    update.mutate({ id: m.id, body: { role: e.target.value as StaffRole } })
+                  }
+                  aria-label={`${t("staffRole")}: ${m.email}`}
+                  className="min-h-11 shrink-0 rounded-lg border border-input bg-secondary px-2 text-xs outline-none focus:border-ring disabled:opacity-50"
+                >
+                  {(Object.keys(STAFF_RANK) as StaffRole[])
+                    .sort((a, b) => STAFF_RANK[b] - STAFF_RANK[a])
+                    .map((r) => (
+                      <option key={r} value={r} disabled={!grantable.includes(r)}>
+                        {t(`role${r}` as never)}
+                      </option>
+                    ))}
+                </select>
               </div>
 
-              <select
-                value={m.role}
-                disabled={busy || !editable}
-                onChange={(e) =>
-                  update.mutate({ id: m.id, body: { role: e.target.value as StaffRole } })
-                }
-                aria-label={`Rol de ${m.email}`}
-                className="min-h-11 rounded-lg border border-input bg-secondary px-2 text-xs outline-none focus:border-ring disabled:opacity-50"
-              >
-                {(Object.keys(STAFF_RANK) as StaffRole[])
-                  .sort((a, b) => STAFF_RANK[b] - STAFF_RANK[a])
-                  .map((r) => (
-                    <option key={r} value={r} disabled={!grantable.includes(r)}>
-                      {t(`role${r}` as never)}
-                    </option>
-                  ))}
-              </select>
+              {/* Las acciones con su nombre escrito. Eran una llave y un escudo
+                  tachado sin texto, y el escudo -- en rojo -- quitaba a la
+                  persona del equipo. Sólo aparecen donde se pueden usar: en tu
+                  propia fila eran dos iconos grises que no hacían nada. */}
+              {editable && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      const next = window.prompt(
+                        t("staffPasswordPrompt")
+                          .replace("{who}", m.email)
+                          .replace("{n}", String(MIN_PASSWORD)),
+                      );
+                      if (next === null) return;
+                      if (next.length < MIN_PASSWORD) {
+                        toast.error(
+                          t("staffPasswordTooShort").replace("{n}", String(MIN_PASSWORD)),
+                        );
+                        return;
+                      }
+                      resetPassword.mutate({ id: m.id, password: next });
+                    }}
+                    disabled={busy}
+                    aria-label={`${t("staffNewPassword")}: ${m.email}`}
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-3 text-xs disabled:opacity-40"
+                  >
+                    <KeyRound className="h-3.5 w-3.5" /> {t("staffPasswordShort")}
+                  </button>
 
-              <button
-                onClick={() => {
-                  const next = window.prompt(
-                    `Nueva contraseña para ${m.email} (mínimo ${MIN_PASSWORD} caracteres).\n\nCerrará las sesiones que tenga abiertas.`,
-                  );
-                  if (next === null) return;
-                  if (next.length < MIN_PASSWORD) {
-                    toast.error(`La contraseña necesita al menos ${MIN_PASSWORD} caracteres`);
-                    return;
-                  }
-                  resetPassword.mutate({ id: m.id, password: next });
-                }}
-                disabled={busy || !editable}
-                title={t("staffNewPassword")}
-                aria-label={`Cambiar la contraseña de ${m.email}`}
-                className="flex h-11 w-11 items-center justify-center text-muted-foreground disabled:opacity-30"
-              >
-                <KeyRound className="h-4 w-4" />
-              </button>
-
-              {/* Sólo pregunta la baja. Reactivar a alguien no rompe nada, y
-                  un aviso delante de cada acción enseña a pulsar "sí" sin
-                  leerlo -- que es como se pierde la que sí importaba. */}
-              {m.active ? (
-                <ConfirmButton
-                  title={t("confirmRemoveStaff").replace("{who}", m.email)}
-                  description={t("confirmRemoveStaffBody")}
-                  confirmLabel={t("confirmRemoveStaffCta")}
-                  onConfirm={() => update.mutate({ id: m.id, body: { active: false } })}
-                  disabled={busy || !editable}
-                  aria-label={`${t("confirmRemoveStaffCta")} ${m.email}`}
-                  className="flex h-11 w-11 items-center justify-center text-destructive disabled:opacity-30"
-                >
-                  <ShieldOff className="h-4 w-4" />
-                </ConfirmButton>
-              ) : (
-                <button
-                  onClick={() => update.mutate({ id: m.id, body: { active: true } })}
-                  disabled={busy || !editable}
-                  title="Reactivar"
-                  aria-label={`Reactivar a ${m.email}`}
-                  className="flex h-11 w-11 items-center justify-center text-muted-foreground disabled:opacity-30"
-                >
-                  <ShieldOff className="h-4 w-4" />
-                </button>
+                  {/* Sólo pregunta la baja. Reactivar a alguien no rompe nada, y
+                      un aviso delante de cada acción enseña a pulsar "sí" sin
+                      leerlo -- que es como se pierde la que sí importaba. */}
+                  {m.active ? (
+                    <ConfirmButton
+                      title={t("confirmRemoveStaff").replace("{who}", m.email)}
+                      description={t("confirmRemoveStaffBody")}
+                      confirmLabel={t("confirmRemoveStaffCta")}
+                      onConfirm={() => update.mutate({ id: m.id, body: { active: false } })}
+                      disabled={busy}
+                      aria-label={`${t("confirmRemoveStaffCta")}: ${m.email}`}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-destructive/60 px-3 text-xs text-destructive disabled:opacity-40"
+                    >
+                      <ShieldOff className="h-3.5 w-3.5" /> {t("confirmRemoveStaffCta")}
+                    </ConfirmButton>
+                  ) : (
+                    <button
+                      onClick={() => update.mutate({ id: m.id, body: { active: true } })}
+                      disabled={busy}
+                      aria-label={`${t("staffReactivate")}: ${m.email}`}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-3 text-xs disabled:opacity-40"
+                    >
+                      {t("staffReactivate")}
+                    </button>
+                  )}
+                </div>
               )}
             </li>
           );

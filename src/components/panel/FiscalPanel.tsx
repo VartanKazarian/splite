@@ -58,71 +58,90 @@ export function FiscalPanel() {
 
   const pending = queue.data?.data ?? [];
 
+  const refreshButton = (
+    <button
+      type="button"
+      className="flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+      onClick={() => qc.invalidateQueries({ queryKey: ["fiscal"] })}
+    >
+      <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+      {t("refreshRates")}
+    </button>
+  );
+
+  /*
+   * La cola sólo aparece cuando tiene algo. Vacía -- que es lo normal -- era
+   * una sección entera con su explicación encima de las facturas, empujando
+   * hacia abajo lo que se viene a buscar. Si hay algo en duda sí va primero:
+   * entonces es trabajo, y el registro puede esperar.
+   */
+  const showQueue = queue.isError || pending.length > 0;
+
   return (
     <div className="mt-6 space-y-8">
+      {showQueue && (
+        <section>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl">{t("fiscalQueueTitle")}</h2>
+            {refreshButton}
+          </div>
+
+          {/* La explicación va en la pantalla y no en un manual: quien abre esto
+            necesita saber por qué no hay un botón de reintentar. */}
+          <p className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
+            <HelpCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+            {t("fiscalQueueHelp")}
+          </p>
+
+          {queue.isError ? (
+            <p className="mt-4 rounded-lg border border-border p-4 text-sm text-muted-foreground">
+              {t("apiDown")}
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {pending.map((row: FiscalRequestRow) => (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm">
+                      {t("fiscalAttemptFrom").replace(
+                        "{when}",
+                        formatDateTime(row.createdAt, lang) ?? "",
+                      )}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {t("fiscalAttempts").replace("{n}", String(row.attempts))}
+                      {row.lastErrorCode ? ` · ${row.lastErrorCode}` : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+                    disabled={resolve.isPending}
+                    onClick={() => resolve.mutate(row.id)}
+                  >
+                    {t("fiscalAsk")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       <section>
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl">{t("fiscalQueueTitle")}</h2>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => qc.invalidateQueries({ queryKey: ["fiscal"] })}
-          >
-            <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-            {t("refreshRates")}
-          </button>
+          <h2 className="text-xl">{t("fiscalIssuedTitle")}</h2>
+          {!showQueue && refreshButton}
         </div>
-
-        {/* La explicación va en la pantalla y no en un manual: quien abre esto
-            necesita saber por qué no hay un botón de reintentar. */}
-        <p className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
-          <HelpCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-          {t("fiscalQueueHelp")}
-        </p>
-
-        {queue.isPending ? (
-          <p className="mt-4 text-sm text-muted-foreground">{t("loading")}</p>
-        ) : pending.length === 0 ? (
-          // El estado normal, y se escribe como tal: nada pendiente es una
-          // buena noticia, no una tabla vacía.
-          <p className="mt-4 rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        {/* Lo normal, dicho en una línea y no en una tarjeta: nada en duda. */}
+        {!showQueue && queue.isSuccess && (
+          <p className="mt-1 text-xs text-muted-foreground" data-testid="fiscal-queue-empty">
             {t("fiscalQueueEmpty")}
           </p>
-        ) : (
-          <ul className="mt-4 space-y-2">
-            {pending.map((row: FiscalRequestRow) => (
-              <li
-                key={row.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm">
-                    {t("fiscalAttemptFrom").replace(
-                      "{when}",
-                      formatDateTime(row.createdAt, lang) ?? "",
-                    )}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {t("fiscalAttempts").replace("{n}", String(row.attempts))}
-                    {row.lastErrorCode ? ` · ${row.lastErrorCode}` : ""}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
-                  disabled={resolve.isPending}
-                  onClick={() => resolve.mutate(row.id)}
-                >
-                  {t("fiscalAsk")}
-                </button>
-              </li>
-            ))}
-          </ul>
         )}
-      </section>
-
-      <section>
-        <h2 className="font-display text-xl">{t("fiscalIssuedTitle")}</h2>
         {issued.isPending ? (
           <p className="mt-4 text-sm text-muted-foreground">{t("loading")}</p>
         ) : (issued.data?.data.length ?? 0) === 0 ? (
@@ -142,15 +161,36 @@ export function FiscalPanel() {
                 <button
                   type="button"
                   onClick={() => setOpenInvoice(inv.id)}
-                  className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-muted"
+                  data-testid={`fiscal-invoice-row-${inv.id}`}
+                  className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 p-4 text-left transition-colors hover:bg-muted"
                 >
                   <span className="min-w-0">
-                    {/* El número de control lo pone la imprenta autorizada. Se
-                        muestra tal cual, sin adornarlo ni reformatearlo. */}
-                    <span className="figure block text-sm">{inv.controlNumber}</span>
+                    {/* Arriba lo que se busca: qué documento y de qué mesa. Los
+                        dos números los pone la imprenta autorizada y se muestran
+                        tal cual, sin adornarlos ni reformatearlos. */}
+                    <span className="block text-sm">
+                      {inv.documentType !== "INVOICE" && (
+                        <span className="mr-1.5 text-xs text-muted-foreground">
+                          {t(
+                            inv.documentType === "CREDIT_NOTE"
+                              ? "fiscalCreditNote"
+                              : "fiscalDebitNote",
+                          )}
+                        </span>
+                      )}
+                      <span className="figure font-medium">{inv.documentNumber}</span>
+                      {inv.tableName && (
+                        <span className="text-muted-foreground"> · {inv.tableName}</span>
+                      )}
+                    </span>
                     <span className="mt-0.5 block text-xs text-muted-foreground">
-                      {formatDateTime(inv.issuedAt, lang) ?? ""} ·{" "}
-                      {inv.customer?.taxId ?? t("fiscalFinalConsumer")}
+                      <span className="figure">
+                        {t("fiscalControlShort")} {inv.controlNumber}
+                      </span>
+                      {" · "}
+                      {formatDateTime(inv.issuedAt, lang) ?? ""}
+                      {" · "}
+                      {inv.customer?.name ?? inv.customer?.taxId ?? t("fiscalFinalConsumer")}
                     </span>
                   </span>
                   <span className="figure text-sm">{formatMoney(inv.totalMinor, "VES")}</span>

@@ -55,9 +55,11 @@ export function TableDetailSheet({
     tone:
       badge.tone === "free"
         ? ("neutral" as const)
-        : badge.tone === "attention"
-          ? ("attention" as const)
-          : ("good" as const),
+        : (table.openBill?.pendingClaims ?? 0) > 0
+          ? ("urgent" as const)
+          : badge.tone === "attention"
+            ? ("attention" as const)
+            : ("good" as const),
     text: badge.text,
   };
 
@@ -67,7 +69,7 @@ export function TableDetailSheet({
         <DialogContent className="flex max-h-[92vh] max-w-2xl flex-col gap-0 overflow-hidden p-0 max-sm:h-full max-sm:max-h-full max-sm:rounded-none max-sm:border-0">
           <DialogHeader className="shrink-0 border-b border-border px-5 py-4 pr-14 text-left">
             <DialogTitle className="flex flex-wrap items-center gap-2 text-lg">
-              <span className="font-display">{table.name}</span>
+              <span className="font-medium tabular-nums">{table.name}</span>
               <StatusPill tone={pill.tone}>{pill.text}</StatusPill>
             </DialogTitle>
           </DialogHeader>

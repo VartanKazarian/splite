@@ -1026,6 +1026,8 @@ export type StaffPaymentClaim = PaymentClaim & {
   bankOrigin?: string | null;
   /** El nombre del banco, resuelto por el servidor; null si el código no se conoce. */
   bankOriginName?: string | null;
+  /** La cédula o el RIF del pagador, que el banco imprime junto al movimiento. */
+  idOrigin?: string | null;
   declaredAt?: string | null;
   /** Lo que el comensal añadió de propina en la misma transferencia. */
   tipVes?: Money;
@@ -2246,6 +2248,8 @@ export type FiscalInvoice = {
   /** Nulo es consumidor final: una respuesta completa, no un dato que falte. */
   customer: { name: string | null; taxId: string | null; email: string | null } | null;
   issuedAt: string;
+  /** Sólo en la lista: la mesa de la cuenta. Null si la mesa se borró. */
+  tableName?: string | null;
   lines?: FiscalLine[];
   taxes?: FiscalTax[];
   /**

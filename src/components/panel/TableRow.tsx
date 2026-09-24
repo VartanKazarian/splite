@@ -33,14 +33,20 @@ export function TableRow({
   // `badgeOf`.
   const badge = badgeOf(table, fallbackOpenedAt);
   const { text: pillText } = useTableBadge(table, fallbackOpenedAt);
+  // Las dos razones de «atención» ya no comparten color. Un pago sin verificar
+  // es dinero de alguien esperando a que lo miren, y va relleno; una cuenta
+  // que lleva horas abierta es un recordatorio, y va suave. Con el mismo
+  // naranja claro, «1 sin verificar» se perdía entre cuarenta «24 h abierta».
   const pill = {
     text: pillText,
     className:
-      badge.tone === "free"
+      badge.kind === "free"
         ? "bg-secondary text-muted-foreground"
-        : badge.tone === "attention"
-          ? "bg-amber-500/15 text-amber-700"
-          : "bg-primary/15 text-primary",
+        : badge.kind === "claims"
+          ? "bg-amber-400 font-medium text-amber-950"
+          : badge.tone === "attention"
+            ? "bg-amber-500/15 text-amber-800"
+            : "bg-primary/15 text-primary",
   };
 
   if (!bill) {
@@ -54,8 +60,10 @@ export function TableRow({
           selected ? "bg-secondary" : ""
         }`}
       >
-        <span className="font-display text-lg">{table.name}</span>
-        <span className={`rounded-full px-2 py-0.5 text-[11px] ${pill.className}`}>
+        <span className="min-w-0 break-words text-base font-medium tabular-nums">{table.name}</span>
+        <span
+          className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] ${pill.className}`}
+        >
           {pill.text}
         </span>
         <ChevronRight aria-hidden className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
@@ -84,11 +92,15 @@ export function TableRow({
       }`}
     >
       <div className="flex items-baseline gap-2">
-        <span className="font-display text-lg">{table.name}</span>
-        <span className={`rounded-full px-2 py-0.5 text-[11px] ${pill.className}`}>
+        <span className="min-w-0 break-words text-base font-medium tabular-nums">{table.name}</span>
+        <span
+          className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] ${pill.className}`}
+        >
           {pill.text}
         </span>
-        <span className="money-md ml-auto">{formatMoney(bill.remainingVes, "VES")}</span>
+        <span className="money-md ml-auto shrink-0 whitespace-nowrap">
+          {formatMoney(bill.remainingVes, "VES")}
+        </span>
       </div>
 
       {/* La referencia en dólares la calcula el servidor con la tasa congelada
@@ -99,7 +111,7 @@ export function TableRow({
           Sólo si la cuenta está en otra moneda: una cuenta en bolívares lleva
           tasa 1, así que su `usdReference` es el mismo importe en bolívares
           con un símbolo de dólar delante. */}
-      {bill.currency !== "VES" && bill.usdReference && (
+      {bill.currency !== "VES" && bill.usdReference && hasTotal && (
         <p className="money-sm mt-0.5 text-right text-muted-foreground">
           ≈ {formatDecimalMoney(bill.usdReference, "USD")}
         </p>

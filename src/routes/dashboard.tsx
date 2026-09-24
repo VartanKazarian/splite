@@ -67,6 +67,9 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
+/** Cuántas mesas abiertas enseña el panel: las más urgentes. El resto, en Mesas. */
+const DASHBOARD_TABLES = 5;
+
 function Dashboard() {
   const { t, lang, plural } = useI18n();
   const navigate = useNavigate();
@@ -185,7 +188,11 @@ function Dashboard() {
    * "Mesa 10" salga antes que "Mesa 2" por orden alfabético.
    */
   const openTables = useMemo(() => {
-    const urgency = (tb: (typeof tableList)[number]) => (toneOf(tb) === "attention" ? 0 : 1);
+    // Un pago sin verificar antes que una cuenta vieja: es dinero de alguien
+    // esperando. Con las dos en «atención» por igual, y cortada la lista en
+    // cinco, las cinco eran cuentas de hace un día y los avisos no salían.
+    const urgency = (tb: (typeof tableList)[number]) =>
+      (tb.openBill?.pendingClaims ?? 0) > 0 ? 0 : toneOf(tb) === "attention" ? 1 : 2;
     const age = (tb: (typeof tableList)[number]) =>
       tb.openBill ? (openMinutesOf(tb.openBill, openedAtByBill.get(tb.openBill.id)) ?? 0) : 0;
     return tableList
@@ -517,7 +524,11 @@ function Dashboard() {
                 </div>
               ) : (
                 <div className="surface divide-y divide-border overflow-hidden">
-                  {openTables.map((tb) => (
+                  {/* Las primeras, no todas. Esto es por dónde empezar, y la
+                      lista ya viene ordenada por urgencia: con 48 abiertas se
+                      pintaban 48 filas y el panel repetía Mesas entera. El
+                      resto está a un toque, en Mesas con el filtro puesto. */}
+                  {openTables.slice(0, DASHBOARD_TABLES).map((tb) => (
                     <Fragment key={tb.id}>
                       <TableRow
                         table={tb}
@@ -535,6 +546,19 @@ function Dashboard() {
                           la lista, la banda del detalle y el detalle. */}
                     </Fragment>
                   ))}
+                  {openTables.length > DASHBOARD_TABLES && (
+                    <Link
+                      to="/mesas"
+                      search={{ filtro: "BUSY" as const }}
+                      data-testid="dashboard-more-tables"
+                      className="flex min-h-12 items-center justify-between gap-2 px-4 text-sm text-primary hover:bg-secondary"
+                    >
+                      {t("moreOpenTables")
+                        .replace("{shown}", String(DASHBOARD_TABLES))
+                        .replace("{n}", String(openTables.length))}
+                      <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+                    </Link>
+                  )}
                 </div>
               )}
             </section>

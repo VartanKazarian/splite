@@ -29,7 +29,7 @@ function rifWithCheckDigit(body: string): string {
 test("el dueño configura el RIF y la serie fiscal", async ({ page }) => {
   await asStaff(page);
   await gotoHydrated(page, "/settings");
-  await page.getByTestId("settings-tab-cobros").click();
+  await page.getByTestId("settings-tab-facturacion").click();
 
   // --- Se escriben las dos cosas ------------------------------------------
   //

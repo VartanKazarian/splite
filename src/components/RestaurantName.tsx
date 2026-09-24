@@ -72,8 +72,15 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
       <h2 className="text-xl">{t("restaurantName")}</h2>
       <p className="mt-1 text-sm text-muted-foreground">{t("restaurantNameHint")}</p>
 
+      {/* Cada campo con su rótulo. La dirección sólo tenía el ejemplo dentro,
+          en gris, y un ejemplo con una dirección real parecía un dato ya
+          guardado: no se sabía si estaba puesta o no. */}
       <div className="mt-4 flex flex-col gap-2">
+        <label htmlFor="restaurant-name" className="field-label">
+          {t("name")}
+        </label>
         <input
+          id="restaurant-name"
           value={name}
           maxLength={120}
           disabled={!canEdit || accountQuery.isLoading}
@@ -88,13 +95,16 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
           que nadie pudiera rellenarla, y el recibo saldría con el nombre
           suelto para siempre.
         */}
+        <label htmlFor="restaurant-address" className="field-label mt-2">
+          {t("restaurantAddress")}
+        </label>
         <input
+          id="restaurant-address"
           value={address}
           maxLength={200}
           disabled={!canEdit || accountQuery.isLoading}
           onChange={(e) => setAddress(e.target.value)}
           placeholder={t("restaurantAddressPlaceholder")}
-          aria-label={t("restaurantAddress")}
           className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring disabled:opacity-50"
         />
         <p className="text-xs text-muted-foreground">{t("restaurantAddressHint")}</p>

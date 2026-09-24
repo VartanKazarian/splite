@@ -11,6 +11,8 @@ import {
   bills,
   errorFieldsText,
   formatBps,
+  currencySymbol,
+  formatFxRate,
   formatMoney,
   menu as menuApi,
   newIdempotencyKey,
@@ -646,6 +648,19 @@ export function TableDetail({
               currency={bill.currency}
             />
             <MoneyRow label={t("total")} amount={totals.total} currency={bill.currency} highlight />
+            {/* El puente entre las dos monedas. Con la carta en dólares, el
+                total sale en $ y lo pagado y lo que falta en Bs, y sin la tasa
+                no hay forma de ver que 81,90 $ y 69.812,94 Bs son la misma
+                cuenta. La tasa es la congelada de esta cuenta, no la de hoy. */}
+            {bill.currency !== "VES" && (bill.fxRateVesPerUnit ?? bill.fxRate) && (
+              <MoneyRow
+                label={t("totalInVesAtRate")
+                  .replace("{rate}", formatFxRate((bill.fxRateVesPerUnit ?? bill.fxRate)!))
+                  .replace("{symbol}", currencySymbol(bill.currency))}
+                amount={bill.totalDueVes}
+                currency="VES"
+              />
+            )}
             <MoneyRow label={t("alreadyPaid")} amount={bill.amountPaidVes} currency="VES" />
 
             <div className="flex items-baseline justify-between pt-2 text-foreground">

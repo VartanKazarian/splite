@@ -52,7 +52,7 @@ export function MetricCard({
   /** A dónde se va tocándola. Sin esto es una cifra y nada más. */
   to?: "/pagos" | "/mesas" | "/menu" | undefined;
 }) {
-  const shell = `surface grid min-w-0 grid-cols-[1fr_auto] items-baseline gap-x-3 px-4 py-3 sm:row-span-3 sm:grid-cols-1 sm:grid-rows-subgrid sm:p-4 ${
+  const shell = `surface grid min-w-0 grid-cols-[1fr_auto] items-baseline gap-x-3 px-4 py-3 sm:row-span-3 sm:grid-cols-1 sm:grid-rows-subgrid sm:p-4 lg:row-span-1 lg:grid-rows-none ${
     tone === "attention" ? "border-amber-500/50 bg-amber-500/5" : ""
   }`;
   const Shell = to

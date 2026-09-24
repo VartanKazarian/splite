@@ -513,6 +513,22 @@ export type MfaStatus = {
   recoveryCodesRemaining: number;
 };
 
+export type InvitationPreview = {
+  email: string;
+  role: StaffRole;
+  restaurantName: string;
+  expiresAt: string;
+};
+
+export type StaffInvitation = {
+  id: string;
+  email: string;
+  role: StaffRole;
+  invitedBy: string | null;
+  createdAt: string;
+  expiresAt: string;
+};
+
 export const auth = {
   /**
    * Puede no devolver una sesión.
@@ -527,6 +543,26 @@ export const auth = {
     }).then((result) => {
       if (!isMfaChallenge(result)) staffSession.set(result);
       return result;
+    }),
+
+  /**
+   * Una invitación al equipo, vista desde su enlace. El token va en el cuerpo:
+   * en la ruta acabaría en los registros de acceso.
+   */
+  previewInvitation: (token: string) =>
+    apiRequest<InvitationPreview>("/api/v1/auth/invitations/preview", {
+      method: "POST",
+      body: { token },
+    }),
+
+  /** Aceptarla: la persona pone su contraseña y entra, como tras un login. */
+  acceptInvitation: (body: { token: string; password: string; displayName?: string | null }) =>
+    apiRequest<StaffSession>("/api/v1/auth/invitations/accept", {
+      method: "POST",
+      body,
+    }).then((session) => {
+      staffSession.set(session);
+      return session;
     }),
 
   /** La otra mitad del login: un código contra el reto. */
@@ -1639,6 +1675,25 @@ export const tables = {
  * duplicada en el cliente es una que se puede quedar atrás.
  */
 export const staff = {
+  /** Las invitaciones abiertas: sin aceptar, sin anular y sin caducar. */
+  invitations: () =>
+    apiRequest<{ data: StaffInvitation[] }>("/api/v1/account/invitations", {
+      auth: "staff",
+    }).then((r) => r.data),
+
+  /**
+   * Invitar. El enlace llega aquí una sola vez: el servidor sólo guarda su
+   * hash. `emailed` dice si además salió por correo.
+   */
+  invite: (body: { email: string; role: StaffRole }) =>
+    apiRequest<{ invitation: StaffInvitation; link: string; emailed: boolean }>(
+      "/api/v1/account/invitations",
+      { method: "POST", auth: "staff", body },
+    ),
+
+  revokeInvitation: (id: string) =>
+    apiRequest<void>(`/api/v1/account/invitations/${id}`, { method: "DELETE", auth: "staff" }),
+
   list: () =>
     apiRequest<{ data: StaffMember[] }>("/api/v1/account/users", { auth: "staff" }).then(
       (r) => r.data,
@@ -2326,6 +2381,9 @@ export const fiscalInvoices = {
 
   /** La factura en PDF: el mismo documento que recibe el cliente por correo. */
   pdf: (id: string) => staffDownload(`/api/v1/fiscal/invoices/${id}/pdf`),
+  /** Las facturas de un mes («2026-09») en CSV, para el contador. Dueño y encargado. */
+  exportMonth: (month: string) =>
+    staffDownload(`/api/v1/fiscal/invoices/export?month=${encodeURIComponent(month)}`),
 
   /** La cola. `status=UNCERTAIN` es la consulta que importa. */
   requests: (params: { status?: FiscalRequestRow["status"]; limit?: number } = {}) =>

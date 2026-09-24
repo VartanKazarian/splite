@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, ShieldOff, UserPlus, Users, X } from "lucide-react";
+import { Copy, KeyRound, MessageCircle, ShieldOff, UserPlus, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -44,13 +44,18 @@ const MIN_PASSWORD = 12;
  * comprobación duplicada en el cliente es una que un día se queda atrás.
  */
 export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<StaffRole>("WAITER");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Invitar por enlace es la vía por defecto; la contraseña provisional, la otra.
+  const [mode, setMode] = useState<"invite" | "password">("invite");
+  const [invited, setInvited] = useState<{ email: string; link: string; emailed: boolean } | null>(
+    null,
+  );
 
   const list = useQuery({
     queryKey: ["staff"],
@@ -58,7 +63,16 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
     retry: false,
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["staff"] });
+  const pending = useQuery({
+    queryKey: ["staff-invitations"],
+    queryFn: () => staff.invitations(),
+    retry: false,
+  });
+
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ["staff"] });
+    void queryClient.invalidateQueries({ queryKey: ["staff-invitations"] });
+  };
 
   const fail = (error: unknown) => {
     if (!(error instanceof ApiError)) return toast.error(t("apiUnreachable"));
@@ -90,6 +104,36 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
       setFieldErrors({});
       setAdding(false);
       toast.success(`${user.email} añadido como ${t(`role${user.role}` as never)}`);
+      refresh();
+    },
+    onError: fail,
+  });
+
+  const onInvited = (res: { invitation: { email: string }; link: string; emailed: boolean }) => {
+    setInvited({ email: res.invitation.email, link: res.link, emailed: res.emailed });
+    setEmail("");
+    setRole("WAITER");
+    setFieldErrors({});
+    refresh();
+  };
+
+  const invite = useMutation({
+    mutationFn: () => staff.invite({ email: email.trim().toLowerCase(), role }),
+    onSuccess: onInvited,
+    onError: fail,
+  });
+
+  // Reenviar es invitar otra vez: el servidor anula el enlace anterior.
+  const reinvite = useMutation({
+    mutationFn: (p: { email: string; role: StaffRole }) => staff.invite(p),
+    onSuccess: onInvited,
+    onError: fail,
+  });
+
+  const revoke = useMutation({
+    mutationFn: (id: string) => staff.revokeInvitation(id),
+    onSuccess: () => {
+      toast.success(t("staffPendingRevoked"));
       refresh();
     },
     onError: fail,
@@ -137,7 +181,13 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
     m.id !== me.id && (me.role === "OWNER" ? m.role !== "OWNER" : STAFF_RANK[m.role] < myRank);
 
   const rows = list.data ?? [];
-  const busy = create.isPending || update.isPending || resetPassword.isPending;
+  const busy =
+    create.isPending ||
+    update.isPending ||
+    resetPassword.isPending ||
+    invite.isPending ||
+    reinvite.isPending ||
+    revoke.isPending;
   const forbidden =
     list.error instanceof ApiError &&
     (list.error.code === "FORBIDDEN_ROLE" || list.error.status === 403);
@@ -163,7 +213,10 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
             ser verde: el verde es para lo que hace avanzar, y cancelar no. El
             que avanza es «Añadir», dentro del formulario. */}
         <button
-          onClick={() => setAdding((v) => !v)}
+          onClick={() => {
+            setInvited(null);
+            setAdding((v) => !v);
+          }}
           disabled={busy || grantable.length === 0}
           className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-4 text-sm disabled:opacity-60 ${
             adding
@@ -188,15 +241,15 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
         y verifica pagos; el encargado además lleva el menú y las mesas.
       </p>
 
-      {adding && (
+      {adding && !invited && (
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            create.mutate();
+            if (mode === "invite") invite.mutate();
+            else create.mutate();
           }}
           // `grid-cols-1` es `minmax(0, 1fr)`: sin él la columna mide lo que
-          // la opción más larga del rol («Mesero — Abrir cuentas y añadir
-          // productos») y en un teléfono el formulario se salía 141 px.
+          // la opción más larga del rol y en un teléfono el formulario se sale.
           className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-border bg-secondary p-4"
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -209,6 +262,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
                 required
                 maxLength={254}
                 autoComplete="off"
+                data-testid="staff-invite-email"
                 className="min-h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring"
               />
               {fieldErrors["email"] && (
@@ -216,7 +270,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
               )}
             </label>
             <label className="grid gap-1">
-              <span className="text-xs text-muted-foreground">Rol</span>
+              <span className="text-xs text-muted-foreground">{t("staffRole")}</span>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as StaffRole)}
@@ -230,38 +284,118 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
               </select>
             </label>
           </div>
-          <label className="grid gap-1">
-            <span className="text-xs text-muted-foreground">
-              Contraseña provisional (mínimo {MIN_PASSWORD} caracteres)
-            </span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={MIN_PASSWORD}
-              maxLength={128}
-              autoComplete="new-password"
-              className="min-h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring"
-            />
-            {fieldErrors["password"] && (
-              <span className="text-[11px] text-destructive">{fieldErrors["password"]}</span>
-            )}
-          </label>
-          <p className="text-[11px] text-muted-foreground">
-            Se la das tú en persona. Dile que la cambie desde Ajustes en cuanto entre: hasta
-            entonces la sabéis los dos.
-          </p>
-          <div>
+
+          {/* Por defecto, un enlace: la persona pone su propia contraseña y
+              nadie más la conoce. La contraseña provisional queda como otra
+              vía, para quien está al lado y sin correo ni WhatsApp a mano. */}
+          {mode === "password" ? (
+            <>
+              <label className="grid gap-1">
+                <span className="text-xs text-muted-foreground">
+                  {t("staffTempPassword").replace("{n}", String(MIN_PASSWORD))}
+                </span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={MIN_PASSWORD}
+                  maxLength={128}
+                  autoComplete="new-password"
+                  className="min-h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring"
+                />
+                {fieldErrors["password"] && (
+                  <span className="text-[11px] text-destructive">{fieldErrors["password"]}</span>
+                )}
+              </label>
+              <p className="text-[11px] text-muted-foreground">{t("staffTempPasswordHint")}</p>
+            </>
+          ) : (
+            <p className="text-[11px] text-muted-foreground">{t("staffInviteHint")}</p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <button
               type="submit"
-              disabled={busy || password.length < MIN_PASSWORD}
+              data-testid="staff-invite-submit"
+              disabled={busy || (mode === "password" && password.length < MIN_PASSWORD)}
               className="min-h-11 rounded-lg bg-primary px-5 text-sm text-primary-foreground disabled:opacity-60"
             >
-              {create.isPending ? t("staffAdding") : t("staffAdd")}
+              {mode === "invite"
+                ? invite.isPending
+                  ? t("staffInviting")
+                  : t("staffInviteCta")
+                : create.isPending
+                  ? t("staffAdding")
+                  : t("staffAdd")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode(mode === "invite" ? "password" : "invite")}
+              className="min-h-11 text-xs text-muted-foreground underline underline-offset-2"
+            >
+              {mode === "invite" ? t("staffUsePassword") : t("staffUseInvite")}
             </button>
           </div>
         </form>
+      )}
+
+      {/* El enlace, una sola vez. El servidor sólo guarda su hash: si se
+          cierra esto sin copiarlo, se vuelve a invitar y el anterior muere. */}
+      {invited && (
+        <div
+          className="mt-4 grid gap-3 rounded-lg border border-primary/40 bg-primary/5 p-4"
+          data-testid="staff-invite-result"
+          role="status"
+        >
+          <p className="text-sm font-medium">
+            {t("staffInviteReady").replace("{email}", invited.email)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {invited.emailed ? t("staffInviteEmailed") : t("staffInviteShare")}
+          </p>
+          <input
+            readOnly
+            value={invited.link}
+            onFocus={(e) => e.currentTarget.select()}
+            aria-label={t("staffInviteLink")}
+            data-testid="staff-invite-link"
+            className="min-h-11 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-xs outline-none"
+          />
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard
+                  ?.writeText(invited.link)
+                  .then(() => toast.success(t("staffInviteCopied")))
+                  .catch(() => toast.error(t("staffInviteCopyFailed")));
+              }}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground"
+            >
+              <Copy className="h-3.5 w-3.5" /> {t("staffInviteCopy")}
+            </button>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`${t("staffInviteWhatsapp")} ${invited.link}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border-strong px-4 text-xs"
+            >
+              <MessageCircle className="h-3.5 w-3.5" /> {t("staffInviteWhatsappCta")}
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                setInvited(null);
+                setAdding(false);
+              }}
+              className="inline-flex min-h-11 items-center rounded-full px-3 text-xs text-muted-foreground"
+            >
+              {t("staffInviteDone")}
+            </button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">{t("staffInviteOnce")}</p>
+        </div>
       )}
 
       {list.isLoading && <p className="mt-4 text-sm text-muted-foreground">{t("loading")}</p>}
@@ -378,6 +512,53 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
           );
         })}
       </ul>
+
+      {(pending.data?.length ?? 0) > 0 && (
+        <div className="mt-4 border-t border-border pt-4" data-testid="staff-pending-invitations">
+          <h3 className="text-sm font-medium">{t("staffPendingTitle")}</h3>
+          <ul className="mt-2 divide-y divide-border">
+            {pending.data!.map((inv) => (
+              <li key={inv.id} className="py-2">
+                <p className="break-all text-sm">{inv.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t(`role${inv.role}` as never)} ·{" "}
+                  {t("staffPendingExpires").replace(
+                    "{date}",
+                    new Date(inv.expiresAt).toLocaleDateString(lang === "en" ? "en-US" : "es-VE", {
+                      day: "numeric",
+                      month: "short",
+                    }),
+                  )}
+                </p>
+                {grantable.includes(inv.role) && (
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        setAdding(true);
+                        setMode("invite");
+                        reinvite.mutate({ email: inv.email, role: inv.role });
+                      }}
+                      className="inline-flex min-h-11 items-center rounded-full border border-border px-3 text-xs disabled:opacity-40"
+                    >
+                      {t("staffPendingResend")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => revoke.mutate(inv.id)}
+                      className="inline-flex min-h-11 items-center rounded-full border border-destructive/60 px-3 text-xs text-destructive disabled:opacity-40"
+                    >
+                      {t("staffPendingRevoke")}
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {!list.isLoading && rows.length === 1 && (
         <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">

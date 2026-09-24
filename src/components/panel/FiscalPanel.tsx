@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { HelpCircle, RefreshCw } from "lucide-react";
+import { Download, HelpCircle, RefreshCw } from "lucide-react";
 
-import { fiscalInvoices, formatMoney, type FiscalRequestRow } from "@/lib/api";
+import { fiscalInvoices, formatMoney, saveBlob, type FiscalRequestRow } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/dates";
 import { FiscalInvoiceSheet } from "@/components/panel/FiscalInvoiceSheet";
@@ -22,7 +22,7 @@ import { FiscalInvoiceSheet } from "@/components/panel/FiscalInvoiceSheet";
  * Las facturas emitidas van debajo, en frío. Son un registro y no una bandeja
  * de trabajo.
  */
-export function FiscalPanel() {
+export function FiscalPanel({ canExport = false }: { canExport?: boolean }) {
   const { t, lang } = useI18n();
   const qc = useQueryClient();
 
@@ -131,6 +131,10 @@ export function FiscalPanel() {
         </section>
       )}
 
+      {/* Arriba de la lista: es lo que se viene a hacer una vez al mes, y
+          debajo de 25 facturas y un «ver más» no se encontraría. */}
+      {canExport && <MonthExport />}
+
       <section>
         <div className="flex items-center justify-between">
           <h2 className="text-xl">{t("fiscalIssuedTitle")}</h2>
@@ -221,5 +225,77 @@ export function FiscalPanel() {
         }}
       />
     </div>
+  );
+}
+
+/** «2026-09» de los últimos doce meses, el actual primero. */
+function lastMonths(count = 12): string[] {
+  const now = new Date();
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+}
+
+/**
+ * Las facturas de un mes, en una hoja, para el contador.
+ *
+ * Sólo dueño y encargado: es la lista entera de clientes con su RIF o cédula
+ * de golpe. Y se dice lo que es y lo que no: un resumen para cuadrar, no el
+ * libro de ventas oficial, que es del contador.
+ */
+function MonthExport() {
+  const { t, lang } = useI18n();
+  const months = lastMonths();
+  const [month, setMonth] = useState(months[0]!);
+
+  const download = useMutation({
+    mutationFn: () => fiscalInvoices.exportMonth(month),
+    onSuccess: ({ blob, filename }) => saveBlob(blob, filename ?? `facturas-${month}.csv`),
+    onError: () => toast.error(t("fiscalExportFailed")),
+  });
+
+  const label = (m: string) => {
+    const [y, mm] = m.split("-").map(Number);
+    const text = new Date(y!, mm! - 1, 1).toLocaleDateString(lang === "en" ? "en-US" : "es-VE", {
+      month: "long",
+      year: "numeric",
+    });
+    // Sólo la primera letra: `capitalize` en CSS ponía «Septiembre De 2026».
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
+
+  return (
+    <section className="rounded-lg border border-border p-4" data-testid="fiscal-export">
+      <h2 className="text-base font-medium">{t("fiscalExportTitle")}</h2>
+      <p className="mt-1 text-xs text-muted-foreground">{t("fiscalExportHint")}</p>
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <label className="grid gap-1">
+          <span className="text-xs text-muted-foreground">{t("fiscalExportMonth")}</span>
+          <select
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            data-testid="fiscal-export-month"
+            className="min-h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring"
+          >
+            {months.map((m) => (
+              <option key={m} value={m}>
+                {label(m)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => download.mutate()}
+          disabled={download.isPending}
+          data-testid="fiscal-export-download"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border-strong px-4 text-sm disabled:opacity-40"
+        >
+          <Download className="h-4 w-4" />
+          {download.isPending ? t("loading") : t("fiscalExportCta")}
+        </button>
+      </div>
+    </section>
   );
 }

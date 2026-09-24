@@ -674,14 +674,20 @@ function PayoutSection() {
         >
           {t("save")}
         </button>
+        {/* Sin estos datos ningún comensal puede pagar por Pago Móvil, así
+            que borrarlos pregunta antes, como el resto de borrados del panel. */}
         {accountQuery.data?.payout && (
-          <button
+          <ConfirmButton
+            title={t("payoutDeleteTitle")}
+            description={t("payoutDeleteBody")}
+            confirmLabel={t("deleteForever")}
+            onConfirm={() => clear.mutate()}
             disabled={clear.isPending}
-            onClick={() => clear.mutate()}
-            className="rounded-full border border-border px-5 py-3 text-sm disabled:opacity-40"
+            data-testid="payout-delete"
+            className="rounded-full border border-destructive px-5 py-3 text-sm text-destructive disabled:opacity-40"
           >
-            Eliminar
-          </button>
+            {t("deleteForever")}
+          </ConfirmButton>
         )}
       </div>
     </section>
@@ -789,13 +795,16 @@ function ProvidersSection() {
           Guardar credenciales
         </button>
         {mercantil?.configured && (
-          <button
+          <ConfirmButton
+            title={t("c2pDeleteTitle")}
+            description={t("c2pDeleteBody")}
+            confirmLabel={t("deleteForever")}
+            onConfirm={() => remove.mutate()}
             disabled={remove.isPending}
-            onClick={() => remove.mutate()}
             className="rounded-full border border-destructive px-5 py-3 text-sm text-destructive disabled:opacity-40"
           >
-            Eliminar
-          </button>
+            {t("deleteForever")}
+          </ConfirmButton>
         )}
       </div>
     </section>

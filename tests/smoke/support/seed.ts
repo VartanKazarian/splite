@@ -151,7 +151,7 @@ export type Claim = { id: string; status: string; amountVes: string };
 
 export async function declareClaim(
   guest: Auth & { kind: "guest" },
-  input: { amountVes: string; reference: string },
+  input: { amountVes: string; reference: string; tipVes?: string },
 ): Promise<Claim> {
   return api.post<Claim>("/api/v1/guest/bill/payment-claims", input, guest);
 }

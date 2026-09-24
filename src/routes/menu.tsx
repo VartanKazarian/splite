@@ -397,13 +397,18 @@ function MenuPage() {
                     {visible.length} / {all.length}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setAdding((v) => !v)}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
-                >
-                  <Plus className="h-4 w-4" /> {adding ? t("cancel") : t("addProduct")}
-                </button>
+                {/* Con el formulario abierto este botón se va: el formulario
+                    trae su propio «Cancelar», y dejar aquí otro, además verde,
+                    eran dos salidas iguales con el color de avanzar. */}
+                {!adding && (
+                  <button
+                    type="button"
+                    onClick={() => setAdding(true)}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
+                  >
+                    <Plus className="h-4 w-4" /> {t("addProduct")}
+                  </button>
+                )}
               </div>
 
               {adding && (

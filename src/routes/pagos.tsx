@@ -259,14 +259,10 @@ function PaymentsPage() {
 
         {current === "cobros" && (
           <>
-            {/* Los movimientos, arriba del todo. Es la pregunta con la que se
-            entra aquí -- "¿ha entrado ya ese cobro?" -- y estaba en el panel de
-            la sala, que responde a otra cosa: cómo está el comedor ahora, no
-            qué acaba de pasar. */}
-            <div className="mt-6">
-              <ActivityFeed />
-            </div>
-
+            {/* Lo que espera a alguien, arriba del todo. El número de la
+            pestaña cuenta estos avisos, así que tocarlo tiene que llevar a
+            ellos y no a veinte filas de historial que ya no piden nada. El
+            movimiento va al final: responde a «¿qué pasó?», no a «¿qué hago?». */}
             <section className="surface mt-6 p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="text-xl">{t("payClaimsTitle")}</h2>
@@ -317,12 +313,35 @@ function PaymentsPage() {
               <ul className="mt-4 space-y-3">
                 {(claimsQuery.data ?? []).map((claim: StaffPaymentClaim) => (
                   <li key={claim.id} className="rounded-lg border border-border p-4">
-                    <div className="flex flex-wrap items-baseline justify-between gap-3">
-                      <span className="money-lg">{formatMoney(claim.amountVes, "VES")}</span>
+                    {/* De qué mesa es, antes que nada: con varios avisos en
+                        cola, dos mesas pagan a menudo lo mismo. */}
+                    <p className="text-sm font-medium" data-testid={`claim-table-${claim.id}`}>
+                      {claim.tableName ?? t("tipsBillNoTable")}
+                      {claim.payerName && (
+                        <span className="font-normal text-muted-foreground">
+                          {" · "}
+                          {claim.payerName}
+                        </span>
+                      )}
+                    </p>
+                    <div className="mt-1 flex flex-wrap items-baseline justify-between gap-3">
+                      {/* Lo que llegó al banco: la parte más la propina, en una
+                          sola transferencia. Es la cifra que se busca en la app
+                          del banco; la parte sola no aparece en ningún sitio. */}
+                      <span className="money-lg" data-testid={`claim-amount-${claim.id}`}>
+                        {formatMoney(claim.totalPaidVes ?? claim.amountVes, "VES")}
+                      </span>
                       <span className="rounded-full border border-amber-500/50 px-2.5 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground">
                         {t("payToVerify")}
                       </span>
                     </div>
+                    {claim.tipVes && BigInt(claim.tipVes) > 0n && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {t("payIncludesTip")
+                          .replace("{bill}", formatMoney(claim.amountVes, "VES"))
+                          .replace("{tip}", formatMoney(claim.tipVes, "VES"))}
+                      </p>
+                    )}
                     <dl className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
                       <div>
                         <dt className="inline">{t("payReference")}</dt>
@@ -332,7 +351,9 @@ function PaymentsPage() {
                       </div>
                       <div>
                         <dt className="inline">{t("payPayerBank")}</dt>
-                        <dd className="inline">{claim.bankOrigin ?? "—"}</dd>
+                        <dd className="inline">
+                          {claim.bankOriginName ?? claim.bankOrigin ?? "—"}
+                        </dd>
                       </div>
                       <div>
                         <dt className="inline">{t("payPhone")}</dt>
@@ -362,7 +383,7 @@ function PaymentsPage() {
                             onClick={() => rejectClaim.mutate(claim.id)}
                             className="rounded-full border border-destructive px-4 py-2 text-xs text-destructive disabled:opacity-40"
                           >
-                            Rechazar aviso
+                            {t("payRejectClaim")}
                           </button>
                           <button
                             onClick={() => setRejecting(null)}
@@ -479,6 +500,10 @@ function PaymentsPage() {
                 })}
               </ul>
             </section>
+
+            <div className="mt-6">
+              <ActivityFeed />
+            </div>
           </>
         )}
 

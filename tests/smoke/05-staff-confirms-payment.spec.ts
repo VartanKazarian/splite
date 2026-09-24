@@ -16,9 +16,13 @@ test("el personal confirma un aviso y la cuenta queda cerrada", async ({ page, s
   const table = await seed("confirmar");
 
   const guest = await openGuestSession(table.qrToken);
+  // Con propina: la transferencia que llega al banco es la parte más la
+  // propina, y es esa cifra la que el personal tiene que ver para encontrarla.
+  const tipVes = "300";
   const claim = await declareClaim(guest, {
     amountVes: table.bill.remainingVes,
     reference: uniqueReference(),
+    tipVes,
   });
   expect(claim.status).toBe("PENDING");
   expect(await readBill(table)).toMatchObject({ status: "OPEN" });
@@ -29,6 +33,14 @@ test("el personal confirma un aviso y la cuenta queda cerrada", async ({ page, s
   const confirm = page.getByTestId(`claim-confirm-${claim.id}`);
   await confirm.scrollIntoViewIfNeeded();
   await expect(confirm).toBeVisible();
+
+  // Antes de confirmar, lo que hace falta para encontrarlo en el banco: de qué
+  // mesa es y cuánto llegó de verdad, propina incluida.
+  await expect(page.getByTestId(`claim-table-${claim.id}`)).toHaveText(table.tableName);
+  await expect(page.getByTestId(`claim-amount-${claim.id}`)).toHaveText(
+    bolivares(BigInt(table.bill.remainingVes) + BigInt(tipVes)),
+  );
+
   await confirm.click();
 
   // Deja de estar por verificar: la lista es de lo que falta por mirar, y un
@@ -39,3 +51,10 @@ test("el personal confirma un aviso y la cuenta queda cerrada", async ({ page, s
   await expect.poll(async () => (await readBill(table)).status).toBe("CLOSED");
   expect((await readBill(table)).remainingVes).toBe("0");
 });
+
+/** «1.234,56 Bs», como lo escribe el panel. */
+function bolivares(minor: bigint): string {
+  const units = (minor / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const cents = (minor % 100n).toString().padStart(2, "0");
+  return `${units},${cents} Bs`;
+}

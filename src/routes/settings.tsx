@@ -29,6 +29,7 @@ import { FiscalRif } from "@/components/FiscalRif";
 import { FiscalSeries } from "@/components/FiscalSeries";
 import { PanelHeader } from "@/components/PanelHeader";
 import { BankConnections } from "@/components/BankConnections";
+import { SubscriptionPanel } from "@/components/SubscriptionPanel";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -308,6 +309,7 @@ function SettingsPage() {
           ["cobros", t("settingsGroupMoney")],
           ["facturacion", t("fiscalTab")],
           ["banco", t("settingsJumpBank")],
+          ["suscripcion", t("settingsJumpSubscription")],
           ["equipo", t("settingsGroupTeam")],
           ["cuenta", t("settingsGroupAccount")],
         ];
@@ -513,6 +515,16 @@ function SettingsPage() {
                 se cobra sino cómo se verifica lo cobrado. */}
             <Group id="banco" title={t("settingsJumpBank")} active={current === "banco"}>
               <BankConnections canEdit={role === "OWNER"} />
+            </Group>
+
+            {/* Lo que el restaurante le paga a Splite. Dueño y encargado: la
+                pantalla entera ya es sólo suya (ver `forbidden` arriba). */}
+            <Group
+              id="suscripcion"
+              title={t("settingsJumpSubscription")}
+              active={current === "suscripcion"}
+            >
+              <SubscriptionPanel />
             </Group>
 
             <Group id="equipo" title={t("settingsGroupTeam")} active={current === "equipo"}>

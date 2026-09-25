@@ -1734,6 +1734,81 @@ export const tables = {
  * Las conexiones del restaurante con su banco. El secreto de un webhook sólo
  * llega al crearla o rotarla; no hay forma de volver a leerlo.
  */
+/** Lo que el restaurante le paga a Splite. Ver GET /api/v1/account/subscription. */
+export type SplitePaymentDetails = {
+  holder: string | null;
+  idNumber: string | null;
+  bankName: string | null;
+  bankCode: string | null;
+  phone: string | null;
+  accountNumber: string | null;
+  zelle: string | null;
+  notes: string | null;
+};
+
+export type SubscriptionCharge = {
+  id: string;
+  tier: string;
+  billingCycle: "MONTHLY" | "ANNUAL";
+  periodStart: string;
+  periodEnd: string;
+  amountUsd: string;
+  paidUsd: string;
+  remainingUsd: string;
+  remainingVesToday: string | null;
+  dueOn: string;
+  status: "OPEN" | "PAID" | "VOID";
+  overdue: boolean;
+};
+
+export type SubscriptionNotice = {
+  id: string;
+  chargeId: string | null;
+  method: "PAGO_MOVIL" | "TRANSFER" | "USD_CASH" | "ZELLE" | "OTHER";
+  currency: "VES" | "USD";
+  amount: string;
+  reference: string | null;
+  paidOn: string;
+  status: "PENDING" | "CONFIRMED" | "REJECTED";
+  rejectReason: string | null;
+  createdAt: string;
+};
+
+export type SubscriptionView = {
+  subscription: {
+    tier: "TRIAL" | "STARTER" | "PRO" | "ENTERPRISE";
+    state: "TRIAL" | "TRIAL_EXPIRED" | "ACTIVE" | "OVERDUE" | "SUSPENDED" | "CANCELLED";
+    status: "ACTIVE" | "SUSPENDED" | "CANCELLED";
+    billingCycle: "MONTHLY" | "ANNUAL";
+    priceUsd: string | null;
+    trialEndsAt: string | null;
+    balanceUsd: string;
+    balanceVesToday: string | null;
+  };
+  charges: SubscriptionCharge[];
+  notices: SubscriptionNotice[];
+  paymentDetails: SplitePaymentDetails | null;
+  rate: { rate: string; valueDate: string | null } | null;
+};
+
+export const subscription = {
+  get: () => apiRequest<SubscriptionView>("/api/v1/account/subscription", { auth: "staff" }),
+  notify: (body: {
+    chargeId: string | null;
+    method: SubscriptionNotice["method"];
+    currency: "VES" | "USD";
+    amount: string;
+    reference: string | null;
+    paidOn: string;
+    notes?: string | null;
+  }) =>
+    apiRequest<{ notice: SubscriptionNotice }>("/api/v1/account/subscription/notices", {
+      method: "POST",
+      auth: "staff",
+      body,
+    }),
+};
+
 export const bankConnections = {
   list: () =>
     apiRequest<{ data: BankConnection[] }>("/api/v1/bank-connections", { auth: "staff" }).then(

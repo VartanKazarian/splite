@@ -15,7 +15,7 @@ export function AdminShell({
   current,
   children,
 }: {
-  current: "clientes" | "cobros" | "precios";
+  current: "resumen" | "clientes" | "cobros" | "altas" | "precios";
   children: (session: OperatorSession) => React.ReactNode;
 }) {
   const navigate = useNavigate();
@@ -34,6 +34,8 @@ export function AdminShell({
   const tabs = [
     ["clientes", "/admin", "Clientes"],
     ["cobros", "/admin/cobros", "Cobros"],
+    ["altas", "/admin/altas", "Altas"],
+    ["resumen", "/admin/resumen", "Resumen"],
     ["precios", "/admin/precios", "Precios"],
   ] as const;
 
@@ -45,7 +47,7 @@ export function AdminShell({
             SPLITE{" "}
             <span className="font-normal tracking-normal text-muted-foreground">· Consola</span>
           </Link>
-          <nav className="flex gap-1" aria-label="Consola">
+          <nav className="flex flex-wrap gap-1" aria-label="Consola">
             {tabs.map(([id, to, label]) => (
               <Link
                 key={id}

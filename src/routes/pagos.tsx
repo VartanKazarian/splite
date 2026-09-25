@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, RefreshCw, X } from "lucide-react";
+import { Check, FileUp, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
@@ -9,11 +9,13 @@ import {
   account,
   ApiError,
   auth,
+  bankConnections,
   formatMoney,
   payments,
   staffSession,
   type C2PResolution,
   type C2PUnresolvedCharge,
+  type BankMatch,
   type StaffPaymentClaim,
 } from "@/lib/api";
 import { ErrorBox } from "@/routes/dashboard";
@@ -25,6 +27,7 @@ import { FxRatesCard } from "@/components/panel/FxRatesCard";
 import { FiscalPanel } from "@/components/panel/FiscalPanel";
 import { PanelHeader } from "@/components/PanelHeader";
 import { PageHeader } from "@/components/shell/PageHeader";
+import { StatementImport } from "@/components/panel/StatementImport";
 import { formatDateTime } from "../lib/dates";
 
 export const Route = createFileRoute("/pagos")({
@@ -56,6 +59,43 @@ function formatWait(seconds: number, underMinute: string) {
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   return `${hours} h ${minutes % 60} min`;
+}
+
+/**
+ * Qué dice el banco de un aviso. Sólo sugiere: confirmar sigue siendo del
+ * personal salvo que el dueño haya dejado que el banco confirme solo. Una
+ * referencia que existe con otro importe es la señal que más importa: el
+ * aviso puede ser un pago real mal tecleado o uno que no llegó entero.
+ */
+function BankMatchBadge({ match, id }: { match: BankMatch; id: string }) {
+  const { t } = useI18n();
+  const ref = match.movementReference ? `…${match.movementReference.slice(-6)}` : "";
+  const [tone, text] =
+    match.outcome === "MATCHED"
+      ? [
+          "border-primary/40 bg-primary/10 text-primary",
+          t(match.autoConfirmed ? "bankMatchAuto" : "bankMatchMatched").replace("{ref}", ref),
+        ]
+      : match.outcome === "MISMATCH"
+        ? [
+            "border-destructive/40 bg-destructive/10 text-destructive",
+            t("bankMatchMismatch").replace(
+              "{fields}",
+              match.disagreements.map((f) => t(`bankField_${f}`)).join(", "),
+            ),
+          ]
+        : match.outcome === "AMBIGUOUS"
+          ? ["border-amber-500/50 bg-amber-500/10 text-amber-800", t("bankMatchAmbiguous")]
+          : ["border-border text-muted-foreground", t("bankMatchNotFound")];
+  return (
+    <p
+      className={`mt-2 rounded-lg border px-3 py-2 text-xs ${tone}`}
+      data-testid={`claim-bank-${id}`}
+      data-outcome={match.outcome}
+    >
+      {text}
+    </p>
+  );
 }
 
 function PaymentsPage() {
@@ -135,6 +175,19 @@ function PaymentsPage() {
     retry: false,
   });
   const canAssign = canAssignServer(me.data?.user.role);
+
+  // Las conexiones con el banco, para ofrecer subir el estado de cuenta junto
+  // a los avisos que va a comprobar. Caja también lo sube; el mesero no.
+  const role = me.data?.user.role;
+  const canVerifyWithBank = role === "OWNER" || role === "MANAGER" || role === "CASHIER";
+  const bankQuery = useQuery({
+    queryKey: ["bank-connections"],
+    queryFn: () => bankConnections.list(),
+    enabled: ready && canVerifyWithBank,
+    retry: false,
+  });
+  const statementConnection = bankQuery.data?.find((c) => c.kind === "STATEMENT_IMPORT");
+  const [importOpen, setImportOpen] = useState(false);
 
   // Reasignar mueve las propinas de sitio, así que el informe se vuelve a pedir.
   const refreshTips = () =>
@@ -297,6 +350,36 @@ function PaymentsPage() {
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{t("payClaimsHint")}</p>
 
+              {/* Comprobar contra el banco sin abrir su app: se sube el estado
+                  de cuenta y cada aviso dice si el dinero llegó. Al dueño que
+                  aún no lo ha activado se le dice dónde; al resto, nada. */}
+              {statementConnection ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setImportOpen(true)}
+                    data-testid="bank-import-open"
+                    className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-border-strong px-4 text-sm"
+                  >
+                    <FileUp className="h-4 w-4" /> {t("bankImportButton")}
+                  </button>
+                  <StatementImport
+                    connection={statementConnection}
+                    open={importOpen}
+                    onOpenChange={setImportOpen}
+                  />
+                </>
+              ) : (
+                role === "OWNER" &&
+                bankQuery.isSuccess && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    <Link to="/settings" hash="banco" className="underline underline-offset-2">
+                      {t("bankImportSetup")}
+                    </Link>
+                  </p>
+                )
+              )}
+
               {claimsQuery.isError && (
                 <ErrorBox error={claimsQuery.error} fallback={t("apiDown")} />
               )}
@@ -360,6 +443,7 @@ function PaymentsPage() {
                           .replace("{tip}", formatMoney(claim.tipVes, "VES"))}
                       </p>
                     )}
+                    {claim.bankMatch && <BankMatchBadge match={claim.bankMatch} id={claim.id} />}
                     <dl className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
                       <div>
                         <dt className="inline">{t("payReference")}</dt>

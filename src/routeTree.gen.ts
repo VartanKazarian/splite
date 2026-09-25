@@ -22,9 +22,15 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TasasRouteImport } from './routes/tasas'
 import { Route as TpvHosteleriaRouteImport } from './routes/tpv-hosteleria'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAltaRouteImport } from './routes/admin.alta'
+import { Route as AdminCobrosRouteImport } from './routes/admin.cobros'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminPreciosRouteImport } from './routes/admin.precios'
 import { Route as RegistroVerificarRouteImport } from './routes/registro_.verificar'
 import { Route as TIndexRouteImport } from './routes/t.index'
 import { Route as TSplatRouteImport } from './routes/t.$'
+import { Route as AdminClientesRestaurantIdRouteImport } from './routes/admin.clientes.$restaurantId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -91,6 +97,31 @@ const TpvHosteleriaRoute = TpvHosteleriaRouteImport.update({
   path: '/tpv-hosteleria',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAltaRoute = AdminAltaRouteImport.update({
+  id: '/admin/alta',
+  path: '/admin/alta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCobrosRoute = AdminCobrosRouteImport.update({
+  id: '/admin/cobros',
+  path: '/admin/cobros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPreciosRoute = AdminPreciosRouteImport.update({
+  id: '/admin/precios',
+  path: '/admin/precios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegistroVerificarRoute = RegistroVerificarRouteImport.update({
   id: '/registro_/verificar',
   path: '/registro/verificar',
@@ -106,6 +137,12 @@ const TSplatRoute = TSplatRouteImport.update({
   path: '/t/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminClientesRestaurantIdRoute =
+  AdminClientesRestaurantIdRouteImport.update({
+    id: '/admin/clientes/$restaurantId',
+    path: '/admin/clientes/$restaurantId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -121,9 +158,15 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
   '/tpv-hosteleria': typeof TpvHosteleriaRoute
+  '/admin/alta': typeof AdminAltaRoute
+  '/admin/cobros': typeof AdminCobrosRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/precios': typeof AdminPreciosRoute
   '/registro/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
+  '/admin/': typeof AdminIndexRoute
   '/t/': typeof TIndexRoute
+  '/admin/clientes/$restaurantId': typeof AdminClientesRestaurantIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -139,9 +182,15 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
   '/tpv-hosteleria': typeof TpvHosteleriaRoute
+  '/admin/alta': typeof AdminAltaRoute
+  '/admin/cobros': typeof AdminCobrosRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/precios': typeof AdminPreciosRoute
   '/registro/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
+  '/admin': typeof AdminIndexRoute
   '/t': typeof TIndexRoute
+  '/admin/clientes/$restaurantId': typeof AdminClientesRestaurantIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -158,9 +207,15 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
   '/tpv-hosteleria': typeof TpvHosteleriaRoute
+  '/admin/alta': typeof AdminAltaRoute
+  '/admin/cobros': typeof AdminCobrosRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/precios': typeof AdminPreciosRoute
   '/registro_/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
+  '/admin/': typeof AdminIndexRoute
   '/t/': typeof TIndexRoute
+  '/admin/clientes/$restaurantId': typeof AdminClientesRestaurantIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -178,9 +233,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/tasas'
     | '/tpv-hosteleria'
+    | '/admin/alta'
+    | '/admin/cobros'
+    | '/admin/login'
+    | '/admin/precios'
     | '/registro/verificar'
     | '/t/$'
+    | '/admin/'
     | '/t/'
+    | '/admin/clientes/$restaurantId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -196,9 +257,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/tasas'
     | '/tpv-hosteleria'
+    | '/admin/alta'
+    | '/admin/cobros'
+    | '/admin/login'
+    | '/admin/precios'
     | '/registro/verificar'
     | '/t/$'
+    | '/admin'
     | '/t'
+    | '/admin/clientes/$restaurantId'
   id:
     | '__root__'
     | '/'
@@ -214,9 +281,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/tasas'
     | '/tpv-hosteleria'
+    | '/admin/alta'
+    | '/admin/cobros'
+    | '/admin/login'
+    | '/admin/precios'
     | '/registro_/verificar'
     | '/t/$'
+    | '/admin/'
     | '/t/'
+    | '/admin/clientes/$restaurantId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -233,9 +306,15 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TasasRoute: typeof TasasRoute
   TpvHosteleriaRoute: typeof TpvHosteleriaRoute
+  AdminAltaRoute: typeof AdminAltaRoute
+  AdminCobrosRoute: typeof AdminCobrosRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminPreciosRoute: typeof AdminPreciosRoute
   RegistroVerificarRoute: typeof RegistroVerificarRoute
   TSplatRoute: typeof TSplatRoute
+  AdminIndexRoute: typeof AdminIndexRoute
   TIndexRoute: typeof TIndexRoute
+  AdminClientesRestaurantIdRoute: typeof AdminClientesRestaurantIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -331,6 +410,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TpvHosteleriaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/alta': {
+      id: '/admin/alta'
+      path: '/admin/alta'
+      fullPath: '/admin/alta'
+      preLoaderRoute: typeof AdminAltaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/cobros': {
+      id: '/admin/cobros'
+      path: '/admin/cobros'
+      fullPath: '/admin/cobros'
+      preLoaderRoute: typeof AdminCobrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/precios': {
+      id: '/admin/precios'
+      path: '/admin/precios'
+      fullPath: '/admin/precios'
+      preLoaderRoute: typeof AdminPreciosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/registro_/verificar': {
       id: '/registro_/verificar'
       path: '/registro/verificar'
@@ -352,6 +466,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/clientes/$restaurantId': {
+      id: '/admin/clientes/$restaurantId'
+      path: '/admin/clientes/$restaurantId'
+      fullPath: '/admin/clientes/$restaurantId'
+      preLoaderRoute: typeof AdminClientesRestaurantIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -369,9 +490,15 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TasasRoute: TasasRoute,
   TpvHosteleriaRoute: TpvHosteleriaRoute,
+  AdminAltaRoute: AdminAltaRoute,
+  AdminCobrosRoute: AdminCobrosRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  AdminPreciosRoute: AdminPreciosRoute,
   RegistroVerificarRoute: RegistroVerificarRoute,
   TSplatRoute: TSplatRoute,
+  AdminIndexRoute: AdminIndexRoute,
   TIndexRoute: TIndexRoute,
+  AdminClientesRestaurantIdRoute: AdminClientesRestaurantIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

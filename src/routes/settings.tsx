@@ -28,6 +28,7 @@ import { RestaurantBranding } from "@/components/RestaurantBranding";
 import { FiscalRif } from "@/components/FiscalRif";
 import { FiscalSeries } from "@/components/FiscalSeries";
 import { PanelHeader } from "@/components/PanelHeader";
+import { BankConnections } from "@/components/BankConnections";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -306,6 +307,7 @@ function SettingsPage() {
           ["restaurante", t("settingsGroupRestaurant")],
           ["cobros", t("settingsGroupMoney")],
           ["facturacion", t("fiscalTab")],
+          ["banco", t("settingsJumpBank")],
           ["equipo", t("settingsGroupTeam")],
           ["cuenta", t("settingsGroupAccount")],
         ];
@@ -504,6 +506,13 @@ function SettingsPage() {
                   el personal puede necesitar saber por qué número va -- y sólo
                   el dueño la escribe. */}
               <FiscalSeries canEdit={role === "OWNER"} />
+            </Group>
+
+            {/* De dónde llegan los movimientos de la cuenta, para comprobar
+                los avisos de Pago Móvil. Aparte de Cobros porque no es cómo
+                se cobra sino cómo se verifica lo cobrado. */}
+            <Group id="banco" title={t("settingsJumpBank")} active={current === "banco"}>
+              <BankConnections canEdit={role === "OWNER"} />
             </Group>
 
             <Group id="equipo" title={t("settingsGroupTeam")} active={current === "equipo"}>

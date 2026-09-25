@@ -1057,6 +1057,60 @@ export type PaymentClaim = {
 };
 
 /** Lo que ve el personal: incluye el detalle corroborante del comensal. */
+export type BankMatch = {
+  outcome: "MATCHED" | "MISMATCH" | "AMBIGUOUS" | "NOT_FOUND";
+  disagreements: ("amount" | "bank" | "phone" | "id")[];
+  movementReference: string | null;
+  autoConfirmed: boolean;
+  checkedAt: string | null;
+};
+
+export type BankColumnMap = {
+  reference: number;
+  amount: number;
+  date?: number | null;
+  description?: number | null;
+  phone?: number | null;
+  delimiter?: "," | ";" | "\t" | "|" | null;
+  hasHeader?: boolean;
+};
+
+export type BankConnection = {
+  id: string;
+  kind: "WEBHOOK" | "STATEMENT_IMPORT";
+  label: string;
+  bankCode: string | null;
+  autoConfirm: boolean;
+  secretVersion: number;
+  columnMap: BankColumnMap | null;
+  lastMovementAt: string | null;
+  lastError: string | null;
+  lastErrorAt: string | null;
+  createdAt: string;
+};
+
+export type BankMovementRow = {
+  reference: string;
+  amount: string;
+  date?: string | null;
+  description?: string | null;
+  phoneOrigin?: string | null;
+};
+
+export type BankIngestResult = {
+  received: number;
+  inserted: number;
+  duplicates: number;
+  rejected: { index: number; reason: string }[];
+  matches: {
+    matched: number;
+    mismatch: number;
+    ambiguous: number;
+    notFound: number;
+    autoConfirmed: number;
+  };
+};
+
 export type StaffPaymentClaim = PaymentClaim & {
   phoneOrigin?: string | null;
   bankOrigin?: string | null;
@@ -1072,6 +1126,8 @@ export type StaffPaymentClaim = PaymentClaim & {
   /** Sólo en la cola: de qué mesa es y, si lo dio, quién paga. */
   tableName?: string | null;
   payerName?: string | null;
+  /** Lo que dice el banco de este aviso, si hay conexión bancaria. Null si nunca se miró. */
+  bankMatch?: BankMatch | null;
 };
 
 /** Cuántos avisos esperan y desde cuándo. La antigüedad la calcula el servidor. */
@@ -1674,6 +1730,48 @@ export const tables = {
  * llegan como códigos de error, no se reimplementan aquí: una comprobación
  * duplicada en el cliente es una que se puede quedar atrás.
  */
+/**
+ * Las conexiones del restaurante con su banco. El secreto de un webhook sólo
+ * llega al crearla o rotarla; no hay forma de volver a leerlo.
+ */
+export const bankConnections = {
+  list: () =>
+    apiRequest<{ data: BankConnection[] }>("/api/v1/bank-connections", { auth: "staff" }).then(
+      (r) => r.data,
+    ),
+  create: (body: { kind: BankConnection["kind"]; label: string; bankCode?: string | null }) =>
+    apiRequest<{ connection: BankConnection; secret?: string; path?: string }>(
+      "/api/v1/bank-connections",
+      { method: "POST", auth: "staff", body },
+    ),
+  update: (
+    id: string,
+    body: {
+      label?: string;
+      autoConfirm?: boolean;
+      columnMap?: BankColumnMap | null;
+      active?: boolean;
+    },
+  ) =>
+    apiRequest<{ connection: BankConnection }>(`/api/v1/bank-connections/${id}`, {
+      method: "PATCH",
+      auth: "staff",
+      body,
+    }).then((r) => r.connection),
+  rotateSecret: (id: string) =>
+    apiRequest<{ connection: BankConnection; secret: string; path: string }>(
+      `/api/v1/bank-connections/${id}/rotate-secret`,
+      { method: "POST", auth: "staff" },
+    ),
+  /** Hasta 500 filas por llamada; quien llama parte el estado de cuenta en tandas. */
+  importRows: (id: string, movements: BankMovementRow[], columnMap?: BankColumnMap) =>
+    apiRequest<BankIngestResult>(`/api/v1/bank-connections/${id}/import`, {
+      method: "POST",
+      auth: "staff",
+      body: columnMap ? { movements, columnMap } : { movements },
+    }),
+};
+
 export const staff = {
   /** Las invitaciones abiertas: sin aceptar, sin anular y sin caducar. */
   invitations: () =>

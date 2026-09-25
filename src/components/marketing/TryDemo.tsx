@@ -1,6 +1,8 @@
 import { Suspense, lazy, useState } from "react";
 import { Play, RotateCcw } from "lucide-react";
 
+import { bs } from "./format";
+
 /**
  * La demo del comensal, de verdad, dentro de la landing.
  *
@@ -34,6 +36,15 @@ function Loading() {
     </div>
   );
 }
+
+/** Las líneas de `demoBill()`, sin cargar la demo para pintarlas. Se ven las cuatro primeras: la quinta quedaba bajo el botón. */
+const DEMO_LINES: [string, number, number][] = [
+  ["Tequeños (6u)", 1, 8],
+  ["Hamburguesa de la casa", 2, 15],
+  ["Pabellón criollo", 1, 16],
+  ["Cerveza artesanal", 3, 5],
+  ["Papelón con limón", 2, 3],
+];
 
 export function TryDemo() {
   const [on, setOn] = useState(false);
@@ -76,29 +87,53 @@ export function TryDemo() {
             </Suspense>
           </div>
         ) : (
-          /* El cartel de antes de pulsar. Dice qué se puede hacer, porque una
-             demo que no promete nada concreto no se pulsa. */
-          <div className="flex h-[620px] flex-col items-center justify-center gap-5 px-8 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/12">
-              <Play aria-hidden className="h-6 w-6 text-primary" />
-            </span>
-            <div>
-              <p className="text-lg font-semibold">La cuenta de un comensal</p>
-              <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-                La misma pantalla que ve quien escanea el QR. Se reparte sola una parte de la
-                cuenta, y puedes tomar el control cuando quieras.
+          /* El cartel de antes de pulsar.
+             Encima de la cuenta que se va a ver, y no sobre un marco vacío: un
+             teléfono en blanco de 620 px con un botón en medio se leía como
+             algo que no había cargado. Las líneas son las de la cuenta de la
+             demo, para que al pulsar aparezca lo que ya se estaba viendo. */
+          <div className="relative h-[620px] overflow-hidden">
+            <div aria-hidden className="px-5 pt-6 opacity-70">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Casa 72 · Mesa 12
+              </p>
+              <p className="mt-1 text-xl font-semibold tracking-tight">Tu cuenta</p>
+              <ul className="mt-4 divide-y divide-border border-y border-border">
+                {DEMO_LINES.slice(0, 4).map(([name, qty, usd]) => (
+                  <li key={name} className="flex items-baseline justify-between gap-3 py-2.5">
+                    <span className="truncate text-[14px]">
+                      {qty > 1 && <span className="text-muted-foreground">{qty}× </span>}
+                      {name}
+                    </span>
+                    <span className="figure text-[13px] text-muted-foreground">
+                      {bs(usd * qty)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 flex h-[62%] flex-col items-center justify-end gap-4 bg-gradient-to-t from-background via-background to-background/0 px-8 pb-10 text-center">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/12">
+                <Play aria-hidden className="h-6 w-6 text-primary" />
+              </span>
+              <div>
+                <p className="text-lg font-semibold">La cuenta de un comensal</p>
+                <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+                  La misma pantalla que ve quien escanea el QR. Se reparte sola una parte de la
+                  cuenta, y puedes tomar el control cuando quieras.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOn(true)}
+                className="min-h-11 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                Reproducir la demo
+              </button>
+              <p className="text-[12px] text-muted-foreground">
+                Cuenta de ejemplo. No se cobra nada.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setOn(true)}
-              className="min-h-11 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              Reproducir la demo
-            </button>
-            <p className="text-[12px] text-muted-foreground">
-              Cuenta de ejemplo. No se cobra nada.
-            </p>
           </div>
         )}
       </div>

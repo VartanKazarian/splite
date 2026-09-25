@@ -5,19 +5,19 @@ import {
   Banknote,
   Check,
   ClipboardList,
+  CopyCheck,
   HandCoins,
   KeyRound,
   Menu,
   QrCode as QrIcon,
   Receipt,
-  ScanLine,
   ShieldCheck,
   Smartphone,
   X,
 } from "lucide-react";
 import { C2P_BANKS } from "@/components/marketing/format";
 import {
-  C2PMockup,
+  BankMatchMockup,
   CurrencyToggle,
   DashboardMockup,
   LiveSplitMockup,
@@ -61,7 +61,7 @@ function Section({
   className?: string;
 }) {
   return (
-    <section id={id} className={`scroll-mt-20 px-5 py-20 md:py-32 ${className}`}>
+    <section id={id} className={`scroll-mt-20 px-5 py-16 md:py-24 ${className}`}>
       <div className="mx-auto w-full max-w-6xl">{children}</div>
     </section>
   );
@@ -112,7 +112,7 @@ function PrimaryCta({ to, children }: { to: string; children: React.ReactNode })
   return (
     <Link
       to={to}
-      className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-primary px-7 text-[15px] font-semibold text-primary-foreground transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:w-auto"
+      className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-5 text-[15px] font-semibold sm:px-7 text-primary-foreground transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:w-auto"
     >
       {children}
       <ArrowRight className="h-4 w-4" />
@@ -124,7 +124,7 @@ function GhostCta({ href, children }: { href: string; children: React.ReactNode 
   return (
     <a
       href={href}
-      className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-border bg-card px-7 text-[15px] font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:w-auto"
+      className="inline-flex min-h-[48px] w-full items-center justify-center whitespace-nowrap rounded-full border border-border bg-card px-5 text-[15px] font-medium sm:px-7 text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:w-auto"
     >
       {children}
     </a>
@@ -155,8 +155,11 @@ function Landing() {
             que recibe su cliente es dejarlo para cuando ya se ha ido. */}
         <ForOwners />
         <OrderFromTable />
-        <Benefits />
-        <Onboarding />
+        {/* «Beneficios» y «Puesta en marcha» se fueron: la primera repetía con
+            otras palabras lo que la página ya había enseñado funcionando, y la
+            segunda volvía a contar «escanean, eligen, pagan» por quinta vez.
+            Lo único nuevo que traía -- que se monta en una tarde y con
+            acompañamiento -- vive ahora en el cierre, junto al botón. */}
         <Trust />
         <FinalCta />
       </main>
@@ -170,7 +173,7 @@ function Landing() {
 const NAV = [
   ["#como-funciona", "Cómo funciona"],
   ["#cobro", "Cómo cobras"],
-  ["#restaurantes", "Para restaurantes"],
+  ["#restaurantes", "El panel"],
   ["#seguridad", "Seguridad"],
 ] as const;
 
@@ -207,11 +210,12 @@ function Nav() {
           >
             Entrar
           </Link>
-          {/* La llamada principal se queda visible también con el menú
-              desplegado: es lo que ha venido a hacer quien pulsa. */}
+          {/* En el teléfono no: allí la llamada ya está en el hero y, en cuanto
+              el hero sale de pantalla, en la barra fija de abajo. Con las tres
+              había pantallas con el mismo botón verde tres veces. */}
           <Link
             to="/registro"
-            className="inline-flex min-h-[40px] items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground"
+            className="hidden min-h-[40px] items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground sm:inline-flex"
           >
             Quiero Splite
           </Link>
@@ -290,8 +294,7 @@ function Hero() {
               sitio para hablar de monedas. */}
           <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground md:text-[19px]">
             Cada comensal ve la cuenta desde el QR de la mesa, elige lo que consumió y paga su parte
-            desde su banco.{" "}
-            <span className="text-foreground">Y desde ahí mismo, también pide.</span>
+            desde su banco. Y desde ahí mismo, también pide.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <PrimaryCta to="/registro">{CTA_PRIMARY}</PrimaryCta>
@@ -299,12 +302,7 @@ function Hero() {
                 el mejor activo de la página está dentro de la página. */}
             <GhostCta href={DEMO_ANCHOR}>{CTA_SECONDARY} →</GhostCta>
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Sin app para tus clientes. Escanean, dividen y pagan.
-          </p>
-          <div className="mt-5">
-            <CurrencyToggle value={currency} onChange={setCurrency} />
-          </div>
+          <p className="mt-4 text-sm text-muted-foreground">Sin app para tus clientes.</p>
         </div>
 
         {/* En el teléfono no había QR. `QrCardMockup` mide 220px y vivía en un
@@ -312,12 +310,17 @@ function Hero() {
             historia que empieza escaneando y no enseñaba el escaneo -- en el
             único aparato donde esa historia ocurre de verdad. Debajo de ese
             ancho entra la versión estrecha, apilada sobre el teléfono. */}
-        <div className="rise flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:justify-center lg:justify-end">
-          <QrTableStrip className="sm:hidden" />
-          <div className="hidden sm:block">
-            <QrCardMockup />
+        <div className="rise flex flex-col items-center gap-4 lg:items-end">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:justify-center">
+            <QrTableStrip className="sm:hidden" />
+            <div className="hidden sm:block">
+              <QrCardMockup />
+            </div>
+            <LiveSplitMockup currency={currency} />
           </div>
-          <LiveSplitMockup currency={currency} />
+          {/* Junto a la cuenta que cambia, no debajo de los botones: lejos
+              del ejemplo, un «Bs | $» suelto no decía qué cambiaba. */}
+          <CurrencyToggle value={currency} onChange={setCurrency} />
         </div>
       </div>
     </Section>
@@ -340,7 +343,17 @@ function Problem() {
     "¿Quién pagó el postre?",
     "¿Puedes dividir la cuenta otra vez?",
   ];
-  const despues = ["Escanea el QR", "Elige lo que consumiste", "Paga tu parte", "Mesa cerrada"];
+  /*
+   * Lo que cambia, no los pasos. Aquí estaban «escanea, elige, paga», que la
+   * sección siguiente enseña con la pantalla de verdad: dicho dos veces seguidas,
+   * lo segundo se salta.
+   */
+  const despues = [
+    "Cada uno ve en su teléfono lo que le toca",
+    "Paga su parte desde su banco, sin esperar al mesero",
+    "Tu equipo sólo confirma que llegó",
+    "La mesa se libera antes",
+  ];
 
   return (
     <Section className="border-y border-border bg-secondary">
@@ -425,7 +438,7 @@ function HowItWorks() {
     <Section id="como-funciona">
       <div className="max-w-2xl">
         <Eyebrow>Cómo funciona</Eyebrow>
-        <h2 className={H2.md}>Piden, eligen y pagan. Tu equipo no hace cuentas.</h2>
+        <h2 className={H2.md}>Escanean, eligen y pagan. Tu equipo no hace cuentas.</h2>
         <p className="mt-4 text-[17px] text-muted-foreground">
           Pruébalo aquí mismo: es la pantalla que ve tu cliente.
         </p>
@@ -437,7 +450,9 @@ function HowItWorks() {
         <div className="flex min-w-0 justify-center">
           <TryDemo />
         </div>
-        <div className="grid gap-4 sm:grid-cols-3">
+        {/* Una columna junto a la demo: en tres, cada tarjeta se quedaba en
+            140 px de texto y los párrafos salían de tres palabras por línea. */}
+        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
           {[
             {
               icon: QrIcon,
@@ -472,15 +487,18 @@ function HowItWorks() {
 }
 
 /**
- * Cómo entra el dinero. La sección que faltaba.
+ * Cómo entra el dinero, y cómo sabes que entró.
  *
- * La página anterior remataba el asunto con un chip que decía «Pagos
- * integrados próximamente» y una línea de «pasarela de pagos: próximamente».
- * Las dos eran falsas: C2P de Mercantil está en producción y cobra de la cuenta
- * del propio comensal, y los avisos de pago móvil se verifican desde el panel.
+ * Esta sección prometía para todos lo que sólo es verdad para algunos: «No hay
+ * que perseguir capturas ni teclear referencias» describe Clave 2 Pagos, y
+ * Clave 2 Pagos se cobra con el convenio del propio restaurante con Mercantil.
+ * Un restaurante de Banesco que se registrara por esa frase acabaría en Pago
+ * Móvil con referencias, que es justo lo que se le dijo que se acababa.
  *
- * Era el peor sitio posible para una promesa aplazada, porque «¿y cómo me
- * pagan?» es la primera pregunta de cualquiera que mire esto en Venezuela.
+ * Ahora cada vía dice para quién es. Y lo que vale para todos -- que el aviso
+ * de Pago Móvil se cruza con el estado de cuenta y el panel dice si el dinero
+ * llegó -- va delante, porque contesta el miedo de verdad: «me dicen que
+ * pagaron y no llegó».
  */
 function GetPaid() {
   return (
@@ -488,10 +506,11 @@ function GetPaid() {
       <div className="grid gap-10 lg:grid-cols-[1fr_0.8fr] lg:items-center">
         <div>
           <Eyebrow>Cómo cobras</Eyebrow>
-          <h2 className={H2.lg}>El cobro entra desde el banco del comensal.</h2>
+          <h2 className={H2.lg}>El dinero entra a tu cuenta. Y sabes que entró.</h2>
           <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground">
-            Con Clave 2 Pagos, tu cliente elige su banco, pide su clave y paga sin levantarse. No
-            hay que perseguir capturas de pantalla ni teclear referencias.
+            Tu cliente paga su parte desde el banco que ya usa. Splite cruza cada aviso con tu
+            estado de cuenta y te dice cuáles llegaron: nadie tiene que revisar la app del banco
+            mesa por mesa.
           </p>
           {/* La moneda, dicha donde toca y sin ambigüedad. */}
           <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
@@ -503,14 +522,14 @@ function GetPaid() {
           <div className="mt-7 grid gap-4 sm:grid-cols-3">
             {[
               {
-                icon: Banknote,
-                t: `${C2P_BANKS} bancos`,
-                d: "Clave 2 Pagos, con las instrucciones de cada banco dentro de la app.",
-              },
-              {
                 icon: Smartphone,
                 t: "Pago móvil",
-                d: "El comensal avisa y tu equipo lo verifica desde el panel, mesa por mesa.",
+                d: "Desde cualquier banco. Subes tu estado de cuenta y cada aviso dice si el dinero llegó.",
+              },
+              {
+                icon: Banknote,
+                t: "Clave 2 Pagos",
+                d: `Si tu cuenta es Mercantil: el comensal paga con la clave de su banco (${C2P_BANKS} bancos) y se confirma solo.`,
               },
               {
                 icon: HandCoins,
@@ -536,7 +555,7 @@ function GetPaid() {
         </div>
 
         <div className="flex justify-center lg:justify-end">
-          <C2PMockup />
+          <BankMatchMockup />
         </div>
       </div>
     </Section>
@@ -563,7 +582,7 @@ function OrderFromTable() {
               {[
                 { m: "Mesa 4", l: "3 tequeños · 2 cachapas", t: "hace 1 min", n: true },
                 { m: "Mesa 12", l: "1 pabellón · 2 cervezas", t: "hace 4 min", n: true },
-                { m: "Mesa 9", l: "2 papelón con limón", t: "hace 12 min", n: false },
+                { m: "Mesa 9", l: "2 papelones con limón", t: "hace 12 min", n: false },
               ].map((o, i) => (
                 <li
                   key={o.m}
@@ -611,54 +630,16 @@ function OrderFromTable() {
   );
 }
 
-function Benefits() {
-  /*
-   * Cuatro frases, no cuatro tarjetas.
-   *
-   * Esto eran cuatro fichas grandes con titular y párrafo, y hoy las cuatro
-   * dicen algo que la página ya ha *enseñado* más arriba: el reparto se ve
-   * funcionando en el hero, el cobro tiene su propia sección y la bandeja de
-   * pedidos está dibujada. Un beneficio escrito después de la demostración es
-   * un pie de foto, y un pie de foto no necesita una tarjeta.
-   */
-  return (
-    <Section className="border-y border-border bg-secondary">
-      <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-        <div className="reveal">
-          <Eyebrow>Beneficios</Eyebrow>
-          <h2 className={H2.md}>Más rápido para tu equipo. Más fácil para tus clientes.</h2>
-        </div>
-        <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-          {[
-            ["Menos tiempo cobrando", "La división la hace el cliente."],
-            ["Menos errores", "Los importes se calculan en el servidor."],
-            ["Mesas que rotan antes", "Nadie espera a que el mesero divida."],
-            ["Sin instalar nada", "El cliente usa su propio teléfono."],
-          ].map(([t, d], i) => (
-            <li
-              key={t}
-              style={{ "--i": i % 2 } as React.CSSProperties}
-              className="reveal reveal-item border-l-2 border-primary/30 pl-4"
-            >
-              <p className="text-[16px] font-medium">{t}</p>
-              <p className="mt-0.5 text-[14px] leading-relaxed text-muted-foreground">{d}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Section>
-  );
-}
-
 function ForOwners() {
   return (
     <Section id="restaurantes">
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
         <div>
           <Eyebrow>Para el restaurante</Eyebrow>
-          <h2 className={H2.lg}>Pensado para el restaurante, no solo para el cliente.</h2>
+          <h2 className={H2.lg}>Todo el salón, en un panel.</h2>
           <p className="mt-5 max-w-md text-[17px] leading-relaxed text-muted-foreground">
-            Splite conecta la experiencia del comensal con la operación del restaurante.
+            Lo que debe cada mesa, lo que ya entró al banco y lo que se lleva cada mesero, sin
+            cuadrar nada a mano al cerrar.
           </p>
           {/* Capacidades, no nombres de tabla. La lista anterior («Mesas»,
               «Cuentas abiertas», «Ítems de la cuenta») era el esquema de la
@@ -671,7 +652,7 @@ function ForOwners() {
               "Propinas repartidas por mesero",
               "Tasa del día aplicada a toda la carta",
               "Carta cargada desde una foto o un PDF",
-              "Avisos de pago verificados en el panel",
+              "Pagos cruzados con tu estado de cuenta",
               "Cierre de turno con lo cobrado y lo perdonado",
               "Roles para dueño, encargado, caja y sala",
               "Segundo factor para entrar al panel",
@@ -698,93 +679,55 @@ function ForOwners() {
   );
 }
 
-function Onboarding() {
-  return (
-    <Section className="border-y border-border bg-secondary">
-      <div className="reveal max-w-2xl">
-        <Eyebrow>Puesta en marcha</Eyebrow>
-        <h2 className={H2.sm}>Así funciona tu restaurante con Splite.</h2>
-        <p className="mt-4 text-[17px] text-muted-foreground">
-          Acompañamos la configuración inicial con tu equipo.
-        </p>
-      </div>
-      <ol className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { n: "01", t: "Configura tu restaurante", d: "Agrega tu menú, mesas y equipo." },
-          { n: "02", t: "Genera tus QR", d: "Cada mesa tiene su propio QR, listo para imprimir." },
-          { n: "03", t: "Colócalos en las mesas", d: "El cliente escanea desde su teléfono." },
-          {
-            n: "04",
-            t: "Deja que Splite haga el trabajo",
-            d: "Tus clientes piden, dividen la cuenta y pagan desde su teléfono.",
-          },
-        ].map((s, i) => (
-          <li
-            key={s.n}
-            style={{ "--i": i } as React.CSSProperties}
-            className="reveal reveal-item rounded-2xl border border-border bg-card p-6"
-          >
-            <span className="text-[13px] font-semibold figure text-primary">{s.n}</span>
-            <h3 className="mt-3 text-lg">{s.t}</h3>
-            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{s.d}</p>
-          </li>
-        ))}
-      </ol>
-    </Section>
-  );
-}
-
 function Trust() {
   /*
-   * Cuatro, no ocho.
+   * En palabras de quien firma, no de quien programa.
    *
-   * La lista había crecido hasta ocho tarjetas y una rejilla de ocho promesas
-   * de seguridad no se lee: se hojea, y entonces no vale ninguna. Se quedan las
-   * cuatro que contestan preguntas distintas -- dónde se calcula el dinero,
-   * quién puede ver qué, qué pasa con la clave del banco y qué impide cobrar
-   * dos veces -- y las dos que más pesan para quien te va a meter su flujo de
-   * caja: el segundo factor y que la clave no se guarda en ningún sitio.
+   * Las cuatro promesas eran ciertas y estaban escritas para otro público:
+   * «se calculan en el servidor», «clave de idempotencia», «no tiene columna en
+   * la base de datos». Quien decide esto es el dueño de un restaurante, y para
+   * él esas frases no dicen nada -- o peor, suenan a que algo se le escapa. Son
+   * las mismas cuatro garantías contadas por lo que evitan.
    *
-   * Las que salen no desaparecen del producto -- los QR se siguen pudiendo
-   * rotar y todo sigue quedando registrado --; salen de *esta* rejilla, que es
-   * un argumento de venta y no un inventario.
+   * Cuatro columnas en escritorio y no tres: con tres, la cuarta quedaba sola
+   * en su fila y parecía un resto.
    */
   const items = [
     {
       icon: ShieldCheck,
-      t: "Los importes se calculan en el servidor",
-      d: "Nada depende del teléfono del cliente.",
+      t: "Nadie cambia el monto desde su teléfono",
+      d: "Lo que paga cada comensal lo calcula Splite, no el teléfono de quien paga.",
     },
     {
-      icon: KeyRound,
-      t: "Roles y segundo factor",
-      d: "Cada quien ve lo suyo, y el panel admite 2FA.",
+      icon: CopyCheck,
+      t: "Un pago nunca se cobra dos veces",
+      d: "Aunque el comensal toque dos veces o se le corte la conexión.",
     },
     {
       icon: Banknote,
-      t: "La clave del banco nunca se guarda",
-      d: "La clave C2P se usa una vez y no tiene columna en la base de datos.",
+      t: "La clave del banco no se guarda",
+      d: "La clave de pago se usa una sola vez y se descarta.",
     },
     {
-      icon: Check,
-      t: "Sin cobros duplicados",
-      d: "Cada cobro lleva su clave de idempotencia.",
+      icon: KeyRound,
+      t: "Cada empleado ve solo lo suyo",
+      d: "Permisos para dueño, encargado, caja y sala, y segundo factor para entrar.",
     },
   ];
   return (
     <Section id="seguridad" className="border-y border-border bg-secondary">
       <div className="reveal max-w-2xl">
         <Eyebrow>Confianza</Eyebrow>
-        <h2 className={H2.sm}>Construido para manejar cuentas y pagos con precisión.</h2>
+        <h2 className={H2.sm}>Tu dinero y tus datos, protegidos.</h2>
         <p className="mt-4 text-[17px] text-muted-foreground">
-          Aislamiento total entre restaurantes: los datos de tu negocio son solo tuyos.
+          Cada restaurante ve solo lo suyo: los datos de tu negocio no los ve nadie más.
         </p>
       </div>
-      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {items.map((i, idx) => (
           <article
             key={i.t}
-            style={{ "--i": idx % 3 } as React.CSSProperties}
+            style={{ "--i": idx % 4 } as React.CSSProperties}
             className="reveal reveal-item rounded-2xl border border-border bg-card p-6"
           >
             <i.icon className="h-5 w-5 text-primary" />
@@ -800,21 +743,34 @@ function Trust() {
 function FinalCta() {
   return (
     <Section>
-      <div className="rounded-3xl border border-border bg-card px-6 py-14 text-center md:px-16">
+      <div className="rounded-3xl border border-border bg-card px-4 py-12 text-center sm:px-6 md:px-16 md:py-14">
         <h2 className={`${H2.lg} mx-auto max-w-3xl`}>
           ¿Cuántas veces al día tu equipo tiene que dividir una cuenta?
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-[17px] text-muted-foreground md:text-[19px]">
           Deja que tus clientes hagan esa parte.
         </p>
-        <div className="mx-auto mt-8 flex max-w-lg flex-col justify-center gap-3 sm:flex-row">
+        {/* Lo único que aportaba «Puesta en marcha»: que empezar es poco y no
+            se hace solo. Dicho aquí, al lado del botón, contesta el «¿y esto
+            cuánto trabajo me da?» justo antes de pulsar. */}
+        <ol className="mx-auto mt-8 grid max-w-2xl gap-3 text-left text-[14px] sm:grid-cols-3">
+          {[
+            "Carga tu carta desde una foto o un PDF",
+            "Imprime el QR de cada mesa",
+            "Abre el salón",
+          ].map((x, i) => (
+            <li key={x} className="flex items-start gap-2.5 rounded-xl bg-secondary px-4 py-3">
+              <span className="figure text-[13px] font-semibold text-primary">{i + 1}</span>
+              <span>{x}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Te acompañamos en la configuración inicial con tu equipo.
+        </p>
+        <div className="mx-auto mt-8 flex max-w-2xl flex-col justify-center gap-3 sm:flex-row">
           <PrimaryCta to="/registro">{CTA_PRIMARY}</PrimaryCta>
-          <a
-            href={DEMO_ANCHOR}
-            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-border px-7 text-[15px] font-medium transition-colors hover:bg-secondary sm:w-auto"
-          >
-            {CTA_SECONDARY} →
-          </a>
+          <GhostCta href={DEMO_ANCHOR}>{CTA_SECONDARY} →</GhostCta>
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
           Te pedimos solo lo necesario: nombre, restaurante, contacto y tamaño del salón.
@@ -851,7 +807,7 @@ function Footer() {
             </li>
             <li>
               <a className="hover:text-foreground" href="#restaurantes">
-                Para restaurantes
+                El panel
               </a>
             </li>
             <li>
@@ -907,9 +863,10 @@ function MobileStickyCta() {
    * otra, nada más abrir la página. Una barra fija existe para traer de vuelta
    * lo que ya no se ve; mientras se ve, sólo tapa medio palmo de pantalla.
    *
-   * Arranca oculta y la descubre el propio hero al salir. Si el script no
-   * llega, no aparece nunca -- y no se pierde nada, porque el «Quiero Splite»
-   * de la barra de arriba está fijo y siempre visible.
+   * Arranca oculta y la descubre el propio hero al salir. Es la única llamada
+   * fija en el teléfono: la de la barra de arriba se esconde en esa anchura
+   * para no repetir el mismo botón tres veces en una pantalla. Si el script no
+   * llega, quedan las del hero, el panel y el cierre, dentro de la página.
    */
   const [show, setShow] = useState(false);
 

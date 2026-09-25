@@ -478,85 +478,75 @@ export function CurrencyToggle({
 }
 
 /**
- * El cobro entrando, paso a paso.
+ * Lo que ve el restaurante después de que el comensal diga «ya pagué».
  *
- * Es la sección que la landing no tenía y la objeción que no contestaba: «¿y
- * cómo me pagan?». Hasta ahora la respuesta impresa era un chip que decía
- * «Pagos integrados próximamente», cuando C2P de Mercantil lleva meses en
- * producción y cobra de la cuenta del propio comensal.
- *
- * Los tres pasos son los tres de verdad -- banco, clave, cobro --, y el que
- * Splite no controla (pedirle la clave a tu banco) está dicho, porque
- * esconderlo convierte la primera demo real en una sorpresa.
+ * La pregunta de verdad de un dueño en Venezuela no es cómo paga el cliente --
+ * paga por Pago Móvil, como siempre -- sino si el dinero llegó. Esto enseña la
+ * respuesta tal como sale en Pagos: el aviso, el importe y lo que dice el banco
+ * después de subir el estado de cuenta. Dos avisos y no uno, porque uno que
+ * todavía no aparece es lo que hace creíble al que sí.
  */
-export function C2PMockup() {
-  const reduced = useReducedMotion();
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    if (reduced) {
-      setStep(3);
-      return;
-    }
-    const hold = step === 3 ? 2400 : step === 2 ? 1100 : 1400;
-    const id = setTimeout(() => setStep((s) => (s + 1) % 4), hold);
-    return () => clearTimeout(id);
-  }, [step, reduced]);
-
+export function BankMatchMockup() {
+  const claims = [
+    {
+      mesa: "Mesa 7",
+      who: "Ana",
+      amount: "1.135,00 Bs",
+      ref: "0107 4821",
+      ok: true,
+    },
+    {
+      mesa: "Mesa 12",
+      who: "Luis",
+      amount: "842,50 Bs",
+      ref: "0134 0093",
+      ok: false,
+    },
+  ];
   return (
-    <Phone>
-      <div className="px-4 pb-5 pt-3">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Tu parte</p>
-        <h3 className="mt-0.5 text-lg font-semibold tracking-tight figure">1.135,00 Bs</h3>
-
-        <div className="mt-4 space-y-2">
-          <div
-            className={`rounded-xl border px-3 py-2.5 transition-all duration-500 ${
-              step >= 0 ? "border-border bg-card" : "border-border bg-card opacity-40"
-            }`}
-          >
-            <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Banco</p>
-            <p className="mt-0.5 text-[13px]">
-              {step >= 1 ? "Mercantil · 0105" : "Elige tu banco"}
-            </p>
-          </div>
-
-          <div
-            className={`rounded-xl border px-3 py-2.5 transition-all duration-500 ${
-              step >= 1 ? "border-border bg-card opacity-100" : "border-border bg-card opacity-40"
-            }`}
-          >
-            <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-              Clave de pago
-            </p>
-            <p className="mt-0.5 figure text-[13px] tracking-[0.3em]">
-              {step >= 2 ? "••••••" : " "}
-            </p>
-          </div>
+    <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-[0_30px_70px_-50px_rgba(20,20,20,0.6)]">
+      <div className="flex items-center justify-between border-b border-border pb-3">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Pagos</p>
+          <h3 className="text-base font-semibold tracking-tight">Avisos de pago móvil</h3>
         </div>
-
-        <div
-          className={`mt-4 flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-500 ${
-            step >= 3 ? "bg-primary/12 text-primary" : "bg-primary text-primary-foreground"
-          }`}
-        >
-          {step >= 3 ? (
-            <>
-              <Check className="h-4 w-4" /> Cobrado
-            </>
-          ) : step === 2 ? (
-            "Cobrando…"
-          ) : (
-            "Pagar"
-          )}
-        </div>
-
-        <p className="mt-3 text-center text-[10px] leading-relaxed text-muted-foreground">
-          La clave la pide el comensal a su banco.
-          <br />
-          Splite nunca la guarda.
-        </p>
+        <span className="rounded-full border border-border px-3 py-1 text-[11px] text-muted-foreground">
+          Estado de cuenta · hoy
+        </span>
       </div>
-    </Phone>
+      <ul className="mt-3 space-y-3">
+        {claims.map((c) => (
+          <li key={c.mesa} className="rounded-xl border border-border bg-background p-4">
+            <p className="text-[13px] font-medium">
+              {c.mesa} <span className="font-normal text-muted-foreground">· {c.who}</span>
+            </p>
+            <div className="mt-1 flex items-baseline justify-between gap-3">
+              <span className="figure text-lg font-semibold">{c.amount}</span>
+              <span className="figure text-[11px] text-muted-foreground">ref {c.ref}</span>
+            </div>
+            <p
+              className={`mt-2 rounded-lg border px-3 py-1.5 text-[12px] ${
+                c.ok
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground"
+              }`}
+            >
+              {c.ok ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5" /> El banco lo confirma
+                </span>
+              ) : (
+                "Todavía no aparece en el banco"
+              )}
+            </p>
+            {c.ok && (
+              <span className="mt-3 flex min-h-10 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-primary-foreground">
+                Confirmar: el dinero llegó
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

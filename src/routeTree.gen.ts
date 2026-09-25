@@ -24,9 +24,11 @@ import { Route as TasasRouteImport } from './routes/tasas'
 import { Route as TpvHosteleriaRouteImport } from './routes/tpv-hosteleria'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAltaRouteImport } from './routes/admin.alta'
+import { Route as AdminAltasRouteImport } from './routes/admin.altas'
 import { Route as AdminCobrosRouteImport } from './routes/admin.cobros'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminPreciosRouteImport } from './routes/admin.precios'
+import { Route as AdminResumenRouteImport } from './routes/admin.resumen'
 import { Route as RegistroVerificarRouteImport } from './routes/registro_.verificar'
 import { Route as TIndexRouteImport } from './routes/t.index'
 import { Route as TSplatRouteImport } from './routes/t.$'
@@ -107,6 +109,11 @@ const AdminAltaRoute = AdminAltaRouteImport.update({
   path: '/admin/alta',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAltasRoute = AdminAltasRouteImport.update({
+  id: '/admin/altas',
+  path: '/admin/altas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCobrosRoute = AdminCobrosRouteImport.update({
   id: '/admin/cobros',
   path: '/admin/cobros',
@@ -120,6 +127,11 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
 const AdminPreciosRoute = AdminPreciosRouteImport.update({
   id: '/admin/precios',
   path: '/admin/precios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminResumenRoute = AdminResumenRouteImport.update({
+  id: '/admin/resumen',
+  path: '/admin/resumen',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegistroVerificarRoute = RegistroVerificarRouteImport.update({
@@ -159,9 +171,11 @@ export interface FileRoutesByFullPath {
   '/tasas': typeof TasasRoute
   '/tpv-hosteleria': typeof TpvHosteleriaRoute
   '/admin/alta': typeof AdminAltaRoute
+  '/admin/altas': typeof AdminAltasRoute
   '/admin/cobros': typeof AdminCobrosRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/precios': typeof AdminPreciosRoute
+  '/admin/resumen': typeof AdminResumenRoute
   '/registro/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
   '/admin/': typeof AdminIndexRoute
@@ -183,9 +197,11 @@ export interface FileRoutesByTo {
   '/tasas': typeof TasasRoute
   '/tpv-hosteleria': typeof TpvHosteleriaRoute
   '/admin/alta': typeof AdminAltaRoute
+  '/admin/altas': typeof AdminAltasRoute
   '/admin/cobros': typeof AdminCobrosRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/precios': typeof AdminPreciosRoute
+  '/admin/resumen': typeof AdminResumenRoute
   '/registro/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
   '/admin': typeof AdminIndexRoute
@@ -208,9 +224,11 @@ export interface FileRoutesById {
   '/tasas': typeof TasasRoute
   '/tpv-hosteleria': typeof TpvHosteleriaRoute
   '/admin/alta': typeof AdminAltaRoute
+  '/admin/altas': typeof AdminAltasRoute
   '/admin/cobros': typeof AdminCobrosRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/precios': typeof AdminPreciosRoute
+  '/admin/resumen': typeof AdminResumenRoute
   '/registro_/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
   '/admin/': typeof AdminIndexRoute
@@ -234,9 +252,11 @@ export interface FileRouteTypes {
     | '/tasas'
     | '/tpv-hosteleria'
     | '/admin/alta'
+    | '/admin/altas'
     | '/admin/cobros'
     | '/admin/login'
     | '/admin/precios'
+    | '/admin/resumen'
     | '/registro/verificar'
     | '/t/$'
     | '/admin/'
@@ -258,9 +278,11 @@ export interface FileRouteTypes {
     | '/tasas'
     | '/tpv-hosteleria'
     | '/admin/alta'
+    | '/admin/altas'
     | '/admin/cobros'
     | '/admin/login'
     | '/admin/precios'
+    | '/admin/resumen'
     | '/registro/verificar'
     | '/t/$'
     | '/admin'
@@ -282,9 +304,11 @@ export interface FileRouteTypes {
     | '/tasas'
     | '/tpv-hosteleria'
     | '/admin/alta'
+    | '/admin/altas'
     | '/admin/cobros'
     | '/admin/login'
     | '/admin/precios'
+    | '/admin/resumen'
     | '/registro_/verificar'
     | '/t/$'
     | '/admin/'
@@ -307,9 +331,11 @@ export interface RootRouteChildren {
   TasasRoute: typeof TasasRoute
   TpvHosteleriaRoute: typeof TpvHosteleriaRoute
   AdminAltaRoute: typeof AdminAltaRoute
+  AdminAltasRoute: typeof AdminAltasRoute
   AdminCobrosRoute: typeof AdminCobrosRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminPreciosRoute: typeof AdminPreciosRoute
+  AdminResumenRoute: typeof AdminResumenRoute
   RegistroVerificarRoute: typeof RegistroVerificarRoute
   TSplatRoute: typeof TSplatRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -424,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAltaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/altas': {
+      id: '/admin/altas'
+      path: '/admin/altas'
+      fullPath: '/admin/altas'
+      preLoaderRoute: typeof AdminAltasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/cobros': {
       id: '/admin/cobros'
       path: '/admin/cobros'
@@ -443,6 +476,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/precios'
       fullPath: '/admin/precios'
       preLoaderRoute: typeof AdminPreciosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/resumen': {
+      id: '/admin/resumen'
+      path: '/admin/resumen'
+      fullPath: '/admin/resumen'
+      preLoaderRoute: typeof AdminResumenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/registro_/verificar': {
@@ -491,9 +531,11 @@ const rootRouteChildren: RootRouteChildren = {
   TasasRoute: TasasRoute,
   TpvHosteleriaRoute: TpvHosteleriaRoute,
   AdminAltaRoute: AdminAltaRoute,
+  AdminAltasRoute: AdminAltasRoute,
   AdminCobrosRoute: AdminCobrosRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminPreciosRoute: AdminPreciosRoute,
+  AdminResumenRoute: AdminResumenRoute,
   RegistroVerificarRoute: RegistroVerificarRoute,
   TSplatRoute: TSplatRoute,
   AdminIndexRoute: AdminIndexRoute,

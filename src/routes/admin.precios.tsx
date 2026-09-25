@@ -4,7 +4,15 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { ApiError, formatMoney, parseMinorInput } from "@/lib/api";
-import { admin, caracasToday, CYCLE_LABEL, formatDay, type Cycle, type Tier } from "@/lib/adminApi";
+import {
+  admin,
+  caracasToday,
+  CYCLE_LABEL,
+  formatDay,
+  type Cycle,
+  type PaymentDetails,
+  type Tier,
+} from "@/lib/adminApi";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { adminHead } from "@/lib/adminHead";
 
@@ -177,6 +185,77 @@ function Prices({ canEdit }: { canEdit: boolean }) {
           </ul>
         </section>
       )}
+
+      <PaymentDetailsForm canEdit={canEdit} />
     </>
+  );
+}
+
+const DETAIL_FIELDS: [keyof PaymentDetails, string, string][] = [
+  ["holder", "Titular", "Splite C.A."],
+  ["idNumber", "RIF / Cédula", "J-12345678-9"],
+  ["bankName", "Banco", "Mercantil"],
+  ["bankCode", "Código del banco", "0105"],
+  ["phone", "Teléfono de Pago Móvil", "0414-0000000"],
+  ["accountNumber", "Número de cuenta (transferencias)", "0105-…"],
+  ["zelle", "Zelle", "pagos@splite…"],
+  ["notes", "Nota para el restaurante", "Indica el nombre del restaurante en el concepto"],
+];
+
+/**
+ * A dónde pagan los restaurantes. Sale en «Tu suscripción» de cada uno y en
+ * los recordatorios: si está vacío, se les dice que se los mandaremos.
+ */
+function PaymentDetailsForm({ canEdit }: { canEdit: boolean }) {
+  const q = useQuery({
+    queryKey: ["admin", "payment-details"],
+    queryFn: () => admin.paymentDetails(),
+  });
+  const [draft, setDraft] = useState<PaymentDetails | null>(null);
+  const current = draft ?? q.data?.paymentDetails ?? null;
+  const save = useMutation({
+    mutationFn: (d: PaymentDetails) => admin.setPaymentDetails(d),
+    onSuccess: () => {
+      toast.success("Datos de cobro guardados");
+      setDraft(null);
+      void q.refetch();
+    },
+    onError: (e) =>
+      toast.error(e instanceof ApiError ? `${e.code} · ${e.message}` : "No se pudo conectar"),
+  });
+  if (!current) return null;
+  return (
+    <section className="surface mt-6 p-5" data-testid="admin-payment-details">
+      <h2 className="text-lg">Datos de cobro de Splite</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Lo que ven los restaurantes para pagarte, en su panel y en los recordatorios.
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {DETAIL_FIELDS.map(([key, label, placeholder]) => (
+          <label key={key} className="grid gap-1 text-sm">
+            {label}
+            <input
+              value={current[key] ?? ""}
+              disabled={!canEdit}
+              onChange={(e) => setDraft({ ...current, [key]: e.target.value })}
+              placeholder={placeholder}
+              className={field}
+              data-testid={`admin-pd-${key}`}
+            />
+          </label>
+        ))}
+      </div>
+      {canEdit && (
+        <button
+          type="button"
+          disabled={save.isPending || !draft}
+          onClick={() => draft && save.mutate(draft)}
+          className="btn-primary mt-4"
+          data-testid="admin-pd-save"
+        >
+          Guardar datos de cobro
+        </button>
+      )}
+    </section>
   );
 }

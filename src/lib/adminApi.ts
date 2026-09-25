@@ -184,6 +184,60 @@ export type PlanPrice = {
   createdAt: string;
 };
 
+export type AdminNotice = {
+  id: string;
+  restaurantId: string;
+  restaurantName?: string;
+  chargeId: string | null;
+  chargePeriodStart: string | null;
+  method: PaymentMethod;
+  currency: "VES" | "USD";
+  amount: string;
+  reference: string | null;
+  paidOn: string;
+  notes: string | null;
+  status: "PENDING" | "CONFIRMED" | "REJECTED";
+  rejectReason: string | null;
+  submittedBy: string | null;
+  createdAt: string;
+};
+
+export type PaymentDetails = {
+  holder: string | null;
+  idNumber: string | null;
+  bankName: string | null;
+  bankCode: string | null;
+  phone: string | null;
+  accountNumber: string | null;
+  zelle: string | null;
+  notes: string | null;
+};
+
+export type Metrics = {
+  monthlyRecurringUsd: string;
+  outstandingUsd: string;
+  byState: Partial<Record<ClientState, number>>;
+  totalClients: number;
+  pendingNotices: number;
+  trialConversion: { windowDays: number; started: number; paying: number; rateBps: number | null };
+  cancelledLast30Days: number;
+  months: { month: string; newClients: number; chargedUsd: string; collectedUsd: string }[];
+};
+
+export type LeadStatus = "NEW" | "CONTACTED" | "INVITED" | "ONBOARDED" | "REJECTED";
+export type Lead = {
+  id: string;
+  restaurantName: string;
+  rif: string | null;
+  email: string;
+  phone: string | null;
+  status: LeadStatus;
+  rifChecksumOk: boolean | null;
+  createdAt: string;
+  invitedAt: string | null;
+  consumedAt: string | null;
+};
+
 type SessionResponse = { accessToken: string; expiresIn: number; operator: Operator };
 
 export const admin = {
@@ -265,6 +319,28 @@ export const admin = {
       body: { reason },
     }),
   prices: () => call<{ current: PlanPrice[]; history: PlanPrice[] }>("/prices"),
+  notices: (status: "PENDING" | "CONFIRMED" | "REJECTED" = "PENDING") =>
+    call<{ data: AdminNotice[] }>(`/notices?status=${status}`),
+  confirmNotice: (id: string, body: { fxRate?: string | null; settle?: boolean } = {}) =>
+    call<{ payment: AdminPayment; charge: AdminCharge | null }>(`/notices/${id}/confirm`, {
+      method: "POST",
+      body,
+    }),
+  rejectNotice: (id: string, reason: string) =>
+    call<{ notice: AdminNotice }>(`/notices/${id}/reject`, { method: "POST", body: { reason } }),
+  paymentDetails: () => call<{ paymentDetails: PaymentDetails }>("/settings/payment-details"),
+  setPaymentDetails: (body: PaymentDetails) =>
+    call<{ paymentDetails: PaymentDetails }>("/settings/payment-details", { method: "PUT", body }),
+  metrics: () => call<Metrics>("/metrics"),
+  leads: (status: LeadStatus | "" = "") =>
+    call<{ data: Lead[] }>(`/leads${status ? `?status=${status}` : ""}`),
+  markLead: (id: string, status: "CONTACTED" | "REJECTED", notes?: string | null) =>
+    call<{ lead: { id: string; status: LeadStatus } }>(`/leads/${id}/status`, {
+      method: "POST",
+      body: { status, notes: notes ?? null },
+    }),
+  inviteLead: (id: string) =>
+    call<{ lead: { id: string; email: string } }>(`/leads/${id}/invite`, { method: "POST" }),
   setPrice: (body: {
     tier: Exclude<Tier, "TRIAL">;
     billingCycle: Cycle;
@@ -308,6 +384,16 @@ export const ACTION_LABEL: Record<string, string> = {
   CHARGE_CREATED: "Cargo generado",
   CHARGE_VOIDED: "Cargo anulado",
   PAYMENT_RECORDED: "Pago registrado",
+  NOTICE_CONFIRMED: "Aviso de pago confirmado",
+  NOTICE_REJECTED: "Aviso de pago rechazado",
+};
+
+export const LEAD_LABEL: Record<LeadStatus, string> = {
+  NEW: "Nueva",
+  CONTACTED: "Contactada",
+  INVITED: "Invitada",
+  ONBOARDED: "Ya es cliente",
+  REJECTED: "Descartada",
 };
 
 /** Hoy en Caracas, AAAA-MM-DD: la fecha por defecto de un pago. */

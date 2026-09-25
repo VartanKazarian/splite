@@ -16,6 +16,7 @@ import { useI18n } from "@/lib/i18n";
 import { account, auth, payments } from "@/lib/api";
 import { LangToggle } from "@/components/LangToggle";
 import { PlanBanner } from "@/components/PlanBanner";
+import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import { chime, chimeEnabled, useOrderChime } from "@/lib/chime";
 import {
   DropdownMenu,
@@ -233,6 +234,7 @@ export function PanelHeader({
       {/* Debajo de la barra, no dentro: es un aviso, no un destino. Al vivir
           aquí sale en las pantallas del panel sin repetirlo en cinco sitios. */}
       <PlanBanner />
+      <SubscriptionBanner />
     </>
   );
 }

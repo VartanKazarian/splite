@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { ApiError } from "@/lib/api";
@@ -103,6 +103,12 @@ function AdminLogin() {
         <button type="submit" disabled={pending} className="btn-primary mt-5 w-full">
           {pending ? "Entrando…" : "Entrar"}
         </button>
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          ¿Primer acceso de Splite?{" "}
+          <Link to="/admin/alta" className="underline underline-offset-2">
+            Crea el administrador
+          </Link>
+        </p>
       </form>
     </main>
   );

@@ -243,6 +243,12 @@ type SessionResponse = { accessToken: string; expiresIn: number; operator: Opera
 export const admin = {
   login: (email: string, password: string, code: string) =>
     call<SessionResponse>("/auth/login", { method: "POST", body: { email, password, code } }),
+  /** El primer ADMIN, con la frase de OPERATOR_BOOTSTRAP_TOKEN. Solo vale sin operadores. */
+  bootstrap: (token: string, email: string, displayName: string) =>
+    call<{ setupToken: string }>("/auth/bootstrap", {
+      method: "POST",
+      body: { token, email, displayName },
+    }),
   setupStart: (token: string) =>
     call<{ email: string; displayName: string; secret: string; otpauthUri: string }>(
       "/auth/setup/start",

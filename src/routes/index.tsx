@@ -24,6 +24,7 @@ import {
   QrCardMockup,
   QrTableStrip,
 } from "@/components/marketing/Mockups";
+import { ProductVideo } from "@/components/marketing/ProductVideo";
 import { TryDemo } from "@/components/marketing/TryDemo";
 
 /*
@@ -440,10 +441,17 @@ function HowItWorks() {
         <Eyebrow>Cómo funciona</Eyebrow>
         <h2 className={H2.md}>Escanean, eligen y pagan. Tu equipo no hace cuentas.</h2>
         <p className="mt-4 text-[17px] text-muted-foreground">
-          Pruébalo aquí mismo: es la pantalla que ve tu cliente.
+          Míralo en 21 segundos y luego pruébalo aquí mismo: la demo de abajo es la pantalla que ve
+          tu cliente.
         </p>
       </div>
-      <div className="mt-10 grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+      {/* El video va antes que la demo: el botón «Ver cómo funciona» del
+          inicio trae aquí, y quien lo pulsa quiere verlo funcionar antes de
+          ponerse a tocar. La demo y los tres pasos quedan como el detalle. */}
+      <div className="mt-10">
+        <ProductVideo />
+      </div>
+      <div className="mt-14 grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         {/* Aquí había un mockup que imitaba el reparto con precios a mano.
             Ahora está la pantalla de verdad, en modo demo: si el producto
             cambia, esto cambia con él, que es lo que una copia nunca hace. */}

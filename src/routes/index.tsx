@@ -441,7 +441,7 @@ function HowItWorks() {
         <Eyebrow>Cómo funciona</Eyebrow>
         <h2 className={H2.md}>Escanean, eligen y pagan. Tu equipo no hace cuentas.</h2>
         <p className="mt-4 text-[17px] text-muted-foreground">
-          Míralo en 21 segundos y luego pruébalo aquí mismo: la demo de abajo es la pantalla que ve
+          Míralo en 30 segundos y luego pruébalo aquí mismo: la demo de abajo es la pantalla que ve
           tu cliente.
         </p>
       </div>

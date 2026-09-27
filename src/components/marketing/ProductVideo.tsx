@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 
 /*
- * El video de 21 segundos: QR, reparto, conciliación y panel.
+ * El video de 30 segundos: QR, reparto, conciliación y panel. Va despacio a
+ * propósito: cada pantalla se queda quieta un par de segundos para leerla.
  *
  * Dos cortes del mismo video. En el teléfono, un 16:9 queda en 200 px de alto
  * y no se lee nada, así que ahí va uno 4:5. El corte se elige en el cliente,
@@ -16,8 +17,8 @@ import { Pause, Play, Volume2, VolumeX } from "lucide-react";
  */
 const MOBILE = "(max-width: 767px)";
 const SOURCES = {
-  wide: { video: "/video/splite-demo-16x9.mp4", poster: "/video/splite-demo-16x9.jpg" },
-  tall: { video: "/video/splite-demo-4x5.mp4", poster: "/video/splite-demo-4x5.jpg" },
+  wide: { video: "/video/splite-demo-16x9-v2.mp4", poster: "/video/splite-demo-16x9.jpg" },
+  tall: { video: "/video/splite-demo-4x5-v2.mp4", poster: "/video/splite-demo-4x5.jpg" },
 } as const;
 
 export function ProductVideo() {
@@ -132,7 +133,7 @@ export function ProductVideo() {
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
           onClick={sound ? togglePlay : withSound}
-          aria-label="Video de 21 segundos: el cliente escanea el QR de la mesa, elige lo que consumió y paga su parte; el pago se concilia con el banco y el restaurante lo ve en su panel."
+          aria-label="Video de 30 segundos: el cliente escanea el QR de la mesa, elige lo que consumió y paga su parte; el pago se concilia con el banco y el restaurante lo ve en su panel."
           className="absolute inset-0 h-full w-full cursor-pointer object-cover"
         />
       )}
@@ -144,7 +145,7 @@ export function ProductVideo() {
           className="absolute inset-0 grid place-items-center bg-foreground/10 transition-colors hover:bg-foreground/15"
         >
           <span className="inline-flex items-center gap-2 rounded-full bg-background px-5 py-3 text-[15px] font-semibold shadow-lg">
-            <Play className="h-4 w-4 fill-current" /> Ver el video (21 s)
+            <Play className="h-4 w-4 fill-current" /> Ver el video (30 s)
           </span>
         </button>
       ) : (

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useRef } from "react";
 import {
   BadgeCheck,
   Bell,
@@ -9,6 +9,8 @@ import {
   LayoutPanelTop,
   LogOut,
   Settings as SettingsIcon,
+  Tablet,
+  Volume2,
   UtensilsCrossed,
 } from "lucide-react";
 
@@ -17,7 +19,16 @@ import { account, auth, payments } from "@/lib/api";
 import { LangToggle } from "@/components/LangToggle";
 import { PlanBanner } from "@/components/PlanBanner";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
-import { chime, chimeEnabled, useOrderChime } from "@/lib/chime";
+import {
+  chime,
+  chimeEnabled,
+  tabletMode,
+  unlockAudio,
+  useAudioStatus,
+  useDeviceSwitch,
+  useOrderChime,
+  useWakeLock,
+} from "@/lib/chime";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,8 +94,22 @@ export function PanelHeader({
    * pantalla y un mesero trabaja desde Mesas. La cabecera está en las cinco.
    */
   useOrderChime(me.isSuccess);
-  const [sound, setSound] = useState(true);
-  useEffect(() => setSound(chimeEnabled.get()), []);
+  const sound = useDeviceSwitch(chimeEnabled);
+  const tablet = useDeviceSwitch(tabletMode);
+  const audio = useAudioStatus();
+  // Modo tablet: la pantalla no se apaga mientras el panel está abierto.
+  useWakeLock(tablet && me.isSuccess);
+  // El aviso de «toca para activar» tiene que sonar al tocarlo. Actúa al
+  // apoyar el dedo y no al soltarlo: el mismo toque desbloquea el audio en
+  // toda la página, el aviso desaparece, y para cuando llegaría el `click`
+  // ya no está. `click` queda para el teclado y los lectores de pantalla.
+  const lastTest = useRef(0);
+  const testSound = () => {
+    if (Date.now() - lastTest.current < 1000) return;
+    lastTest.current = Date.now();
+    unlockAudio();
+    chime();
+  };
 
   // Configuración sale de la barra y se va al menú del avatar: es un destino de
   // cuenta, no una parada del turno.
@@ -155,12 +180,55 @@ export function PanelHeader({
                     event.preventDefault();
                     const next = !sound;
                     chimeEnabled.set(next);
-                    setSound(next);
-                    if (next) chime();
+                    if (next) {
+                      unlockAudio();
+                      chime();
+                    }
                   }}
                 >
                   {sound ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
                   {sound ? t("chimeOn") : t("chimeOff")}
+                </DropdownMenuItem>
+                {/* Para el aparato fijo en la barra o la cocina. Al encenderlo
+                    suena, por lo mismo que el sonido: es un toque, así que
+                    además deja el audio desbloqueado. */}
+                <DropdownMenuItem
+                  role="menuitemcheckbox"
+                  aria-checked={tablet}
+                  className="group cursor-pointer items-start"
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    const next = !tablet;
+                    tabletMode.set(next);
+                    if (next) {
+                      unlockAudio();
+                      if (sound) chime();
+                    }
+                  }}
+                >
+                  <Tablet className="mt-0.5 h-4 w-4" />
+                  <span className="flex-1">
+                    <span className="block">{t("tabletMode")}</span>
+                    {/* Resaltado, la fila entera se pinta de verde: el gris de
+                        siempre ahí no se lee, así que hereda el color. */}
+                    <span className="block text-xs text-muted-foreground group-data-[highlighted]:text-current group-data-[highlighted]:opacity-80">
+                      {t("tabletModeHint")}
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden
+                    className={`mt-0.5 h-5 w-9 shrink-0 rounded-full p-0.5 transition-colors ${
+                      tablet
+                        ? "bg-primary group-data-[highlighted]:bg-primary-foreground/45"
+                        : "bg-border"
+                    }`}
+                  >
+                    <span
+                      className={`block h-4 w-4 rounded-full bg-background transition-transform ${
+                        tablet ? "translate-x-4" : ""
+                      }`}
+                    />
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
@@ -231,6 +299,28 @@ export function PanelHeader({
           </nav>
         </div>
       </header>
+      {/* El sonido de los pedidos, bloqueado por el navegador. Antes esto
+          fallaba en silencio: el pedido entraba y no sonaba nada, y nadie
+          sabía por qué. Un toque aquí (o en cualquier parte del panel) lo
+          desbloquea y suena, para que se compruebe en el momento. */}
+      {me.isSuccess && sound && audio === "blocked" && (
+        <button
+          type="button"
+          onPointerDown={testSound}
+          onClick={testSound}
+          className="block w-full border-b border-amber-500/40 bg-amber-500/10 text-left"
+        >
+          <span className="mx-auto flex max-w-6xl items-start gap-2 px-5 py-2.5 text-sm">
+            <Volume2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <span className="min-w-0">
+              <span className="font-medium">{t("chimeBlocked")}</span>{" "}
+              <span className="hidden text-muted-foreground sm:inline">
+                {t("chimeBlockedHint")}
+              </span>
+            </span>
+          </span>
+        </button>
+      )}
       {/* Debajo de la barra, no dentro: es un aviso, no un destino. Al vivir
           aquí sale en las pantallas del panel sin repetirlo en cinco sitios. */}
       <PlanBanner />

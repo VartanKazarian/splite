@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowRight } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import type { FloorTable } from "@/lib/api";
-import { AGE_ATTENTION_MINUTES, formatAge, openMinutesOf } from "./tableStatus";
+import { AGE_ATTENTION_MINUTES, claimsToAttend, formatAge, openMinutesOf } from "./tableStatus";
 
 /**
  * Lo único que le pide algo a una persona ahora mismo.
@@ -33,6 +33,7 @@ export function ToAttend({
   orders,
   tables,
   unresolvedC2P,
+  pendingClaims,
   openedAtByBill,
   onOrders,
 }: {
@@ -40,6 +41,14 @@ export function ToAttend({
   orders: number;
   tables: FloorTable[];
   unresolvedC2P: number;
+  /**
+   * Avisos de pago por verificar, del mismo resumen que el contador de Pagos.
+   *
+   * Contarlos mesa por mesa sólo veía las cuentas abiertas, y un aviso que
+   * sigue esperando en una cuenta ya cerrada no salía: el panel decía 22 y el
+   * contador de Pagos, 23. Sin el resumen se vuelve a sumar por mesa.
+   */
+  pendingClaims?: number | undefined;
   openedAtByBill: Map<string, string>;
   /** Baja a la bandeja de pedidos, que está en esta misma pantalla. */
   onOrders: () => void;
@@ -68,15 +77,13 @@ export function ToAttend({
   // Los avisos de pago, sumados. Con uno solo se dice de qué mesa, que es el
   // dato que hace falta para buscarlo en la app del banco; con varios, el
   // nombre de una de ellas sobra y la cifra es lo que importa.
-  const withClaims = tables.filter((table) => (table.openBill?.pendingClaims ?? 0) > 0);
-  const claims = withClaims.reduce((sum, table) => sum + (table.openBill?.pendingClaims ?? 0), 0);
-  if (claims > 0) {
+  const claims = claimsToAttend(tables, pendingClaims);
+  if (claims.count > 0) {
     rows.push({
       key: "claims",
-      text:
-        claims === 1 && withClaims[0]
-          ? t("attentionClaimsOne").replace("{table}", withClaims[0].name)
-          : t("attentionClaims").replace("{n}", String(claims)),
+      text: claims.table
+        ? t("attentionClaimsOne").replace("{table}", claims.table.name)
+        : t("attentionClaims").replace("{n}", String(claims.count)),
       cta: t("attentionGoPayments"),
       action: "payments",
     });

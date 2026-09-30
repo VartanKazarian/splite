@@ -73,7 +73,7 @@ function BankMatchBadge({ match, id }: { match: BankMatch; id: string }) {
   const [tone, text] =
     match.outcome === "MATCHED"
       ? [
-          "border-primary/40 bg-primary/10 text-primary",
+          "border-primary/40 bg-primary/10 text-primary-ink",
           t(match.autoConfirmed ? "bankMatchAuto" : "bankMatchMatched").replace("{ref}", ref),
         ]
       : match.outcome === "MISMATCH"
@@ -319,7 +319,7 @@ function PaymentsPage() {
               }}
               className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs transition-colors ${
                 current === id
-                  ? "border-primary bg-primary/10 font-medium text-primary"
+                  ? "border-primary bg-primary/10 font-medium text-primary-ink"
                   : "border-border text-muted-foreground hover:border-primary"
               }`}
             >

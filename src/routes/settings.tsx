@@ -331,11 +331,15 @@ function SettingsPage() {
             cuatro siempre: a un mesero sólo le sale "Tu cuenta", y en el
             navegador los otros tres enlaces no hacían nada -- el ancla no
             existía en la página. Un control muerto es peor que uno ausente.
-            Con un solo grupo no hay a dónde saltar y la fila desaparece. */}
+            Con un solo grupo no hay a dónde saltar y la fila desaparece.
+
+            En el teléfono se parte en dos líneas en vez de desplazarse: con la
+            barra de desplazamiento oculta, "Tu cuenta" quedaba fuera de la
+            pantalla sin nada que dijera que estaba ahí. */}
         {jumps.length > 1 && (
           <nav
             aria-label={t("settingsTitle")}
-            className="sticky top-0 z-10 -mx-5 mt-4 flex gap-1.5 overflow-x-auto border-b border-border bg-background/95 px-5 py-3 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="sticky top-0 z-10 -mx-5 mt-4 flex flex-wrap gap-1.5 border-b border-border bg-background/95 px-5 py-3 backdrop-blur"
           >
             {jumps.map(([id, label]) => (
               <button
@@ -350,9 +354,9 @@ function SettingsPage() {
                   window.history.replaceState(null, "", `#${id}`);
                   window.scrollTo({ top: 0 });
                 }}
-                className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs transition-colors ${
+                className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-xs transition-colors sm:px-4 ${
                   current === id
-                    ? "border-primary bg-primary/10 font-medium text-primary"
+                    ? "border-primary bg-primary/10 font-medium text-primary-ink"
                     : "border-border text-muted-foreground hover:border-primary"
                 }`}
               >
@@ -409,7 +413,7 @@ function SettingsPage() {
                       onClick={() => setCurrency.mutate(c)}
                       className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm transition-colors disabled:opacity-40 ${
                         settings.data?.menuCurrency === c
-                          ? "border-primary bg-primary/15 text-primary"
+                          ? "border-primary bg-primary/15 text-primary-ink"
                           : "border-border hover:bg-secondary"
                       }`}
                     >
@@ -636,7 +640,7 @@ function PayoutSection() {
           <span
             className={`rounded-full px-2.5 py-1 text-[11px] ${
               accountQuery.data.payout
-                ? "bg-primary/15 text-primary"
+                ? "bg-primary/15 text-primary-ink"
                 : "border border-amber-500/50 text-muted-foreground"
             }`}
           >

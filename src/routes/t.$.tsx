@@ -14,6 +14,10 @@ export const Route = createFileRoute("/t/$")({
   head: () => ({
     meta: [
       { title: "Tu mesa — Splite" },
+      // La dirección lleva el QR de la mesa: que no la guarde un buscador ni la
+      // reciba otra web al salir de aquí por un enlace.
+      { name: "robots", content: "noindex, nofollow" },
+      { name: "referrer", content: "no-referrer" },
       {
         name: "description",
         content:
@@ -34,5 +38,9 @@ export const Route = createFileRoute("/t/$")({
 
 function GuestSplatPage() {
   const { qr } = Route.useSearch();
-  return <TableLanding {...(qr ? { qr } : {})} />;
+  return (
+    <main>
+      <TableLanding {...(qr ? { qr } : {})} />
+    </main>
+  );
 }

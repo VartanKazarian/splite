@@ -44,7 +44,7 @@ export function BillMockup() {
     <Phone>
       <div className="px-4 pb-5 pt-3">
         <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Casa 72</p>
-        <h3 className="mt-0.5 text-lg font-semibold tracking-tight">Cuenta Mesa 12</h3>
+        <p className="mt-0.5 text-lg font-semibold tracking-tight">Cuenta Mesa 12</p>
         <div className="mt-3 border-t border-border pt-2">
           <Row label="Hamburguesa" value="$18,00" />
           <Row label="Pizza" value="$22,00" />
@@ -85,7 +85,7 @@ export function DashboardMockup() {
       <div className="flex items-center justify-between border-b border-border pb-4">
         <div>
           <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Casa 72</p>
-          <h3 className="text-base font-semibold tracking-tight">Salón</h3>
+          <p className="text-base font-semibold tracking-tight">Salón</p>
         </div>
         <span className="rounded-full border border-border px-3 py-1 text-[11px] text-muted-foreground">
           4 mesas abiertas
@@ -156,9 +156,9 @@ export function DashboardMockup() {
               <span
                 className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${
                   c.tone === "open"
-                    ? "bg-primary/12 text-primary"
+                    ? "bg-primary/12 text-primary-ink"
                     : c.tone === "new"
-                      ? "bg-amber-500/12 text-amber-600 dark:text-amber-400"
+                      ? "bg-amber-500/12 text-amber-800 dark:text-amber-300"
                       : "bg-secondary text-muted-foreground"
                 }`}
               >
@@ -350,13 +350,13 @@ export function LiveSplitMockup({ currency }: { currency: "USD" | "VES" }) {
           <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Casa 72</p>
           <span
             className={`rounded-full px-2 py-0.5 text-[10px] transition-colors duration-500 ${
-              settled ? "bg-primary/12 text-primary" : "bg-secondary text-muted-foreground"
+              settled ? "bg-primary/12 text-primary-ink" : "bg-secondary text-muted-foreground"
             }`}
           >
             {settled ? "Mesa libre" : `${claimed} de 4 pagaron`}
           </span>
         </div>
-        <h3 className="mt-0.5 text-lg font-semibold tracking-tight">Cuenta Mesa 12</h3>
+        <p className="mt-0.5 text-lg font-semibold tracking-tight">Cuenta Mesa 12</p>
 
         <div className="mt-3 space-y-1 border-t border-border pt-2">
           {HERO_ITEMS.map((item, i) => {
@@ -381,7 +381,7 @@ export function LiveSplitMockup({ currency }: { currency: "USD" | "VES" }) {
                     </span>
                   </span>
                   <span
-                    className={`truncate transition-opacity duration-500 ${on ? "" : "opacity-55"}`}
+                    className={`truncate transition-colors duration-500 ${on ? "" : "text-muted-foreground"}`}
                   >
                     {item.name}
                   </span>
@@ -508,7 +508,7 @@ export function BankMatchMockup() {
       <div className="flex items-center justify-between border-b border-border pb-3">
         <div>
           <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Pagos</p>
-          <h3 className="text-base font-semibold tracking-tight">Avisos de pago móvil</h3>
+          <p className="text-base font-semibold tracking-tight">Avisos de pago móvil</p>
         </div>
         <span className="rounded-full border border-border px-3 py-1 text-[11px] text-muted-foreground">
           Estado de cuenta · hoy
@@ -527,7 +527,7 @@ export function BankMatchMockup() {
             <p
               className={`mt-2 rounded-lg border px-3 py-1.5 text-[12px] ${
                 c.ok
-                  ? "border-primary/40 bg-primary/10 text-primary"
+                  ? "border-primary/40 bg-primary/10 text-primary-ink"
                   : "border-border text-muted-foreground"
               }`}
             >

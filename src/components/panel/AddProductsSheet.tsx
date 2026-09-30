@@ -135,7 +135,7 @@ export function AddProductsSheet({
                   aria-pressed={category === c.id}
                   className={`min-h-11 shrink-0 whitespace-nowrap rounded-full border px-4 text-[13px] transition-colors ${
                     category === c.id
-                      ? "border-primary bg-primary/10 font-medium text-primary"
+                      ? "border-primary bg-primary/10 font-medium text-primary-ink"
                       : "border-border text-muted-foreground hover:bg-secondary"
                   }`}
                 >
@@ -216,7 +216,7 @@ export function AddProductsSheet({
                             type="button"
                             onClick={() => bump(p.id, -1)}
                             aria-label={`${t("oneLessOf")} ${p.name}`}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10"
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-primary-ink transition-colors hover:bg-primary/10"
                           >
                             <Minus className="h-4 w-4" />
                           </button>
@@ -225,7 +225,7 @@ export function AddProductsSheet({
                             type="button"
                             onClick={() => bump(p.id, 1)}
                             aria-label={`${t("oneMoreOf")} ${p.name}`}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10"
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-primary-ink transition-colors hover:bg-primary/10"
                           >
                             <Plus className="h-4 w-4" />
                           </button>

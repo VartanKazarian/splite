@@ -46,7 +46,7 @@ export function TableRow({
           ? "bg-amber-400 font-medium text-amber-950"
           : badge.tone === "attention"
             ? "bg-amber-500/15 text-amber-800"
-            : "bg-primary/15 text-primary",
+            : "bg-primary/15 text-primary-ink",
   };
 
   if (!bill) {

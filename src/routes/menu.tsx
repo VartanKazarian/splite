@@ -534,7 +534,7 @@ function MenuPage() {
                           }
                           className={`min-h-11 flex-1 whitespace-nowrap rounded-full border px-4 text-xs transition-colors sm:flex-none ${
                             status === value
-                              ? "border-primary bg-primary/10 text-primary"
+                              ? "border-primary bg-primary/10 text-primary-ink"
                               : "border-border text-muted-foreground hover:bg-secondary"
                           }`}
                         >
@@ -551,7 +551,7 @@ function MenuPage() {
                         onClick={() => setCategoryFilter("ALL")}
                         className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors ${
                           categoryFilter === "ALL"
-                            ? "border-primary bg-primary/10 text-primary"
+                            ? "border-primary bg-primary/10 text-primary-ink"
                             : "border-border text-muted-foreground hover:bg-secondary"
                         }`}
                       >
@@ -565,7 +565,7 @@ function MenuPage() {
                           }
                           className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors ${
                             categoryFilter === cat.id
-                              ? "border-primary bg-primary/10 text-primary"
+                              ? "border-primary bg-primary/10 text-primary-ink"
                               : "border-border text-muted-foreground hover:bg-secondary"
                           }`}
                         >
@@ -580,7 +580,7 @@ function MenuPage() {
                           }
                           className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
                             categoryFilter === "NONE"
-                              ? "border-primary bg-primary/10 text-primary"
+                              ? "border-primary bg-primary/10 text-primary-ink"
                               : "border-border text-muted-foreground hover:bg-secondary"
                           }`}
                         >

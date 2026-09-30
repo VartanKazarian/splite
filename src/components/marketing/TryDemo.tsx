@@ -93,7 +93,7 @@ export function TryDemo() {
              algo que no había cargado. Las líneas son las de la cuenta de la
              demo, para que al pulsar aparezca lo que ya se estaba viendo. */
           <div className="relative h-[620px] overflow-hidden">
-            <div aria-hidden className="px-5 pt-6 opacity-70">
+            <div aria-hidden className="px-5 pt-6">
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                 Casa 72 · Mesa 12
               </p>

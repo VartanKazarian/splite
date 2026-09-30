@@ -89,7 +89,9 @@ const H2 = {
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{children}</p>
+    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-ink">
+      {children}
+    </p>
   );
 }
 
@@ -407,7 +409,7 @@ function Problem() {
                     por fila: cuatro flechas sueltas son cuatro cosas que mirar,
                     y lo que hay que leer son las cuatro palabras. */}
                 <span className="flex flex-col items-center self-stretch">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-semibold text-primary">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-semibold text-primary-ink">
                     {i + 1}
                   </span>
                   {i < despues.length - 1 && <span className="w-px flex-1 bg-primary/25" />}
@@ -557,7 +559,7 @@ function GetPaid() {
             ))}
           </div>
 
-          <p className="mt-7 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/8 px-4 py-2 text-sm font-medium text-primary">
+          <p className="mt-7 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/8 px-4 py-2 text-sm font-medium text-primary-ink">
             <Check className="h-4 w-4" /> Las propinas se atribuyen al mesero de la mesa
           </p>
         </div>

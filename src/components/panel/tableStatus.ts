@@ -167,3 +167,23 @@ export function paidPercent(paidVes: string | undefined, totalVes: string | unde
     return 0;
   }
 }
+
+/**
+ * Cuántos avisos de pago esperan y, si es uno solo, en qué mesa.
+ *
+ * `pending` viene del resumen de Pagos, que cuenta también los avisos de
+ * cuentas ya cerradas; sumar mesa por mesa se los salta (el panel decía 22 y
+ * Pagos, 23). Sin el resumen se suma por mesa. La mesa sólo se nombra cuando
+ * el único aviso está de verdad en ella: si el resumen dice uno y las mesas
+ * abiertas ninguno, nombrar una sería mandar a buscarlo donde no está.
+ */
+export function claimsToAttend(
+  tables: FloorTable[],
+  pending: number | undefined,
+): { count: number; table: FloorTable | null } {
+  const withClaims = tables.filter((table) => (table.openBill?.pendingClaims ?? 0) > 0);
+  const onTables = withClaims.reduce((sum, table) => sum + (table.openBill?.pendingClaims ?? 0), 0);
+  const count = pending ?? onTables;
+  const table = count === 1 && onTables === 1 ? (withClaims[0] ?? null) : null;
+  return { count, table };
+}

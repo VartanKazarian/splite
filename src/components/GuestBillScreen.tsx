@@ -153,8 +153,11 @@ export function GuestBillScreen({
     queryKey: ["guest-bill", demo],
     enabled: sessionReady && !demo,
     retry: false,
-    // El personal añade productos mientras la gente está sentada: sondeo cada 5s.
-    refetchInterval: 5000,
+    // El personal añade productos mientras la gente está sentada. Cada diez
+    // segundos: con cinco, una mesa de seis en el wifi del local eran setenta
+    // peticiones por minuto sólo para esto, y un plato nuevo no se nota por
+    // aparecer cinco segundos antes.
+    refetchInterval: 10000,
     queryFn: async (): Promise<Bill | null> => {
       try {
         return await guest.bill<Bill>();

@@ -91,8 +91,11 @@ function Dashboard() {
   });
 
   useEffect(() => {
-    if (me.error instanceof ApiError && me.error.status === 401) {
-      staffSession.set(null);
+    // Sólo si la sesión ya se acabó de verdad: `apiRequest` la borra cuando el
+    // servidor rechaza la renovación. Un 401 con la sesión todavía guardada es
+    // una renovación que falló por la red o por un 429, y sacar al mesero del
+    // panel por eso era peor que enseñarle el aviso de error y reintentar.
+    if (me.error instanceof ApiError && me.error.status === 401 && !staffSession.get()) {
       navigate({ to: "/login" });
     }
   }, [me.error, navigate]);
@@ -121,6 +124,16 @@ function Dashboard() {
     refetchInterval: 30000,
   });
   const unresolvedCount = c2pQuery.data?.length ?? 0;
+
+  // El mismo resumen que el contador de Pagos en la cabecera, con la misma
+  // clave: una sola petición para los dos, y el mismo número en los dos.
+  const claimsSummary = useQuery({
+    queryKey: ["payment-claims", "summary"],
+    queryFn: () => payments.claimsSummary(),
+    enabled: ready && me.isSuccess,
+    retry: false,
+    refetchInterval: 20000,
+  });
 
   // Pedidos que la sala no ha mirado. Cuentan como avisos porque son
   // exactamente eso: algo que ha pasado en una mesa y que alguien tiene que
@@ -434,6 +447,7 @@ function Dashboard() {
             orders={newOrders}
             tables={tableList}
             unresolvedC2P={inDoubt}
+            pendingClaims={claimsSummary.data?.pending}
             openedAtByBill={openedAtByBill}
             onOrders={() =>
               document

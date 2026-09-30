@@ -55,7 +55,7 @@ export function AdminShell({
                 aria-current={current === id ? "page" : undefined}
                 className={`inline-flex min-h-10 items-center rounded-full px-4 text-sm transition-colors ${
                   current === id
-                    ? "bg-primary/10 font-medium text-primary"
+                    ? "bg-primary/10 font-medium text-primary-ink"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`}
               >

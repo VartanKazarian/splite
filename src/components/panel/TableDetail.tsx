@@ -704,7 +704,7 @@ export function TableDetail({
               pendingClaims > 0
                 ? "bg-amber-500/10 text-amber-800"
                 : remainingVes === 0n && paidVes > 0n
-                  ? "bg-primary/10 text-primary"
+                  ? "bg-primary/10 text-primary-ink"
                   : "bg-secondary text-muted-foreground"
             }`}
           >

@@ -1578,9 +1578,20 @@ export type Product = {
    * la temporada pasada. Montarla a mano desde el id la rompe.
    */
   imageUrl: string | null;
+  /** Su puesto dentro de la sección. La lista ya llega ordenada; esto es el porqué. */
+  position?: number;
+  /**
+   * Cómo lo trata el IVA. Casi todo es TAXABLE con la alícuota general del
+   * restaurante (`vatBps` null); exento, exonerado y no sujeto existen para lo
+   * que la ley saca del impuesto.
+   */
+  taxCategory?: ProductTaxCategory;
+  vatBps?: number | null;
   createdAt?: string;
   updatedAt?: string;
 };
+
+export type ProductTaxCategory = "TAXABLE" | "EXEMPT" | "EXONERATED" | "NON_TAXABLE";
 
 /** Un producto tal y como lo ve un comensal: sin `active`, con su sección. */
 /**
@@ -2043,6 +2054,8 @@ export const menu = {
     description?: string | null;
     /** La sección. Null es "sin sección", que es una respuesta real. */
     categoryId?: string | null;
+    active?: boolean;
+    taxCategory?: ProductTaxCategory;
   }) => apiRequest<Product>("/api/v1/menu/products", { method: "POST", auth: "staff", body }),
   updateProduct: (
     id: string,
@@ -2052,8 +2065,19 @@ export const menu = {
       description?: string | null;
       active?: boolean;
       categoryId?: string | null;
+      taxCategory?: ProductTaxCategory;
     },
   ) => apiRequest<Product>(`/api/v1/menu/products/${id}`, { method: "PATCH", auth: "staff", body }),
+  /**
+   * El orden de una sección, entero. `ids` tiene que ser exactamente esa
+   * sección: el servidor rechaza una lista incompleta sin tocar nada.
+   */
+  reorderProducts: (categoryId: string | null, ids: string[]) =>
+    apiRequest<void>("/api/v1/menu/products/order", {
+      method: "PUT",
+      auth: "staff",
+      body: { categoryId, ids },
+    }),
   /** Sin `permanent` sólo desactiva; con `permanent` borra (las cuentas guardan su snapshot). */
   deleteProduct: (id: string, permanent = false) =>
     apiRequest<void>(`/api/v1/menu/products/${id}${permanent ? "?permanent=true" : ""}`, {

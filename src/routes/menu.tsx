@@ -2,38 +2,34 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Check,
   ChevronDown,
   ImageIcon,
-  Pencil,
   Plus,
   Search,
   Smartphone,
-  Tag,
-  Trash2,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { ConfirmButton } from "@/components/ConfirmButton";
 import { MenuOcrImport } from "@/components/MenuOcrImport";
 import { MenuSections } from "@/components/MenuSections";
 import { MenuPdfCard } from "@/components/MenuPdfCard";
-import { ProductPhoto } from "@/components/ProductPhoto";
+import { ProductSheet } from "@/components/panel/ProductSheet";
+import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/lib/i18n";
 import {
   API_BASE_URL,
   ApiError,
-  errorFields,
-  errorFieldsText,
-  formatMinor,
   formatMoney,
   menu,
-  parseMinorInput,
   staffSession,
   type MenuCategory,
   type Product,
 } from "@/lib/api";
+import { moveBy, sortLikeMenu, withSectionOrder } from "@/lib/menu-order";
 import { ErrorBox } from "@/routes/dashboard";
 import { PanelHeader } from "@/components/PanelHeader";
 import { PageHeader } from "@/components/shell/PageHeader";
@@ -58,9 +54,6 @@ export const Route = createFileRoute("/menu")({
   }),
   component: MenuPage,
 });
-
-type FieldErrors = Record<string, string>;
-type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 /* ---------------------------------------------------------------- category store */
 
@@ -102,10 +95,6 @@ function forgetLegacyCategories() {
 
 /* ---------------------------------------------------------------- helpers */
 
-function fieldsOf(error: unknown): FieldErrors {
-  return errorFields(error);
-}
-
 function lastUpdated(products: Product[]): string | null {
   const stamps = products
     .map((p) => p.updatedAt ?? p.createdAt)
@@ -120,20 +109,32 @@ const UNCATEGORIZED = "Sin categoría";
 
 /* ---------------------------------------------------------------- page */
 
+type Group = { key: string; categoryId: string | null; category: string; items: Product[] };
+
 function MenuPage() {
   const { t, lang } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
   // Sólo se lee en el navegador: leerlo en el render del servidor pintaría algo
   // distinto al primer render del cliente.
   const [legacyNames, setLegacyNames] = useState<string[]>([]);
   useEffect(() => setLegacyNames(legacyCategoryNames()), []);
 
   useEffect(() => {
-    if (!staffSession.get()) navigate({ to: "/login" });
-    else setReady(true);
+    const session = staffSession.get();
+    if (!session) navigate({ to: "/login" });
+    else {
+      setRole(session.user.role);
+      setReady(true);
+    }
   }, [navigate]);
+
+  // Los mismos roles que el servidor deja escribir en la carta. Al resto se le
+  // enseña la carta sin interruptores ni flechas: un control que siempre
+  // contesta «no tienes permiso» sólo enseña a no tocar nada.
+  const canManage = role === "OWNER" || role === "MANAGER";
 
   const settings = useQuery({
     queryKey: ["menu-settings"],
@@ -156,16 +157,14 @@ function MenuPage() {
     retry: false,
   });
 
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState<string>("");
-  const [createErrors, setCreateErrors] = useState<FieldErrors>({});
-  const [editing, setEditing] = useState<Product | null>(null);
-  const [adding, setAdding] = useState(false);
+  const [sheet, setSheet] = useState<{ open: boolean; product: Product | null }>({
+    open: false,
+    product: null,
+  });
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<StatusFilter>("ALL");
+  const [onlyUnavailable, setOnlyUnavailable] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [ordering, setOrdering] = useState<string | null>(null);
 
   const categoryRows = useMemo<MenuCategory[]>(
     () => categories.data?.data ?? [],
@@ -173,104 +172,89 @@ function MenuPage() {
   );
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["menu-products"] });
-  // Al mover un producto cambia el recuento de las secciones.
   const refreshAll = () => {
     refresh();
     queryClient.invalidateQueries({ queryKey: ["menu-categories"] });
   };
 
   const fail = (error: unknown) => {
-    if (!(error instanceof ApiError)) return toast.error(t("apiDown"));
-    if (error.code === "PRODUCT_NAME_TAKEN") return toast.error(t("nameTaken"));
-    if (error.code === "PRODUCT_NOT_FOUND") {
-      refresh();
-      return toast.error(`${error.code} · ${error.message}`);
-    }
-    const fields = errorFieldsText(error);
-    if (error.code === "VALIDATION_FAILED")
-      return toast.error(fields ? `${error.message} — ${fields}` : error.message);
-    if (fields) return toast.error(`${error.code} · ${fields}`);
-    return toast.error(`${error.code} · ${error.message}`);
+    toast.error(error instanceof ApiError ? error.message : t("apiDown"));
   };
 
-  const create = useMutation({
-    mutationFn: () =>
-      menu.createProduct({
-        name: name.trim(),
-        priceMinorUnits: parseMinorInput(price),
-        ...(description.trim() ? { description: description.trim() } : {}),
-        // La sección va en la misma petición: antes se guardaba aparte en el
-        // navegador y el producto llegaba al servidor sin ella.
-        ...(categoryId ? { categoryId } : {}),
-      }),
-    onSuccess: () => {
-      setName("");
-      setPrice("");
-      setDescription("");
-      setCategoryId("");
-      setCreateErrors({});
-      setAdding(false);
-      toast.success(t("addProduct"));
-      refreshAll();
+  /**
+   * Disponible / no disponible, desde la lista.
+   *
+   * Es lo que más se toca de una carta: se acabó el pescado a las nueve. Antes
+   * costaba abrir el plato, bajar hasta «Desactivar» y guardar. Ahora es el
+   * interruptor de la fila, cambia al pulsar -- sin esperar al servidor -- y
+   * el aviso trae «Deshacer» por si fue el plato de al lado.
+   */
+  const availability = useMutation({
+    mutationFn: (p: { id: string; active: boolean }) =>
+      menu.updateProduct(p.id, { active: p.active }),
+    onMutate: async ({ id, active }) => {
+      await queryClient.cancelQueries({ queryKey: ["menu-products"] });
+      const previous = queryClient.getQueryData<Product[]>(["menu-products"]);
+      queryClient.setQueryData<Product[]>(["menu-products"], (list) =>
+        (list ?? []).map((p) => (p.id === id ? { ...p, active } : p)),
+      );
+      return { previous };
     },
-    onError: (error) => {
-      setCreateErrors(fieldsOf(error));
+    onError: (error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["menu-products"], context.previous);
       fail(error);
     },
+    onSettled: () => {
+      refresh();
+      queryClient.invalidateQueries({ queryKey: ["public-menu"] });
+    },
   });
 
-  const update = useMutation({
-    mutationFn: (p: { id: string; body: Parameters<typeof menu.updateProduct>[1] }) =>
-      menu.updateProduct(p.id, p.body),
-    onSuccess: () => {
-      setEditing(null);
-      toast.success(t("saved"));
-      refreshAll();
-    },
-    onError: fail,
-  });
+  const setAvailable = (p: Product, active: boolean) => {
+    availability.mutate({ id: p.id, active });
+    toast(t(active ? "availabilityOn" : "availabilityOff").replace("{name}", p.name), {
+      action: {
+        label: t("undo"),
+        onClick: () => availability.mutate({ id: p.id, active: !active }),
+      },
+    });
+  };
 
-  const remove = useMutation({
-    // Permanente. Desactivar ya tiene su propio botón al lado; una papelera que
-    // hace lo mismo que él deja platos muertos en la lista para siempre.
-    mutationFn: (id: string) => menu.deleteProduct(id, true),
-    onSuccess: () => {
-      toast.success(t("productDeleted"));
-      refreshAll();
+  /** Mover un plato dentro de su sección. Igual que la disponibilidad: al pulsar. */
+  const reorder = useMutation({
+    mutationFn: (p: { categoryId: string | null; ids: string[] }) =>
+      menu.reorderProducts(p.categoryId, p.ids),
+    onMutate: async ({ ids }) => {
+      await queryClient.cancelQueries({ queryKey: ["menu-products"] });
+      const previous = queryClient.getQueryData<Product[]>(["menu-products"]);
+      queryClient.setQueryData<Product[]>(["menu-products"], (list) =>
+        withSectionOrder(list ?? [], ids),
+      );
+      return { previous };
     },
-    onError: fail,
+    onError: (_error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["menu-products"], context.previous);
+      toast.error(t("reorderFailed"));
+    },
+    onSettled: () => {
+      refresh();
+      queryClient.invalidateQueries({ queryKey: ["public-menu"] });
+    },
   });
 
   const all = useMemo(() => products.data ?? [], [products.data]);
   const activeCount = all.filter((p) => p.active).length;
-
-  /**
-   * ¿Hay alguna foto en esta carta?
-   *
-   * El hueco de la foto se reservaba siempre, incluida la carta que no tiene
-   * ninguna -- que es como empiezan todas y como se quedan muchas: diez marcos
-   * de trazo discontinuo con un icono gris, uno por plato, diciendo que falta
-   * algo que nadie ha pedido. La regla es la misma que en la hoja de productos
-   * del mesero: la columna existe si la carta usa fotos. Con una sola foto
-   * vuelve, y entonces sí importa que los nombres empiecen todos en el mismo
-   * sitio.
-   */
+  const inactiveCount = all.length - activeCount;
   const withPhotos = useMemo(() => all.some((p) => p.imageUrl), [all]);
+  const updatedAt = useMemo(() => lastUpdated(all), [all]);
 
   /**
    * El pliegue de "Montar la carta", abierto o cerrado según haga falta.
    *
-   * Cerrado es lo correcto para una carta hecha: la moneda, las secciones y la
-   * importación se tocan al empezar y casi nunca después. Pero con la carta
-   * vacía eso deja lo único que hay que hacer -- importarla de una foto o de un
-   * PDF, que es la vía rápida -- plegada al final de la pantalla, debajo de una
-   * lista que dice "Aún no hay productos". Así que con cero productos se abre,
-   * y además sube por encima de la lista.
-   *
-   * Se siembra una vez, cuando llega la primera respuesta, y desde ahí manda
-   * quien mira: si se controlara con `all.length` a secas, importar la carta lo
-   * cerraría de golpe en mitad del gesto, y cerrarlo a mano no serviría de nada
-   * porque el siguiente render volvería a abrirlo.
+   * Cerrado para una carta hecha; abierto, y por encima de la lista, con la
+   * carta vacía -- donde importarla de una foto es lo único que hay que hacer.
+   * Se siembra una vez: si siguiera a `all.length`, importar la carta lo
+   * cerraría en mitad del gesto.
    */
   const [setupOpen, setSetupOpen] = useState(false);
   const setupSeeded = useRef(false);
@@ -279,31 +263,24 @@ function MenuPage() {
     setupSeeded.current = true;
     setSetupOpen(all.length === 0);
   }, [products.isSuccess, all.length]);
-  const inactiveCount = all.length - activeCount;
-  const updatedAt = useMemo(() => lastUpdated(all), [all]);
 
-  /**
-   * El orden del menú, del servidor.
-   *
-   * Alfabético sería Bebidas, Entradas, Postres, Principales -- que no es una
-   * carta. `position` es justamente lo que arregla eso, así que el orden sale
-   * de la lista de secciones y no de los nombres.
-   */
-  const orderOf = useMemo(() => {
+  const sectionRank = useMemo(() => {
     const index = new Map<string, number>();
     categoryRows.forEach((c, i) => index.set(c.id, i));
     return index;
   }, [categoryRows]);
 
+  const filtering = Boolean(query.trim()) || onlyUnavailable || categoryFilter !== "ALL";
+  // Ordenar con la lista filtrada movería platos respecto a otros que no se
+  // ven. Al filtrar se sale del modo ordenar.
+  useEffect(() => {
+    if (filtering) setOrdering(null);
+  }, [filtering]);
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    // Sin sección va al final, nunca intercalado.
-    const rank = (p: Product) =>
-      p.categoryId
-        ? (orderOf.get(p.categoryId) ?? Number.MAX_SAFE_INTEGER - 1)
-        : Number.MAX_SAFE_INTEGER;
-    return all
-      .filter((p) => (status === "ALL" ? true : status === "ACTIVE" ? p.active : !p.active))
+    return sortLikeMenu(all, sectionRank)
+      .filter((p) => (onlyUnavailable ? !p.active : true))
       .filter((p) =>
         q
           ? p.name.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q)
@@ -313,25 +290,24 @@ function MenuPage() {
         if (categoryFilter === "ALL") return true;
         if (categoryFilter === "NONE") return !p.categoryId;
         return p.categoryId === categoryFilter;
-      })
-      .sort((a, b) => {
-        const byCategory = rank(a) - rank(b);
-        if (byCategory !== 0) return byCategory;
-        return Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, "es");
       });
-  }, [all, query, status, categoryFilter, orderOf]);
+  }, [all, query, onlyUnavailable, categoryFilter, sectionRank]);
 
   const grouped = useMemo(() => {
-    const groups: { key: string; category: string; items: Product[] }[] = [];
+    const groups: Group[] = [];
     const seen = new Map<string, Product[]>();
     for (const p of visible) {
       const key = p.categoryId ?? "__none__";
-      const label = p.categoryName ?? UNCATEGORIZED;
       let bucket = seen.get(key);
       if (!bucket) {
         bucket = [];
         seen.set(key, bucket);
-        groups.push({ key, category: label, items: bucket });
+        groups.push({
+          key,
+          categoryId: p.categoryId ?? null,
+          category: p.categoryName ?? UNCATEGORIZED,
+          items: bucket,
+        });
       }
       bucket.push(p);
     }
@@ -343,6 +319,22 @@ function MenuPage() {
   const forbidden = [settings.error, products.error].some(
     (e) => e instanceof ApiError && (e.code === "FORBIDDEN_ROLE" || e.status === 403),
   );
+
+  const openAdd = () => setSheet({ open: true, product: null });
+  const openEdit = (p: Product) => setSheet({ open: true, product: p });
+  const move = (group: Group, index: number, delta: -1 | 1) => {
+    const current = group.items.map((p) => p.id);
+    const next = moveBy(current, index, delta);
+    if (next === current) return;
+    reorder.mutate({ categoryId: group.categoryId, ids: next });
+  };
+
+  const chip = (on: boolean) =>
+    `inline-flex min-h-9 items-center gap-1 whitespace-nowrap rounded-full border px-3 text-xs transition-colors ${
+      on
+        ? "border-primary bg-primary/10 text-primary-ink"
+        : "border-border text-muted-foreground hover:bg-secondary"
+    }`;
 
   return (
     <div className="min-h-screen">
@@ -371,8 +363,8 @@ function MenuPage() {
           }
         />
         {/* Los cargos deciden el total de una cuenta, y se buscan aquí. Se
-            quedan en Configuración con el resto del dinero -- IVA, servicio y
-            datos de cobro juntos -- pero desde aquí se dice dónde están. */}
+            quedan en Configuración con el resto del dinero, pero desde aquí se
+            dice dónde están. */}
         <p className="mt-1 text-xs text-muted-foreground">
           {t("chargesInMenuHint")}{" "}
           <Link to="/settings" hash="cobros" className="underline">
@@ -388,8 +380,6 @@ function MenuPage() {
         ) : (
           <div className="flex flex-col">
             <section className="surface mt-6 p-4">
-              {/* Añadir un producto es lo que se viene a hacer aquí, así que
-                  va junto a la lista y no dentro del pliegue de montaje. */}
               <div className="flex flex-wrap items-center justify-between gap-3 px-2">
                 <div className="flex items-baseline gap-3">
                   <h2 className="text-xl">{t("items")}</h2>
@@ -397,13 +387,10 @@ function MenuPage() {
                     {visible.length} / {all.length}
                   </span>
                 </div>
-                {/* Con el formulario abierto este botón se va: el formulario
-                    trae su propio «Cancelar», y dejar aquí otro, además verde,
-                    eran dos salidas iguales con el color de avanzar. */}
-                {!adding && (
+                {canManage && (
                   <button
                     type="button"
-                    onClick={() => setAdding(true)}
+                    onClick={openAdd}
                     className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
                   >
                     <Plus className="h-4 w-4" /> {t("addProduct")}
@@ -411,184 +398,71 @@ function MenuPage() {
                 )}
               </div>
 
-              {adding && (
-                <section className="surface mt-6 p-6">
-                  <h2 className="text-xl">{t("addProduct")}</h2>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-[1.2fr_0.8fr]">
-                    <div>
-                      <input
-                        value={name}
-                        maxLength={160}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder={t("productName")}
-                        className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
-                      />
-                      {createErrors["name"] && (
-                        <p className="mt-1 text-[11px] text-destructive">{createErrors["name"]}</p>
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          value={price}
-                          inputMode="decimal"
-                          onChange={(e) => setPrice(e.target.value)}
-                          placeholder="1.250,50"
-                          className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm figure outline-none focus:border-ring"
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          {settings.data?.menuCurrency ?? ""}
-                        </span>
-                      </div>
-                      {createErrors["priceMinorUnits"] && (
-                        <p className="mt-1 text-[11px] text-destructive">
-                          {createErrors["priceMinorUnits"]}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <input
-                      value={description}
-                      maxLength={500}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder={t("productDescription")}
-                      className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
-                    />
-                    <CategorySelect
-                      value={categoryId}
-                      onChange={setCategoryId}
-                      categories={categoryRows}
-                    />
-                  </div>
-                  {createErrors["description"] && (
-                    <p className="mt-1 text-[11px] text-destructive">
-                      {createErrors["description"]}
-                    </p>
-                  )}
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-[11px] text-muted-foreground">{t("priceInputHint")}</p>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => setAdding(false)}
-                        className="inline-flex items-center justify-center gap-2 rounded-full border border-border px-5 py-3 text-sm"
-                      >
-                        {t("cancel")}
-                      </button>
-                      <button
-                        disabled={!name.trim() || !price.trim() || create.isPending}
-                        onClick={() => create.mutate()}
-                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
-                      >
-                        <Plus className="h-4 w-4" /> {t("addProduct")}
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* Buscar y filtrar, sólo cuando hay algo que buscar. Con la
-                  carta vacía eran un campo y ocho fichas encima de un "Aún no
-                  hay productos": tres gestos ofrecidos sobre una lista que no
-                  existe, y justo en la pantalla donde hay una sola cosa que
-                  hacer. */}
+              {/* Buscar y filtrar, sólo cuando hay algo que buscar.
+                  Una fila de fichas en vez de dos: «Todos / Activos /
+                  Inactivos» eran tres botones de 44 px para algo que con el
+                  interruptor de cada plato casi no hace falta. Queda «No
+                  disponibles», y sólo cuando hay alguno. */}
               {all.length > 0 && (
                 <>
-                  {/* Filters */}
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                    <div className="relative flex-1">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder={t("searchProduct")}
-                        aria-label={t("searchProduct")}
-                        className="min-h-11 w-full rounded-lg border border-input bg-secondary pl-9 pr-3 text-sm outline-none focus:border-ring"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      {(
-                        [
-                          ["ALL", t("filterAll")],
-                          ["ACTIVE", t("filterActive")],
-                          ["INACTIVE", t("filterInactive")],
-                        ] as [StatusFilter, string][]
-                      ).map(([value, label]) => (
-                        <button
-                          key={value}
-                          aria-pressed={status === value}
-                          /*
-                           * Volver a pulsar la ficha puesta quita el filtro.
-                           *
-                           * No se podía: pulsar "Inactivos" con "Inactivos"
-                           * puesto no hacía nada, y para volver a verlo todo
-                           * había que acertar con "Todos" -- que es otra ficha
-                           * y no dice "quitar". Las fichas de sección de
-                           * debajo sí se apagaban al segundo toque, así que la
-                           * misma fila de arriba enseñaba a hacer algo que no
-                           * funcionaba. "Todos" ya es no filtrar, así que
-                           * apagarla es quedarse donde está.
-                           */
-                          onClick={() =>
-                            setStatus(value === status && value !== "ALL" ? "ALL" : value)
-                          }
-                          className={`min-h-11 flex-1 whitespace-nowrap rounded-full border px-4 text-xs transition-colors sm:flex-none ${
-                            status === value
-                              ? "border-primary bg-primary/10 text-primary-ink"
-                              : "border-border text-muted-foreground hover:bg-secondary"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="relative mt-3">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={t("searchProduct")}
+                      aria-label={t("searchProduct")}
+                      type="search"
+                      className="min-h-11 w-full rounded-lg border border-input bg-secondary pl-9 pr-3 text-sm outline-none focus:border-ring"
+                    />
                   </div>
 
-                  {/* Filtro por sección, en el orden de la carta */}
-                  {(categoryRows.length > 0 || (categories.data?.uncategorisedCount ?? 0) > 0) && (
-                    <div className="mt-2 flex flex-wrap gap-1.5 px-0.5">
+                  <div className="-mx-4 mt-2 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0.5 [&::-webkit-scrollbar]:hidden">
+                    <button
+                      type="button"
+                      aria-pressed={categoryFilter === "ALL"}
+                      onClick={() => setCategoryFilter("ALL")}
+                      className={chip(categoryFilter === "ALL")}
+                    >
+                      {t("filterAllSections")}
+                    </button>
+                    {categoryRows.map((cat) => (
                       <button
-                        onClick={() => setCategoryFilter("ALL")}
-                        className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors ${
-                          categoryFilter === "ALL"
-                            ? "border-primary bg-primary/10 text-primary-ink"
-                            : "border-border text-muted-foreground hover:bg-secondary"
-                        }`}
+                        type="button"
+                        key={cat.id}
+                        aria-pressed={categoryFilter === cat.id}
+                        onClick={() =>
+                          setCategoryFilter(cat.id === categoryFilter ? "ALL" : cat.id)
+                        }
+                        className={chip(categoryFilter === cat.id)}
                       >
-                        {t("filterAllSections")}
+                        {cat.name}
                       </button>
-                      {categoryRows.map((cat) => (
-                        <button
-                          key={cat.id}
-                          onClick={() =>
-                            setCategoryFilter(cat.id === categoryFilter ? "ALL" : cat.id)
-                          }
-                          className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors ${
-                            categoryFilter === cat.id
-                              ? "border-primary bg-primary/10 text-primary-ink"
-                              : "border-border text-muted-foreground hover:bg-secondary"
-                          }`}
-                        >
-                          <Tag className="h-2.5 w-2.5" />
-                          {cat.name}
-                        </button>
-                      ))}
-                      {(categories.data?.uncategorisedCount ?? 0) > 0 && (
-                        <button
-                          onClick={() =>
-                            setCategoryFilter(categoryFilter === "NONE" ? "ALL" : "NONE")
-                          }
-                          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
-                            categoryFilter === "NONE"
-                              ? "border-primary bg-primary/10 text-primary-ink"
-                              : "border-border text-muted-foreground hover:bg-secondary"
-                          }`}
-                        >
-                          {UNCATEGORIZED}
-                        </button>
-                      )}
-                    </div>
-                  )}
+                    ))}
+                    {(categories.data?.uncategorisedCount ?? 0) > 0 && (
+                      <button
+                        type="button"
+                        aria-pressed={categoryFilter === "NONE"}
+                        onClick={() =>
+                          setCategoryFilter(categoryFilter === "NONE" ? "ALL" : "NONE")
+                        }
+                        className={chip(categoryFilter === "NONE")}
+                      >
+                        {UNCATEGORIZED}
+                      </button>
+                    )}
+                    {inactiveCount > 0 && (
+                      <button
+                        type="button"
+                        aria-pressed={onlyUnavailable}
+                        onClick={() => setOnlyUnavailable((v) => !v)}
+                        className={`${chip(onlyUnavailable)} sm:ml-auto`}
+                      >
+                        {t("filterUnavailable")}
+                        <span className="figure">{inactiveCount}</span>
+                      </button>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -600,125 +474,74 @@ function MenuPage() {
                 <p className="mt-3 px-2 text-sm text-muted-foreground">{t("noProducts")}</p>
               )}
               {products.isSuccess && all.length > 0 && visible.length === 0 && (
-                <p className="mt-3 px-2 text-sm text-muted-foreground">{t("noProductMatch")}</p>
+                <p className="mt-6 px-2 text-center text-sm text-muted-foreground">
+                  {t("noProductMatch")}
+                </p>
               )}
 
-              {/* Grouped product list */}
               <div className="mt-3 text-sm">
-                {grouped.map(({ category: cat, items }) => (
-                  <div key={cat} className="mb-2">
-                    <div className="flex items-center gap-2 px-2 py-1">
-                      <Tag className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                        {cat}
-                      </span>
-                      <span className="ml-auto text-[11px] figure text-muted-foreground">
-                        {items.length}
-                      </span>
-                    </div>
-                    <ul>
-                      {items.map((p) =>
-                        editing?.id === p.id ? (
-                          <li
-                            key={p.id}
-                            className="rounded-lg border border-border bg-secondary/40 mb-0.5 px-3 py-2"
+                {grouped.map((group) => {
+                  const isOrdering = ordering === group.key;
+                  return (
+                    <section key={group.key} className="mb-3" aria-label={group.category}>
+                      {/* La cabecera se queda pegada arriba al bajar: en una
+                          carta de cuarenta platos, saber en qué sección se está
+                          es saber dónde va a caer uno nuevo. */}
+                      <div className="sticky top-0 z-[1] -mx-2 flex min-h-11 items-center gap-2 bg-card/95 px-4 backdrop-blur">
+                        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                          {group.category}
+                        </h3>
+                        <span className="text-xs figure text-muted-foreground">
+                          {group.items.length}
+                        </span>
+                        {canManage && group.items.length > 1 && (
+                          <button
+                            type="button"
+                            disabled={filtering && !isOrdering}
+                            title={filtering ? t("reorderClearFilters") : undefined}
+                            onClick={() => setOrdering(isOrdering ? null : group.key)}
+                            className={`ml-auto inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-xs transition-colors disabled:opacity-40 ${
+                              isOrdering
+                                ? "bg-primary font-medium text-primary-foreground"
+                                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                            }`}
                           >
-                            <EditRow
-                              product={p}
-                              categories={categoryRows}
-                              pending={update.isPending}
-                              errors={fieldsOf(update.error)}
-                              onCancel={() => setEditing(null)}
-                              onSave={(body) => update.mutate({ id: p.id, body })}
-                              onToggleActive={() =>
-                                update.mutate({ id: p.id, body: { active: !p.active } })
-                              }
-                              onDelete={() => remove.mutate(p.id)}
-                            />
-                          </li>
-                        ) : (
-                          <li
-                            key={p.id}
-                            /* Dos columnas también en el teléfono. Con tres
-                               botones, la fila de acciones caía a su propia
-                               línea porque no cabían; con uno solo, ese salto
-                               dejaba un lápiz suelto debajo del precio y le
-                               costaba 44 px a cada plato. */
-                            className="grid grid-cols-[1fr_auto] items-center gap-x-3 rounded-md px-2 py-1.5 transition-colors hover:bg-secondary/50"
-                          >
-                            <div
-                              className={`flex min-w-0 items-center gap-2.5 ${p.active ? "" : "text-muted-foreground"}`}
-                            >
-                              {/* El hueco se reserva para que los nombres
-                                  empiecen todos en el mismo sitio en una carta
-                                  a medio fotografiar -- pero sólo si la carta
-                                  tiene alguna foto. Ver `withPhotos`. */}
-                              {withPhotos &&
-                                (p.imageUrl ? (
-                                  <img
-                                    src={`${API_BASE_URL}${p.imageUrl}`}
-                                    alt=""
-                                    loading="lazy"
-                                    className="h-9 w-9 shrink-0 rounded-md object-cover"
-                                  />
-                                ) : (
-                                  <span
-                                    aria-hidden
-                                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground/50"
-                                  >
-                                    <ImageIcon className="h-4 w-4" />
-                                  </span>
-                                ))}
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <span className="text-sm font-medium">{p.name}</span>
-                                  {/* Sólo lo que se sale de lo normal. Un
-                                      "Disponible" verde en los diez platos de
-                                      una carta entera no distingue nada: lo que
-                                      hay que ver de un vistazo es el que hoy no
-                                      se sirve. Los inactivos ya van además en
-                                      gris. */}
-                                  {!p.active && (
-                                    <span className="rounded-full bg-secondary px-1.5 py-px text-[11px] leading-tight text-muted-foreground">
-                                      {t("unavailable")}
-                                    </span>
-                                  )}
-                                </div>
-                                {p.description && (
-                                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                                    {p.description}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            {/* Un solo control por fila.
-                                Eran tres -- editar, desactivar y una papelera
-                                roja que borra de verdad --, los tres a 44 px y
-                                los tres siempre a la vista: treinta botones en
-                                una carta de diez platos, con el que destruye
-                                pesando lo mismo que el que corrige una errata.
-                                Lo que se viene a hacer aquí es cambiar un
-                                precio, así que eso se queda a un toque y las
-                                otras dos bajan al formulario de edición, que es
-                                donde además se ve qué plato se está tocando. */}
-                            <span className="flex items-center justify-end gap-3">
-                              <span className="money-sm">
-                                {formatMoney(p.priceMinorUnits, p.currency)}
-                              </span>
-                              <button
-                                onClick={() => setEditing(p)}
-                                aria-label={`${t("edit")} ${p.name}`}
-                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                            </span>
-                          </li>
-                        ),
+                            {isOrdering ? (
+                              <>
+                                <Check className="h-3.5 w-3.5" /> {t("reorderDone")}
+                              </>
+                            ) : (
+                              <>
+                                <ArrowUpDown className="h-3.5 w-3.5" /> {t("reorder")}
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      {isOrdering && (
+                        <p className="px-2 pb-1 text-xs text-muted-foreground">
+                          {t("reorderHint")}
+                        </p>
                       )}
-                    </ul>
-                  </div>
-                ))}
+                      <ul>
+                        {group.items.map((p, index) => (
+                          <ProductRow
+                            key={p.id}
+                            product={p}
+                            withPhoto={withPhotos}
+                            canManage={canManage}
+                            ordering={isOrdering}
+                            first={index === 0}
+                            last={index === group.items.length - 1}
+                            onEdit={() => openEdit(p)}
+                            onToggle={(active) => setAvailable(p, active)}
+                            onMove={(delta) => move(group, index, delta)}
+                          />
+                        ))}
+                      </ul>
+                    </section>
+                  );
+                })}
               </div>
             </section>
 
@@ -805,183 +628,146 @@ function MenuPage() {
           </div>
         )}
       </main>
+
+      <ProductSheet
+        open={sheet.open}
+        onOpenChange={(open) => setSheet((s) => ({ ...s, open }))}
+        product={sheet.product}
+        defaultCategoryId={
+          categoryFilter !== "ALL" && categoryFilter !== "NONE" ? categoryFilter : ""
+        }
+        categories={categoryRows}
+        currency={settings.data?.menuCurrency ?? ""}
+      />
     </div>
   );
 }
 
-/* ---------------------------------------------------------------- EditRow */
+/* ---------------------------------------------------------------- ProductRow */
 
 /**
- * La sección de un producto, elegida de las que existen.
+ * Un plato en la lista.
  *
- * Antes era texto libre con sugerencias, que sobre un almacén local daba igual;
- * contra el servidor no: los nombres son únicos por restaurante, así que
- * escribir "bebidas" donde ya hay "Bebidas" no crea una segunda sección, la
- * rechaza. Y una sección tiene un orden, que un nombre suelto no puede llevar.
- *
- * Así que se elige, y para crear una nueva está el gestor de secciones. El
- * valor vacío es "sin sección", que es una respuesta legítima y no un hueco:
- * hay cartas que son una sola lista.
+ * Toda la fila abre el plato -- antes sólo un lápiz de 44 px al final --, y a
+ * la derecha queda un único control: el interruptor de disponible. Borrar,
+ * la foto, la sección y el IVA viven en la hoja, que es donde además se ve de
+ * qué plato se trata. Al ordenar, el interruptor cede el sitio a las flechas.
  */
-function CategorySelect({
-  value,
-  onChange,
-  categories,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  categories: MenuCategory[];
-}) {
-  const { t } = useI18n();
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-input bg-secondary px-4 py-3 focus-within:border-ring">
-      <Tag className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-label={t("sectionLabel")}
-        className="w-full bg-transparent text-sm outline-none"
-      >
-        <option value="">{t("uncategorised")}</option>
-        {categories.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-            {c.active ? "" : ` (${t("sectionHiddenSuffix")})`}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------- EditRow */
-
-function EditRow({
-  product,
-  categories,
-  pending,
-  errors,
-  onCancel,
-  onSave,
-  onToggleActive,
-  onDelete,
+function ProductRow({
+  product: p,
+  withPhoto,
+  canManage,
+  ordering,
+  first,
+  last,
+  onEdit,
+  onToggle,
+  onMove,
 }: {
   product: Product;
-  categories: MenuCategory[];
-  pending: boolean;
-  errors: FieldErrors;
-  onCancel: () => void;
-  onSave: (body: {
-    name?: string;
-    priceMinorUnits?: string;
-    description?: string | null;
-    active?: boolean;
-    categoryId?: string | null;
-  }) => void;
-  /** Quitarlo de la carta sin borrarlo, o devolverlo. */
-  onToggleActive: () => void;
-  /** Borrarlo de verdad. Detrás de una confirmación, siempre. */
-  onDelete: () => void;
+  withPhoto: boolean;
+  canManage: boolean;
+  ordering: boolean;
+  first: boolean;
+  last: boolean;
+  onEdit: () => void;
+  onToggle: (active: boolean) => void;
+  onMove: (delta: -1 | 1) => void;
 }) {
   const { t } = useI18n();
-  const [name, setName] = useState(product.name);
-  const [price, setPrice] = useState(formatMinor(product.priceMinorUnits));
-  const [description, setDescription] = useState(product.description ?? "");
-  const [categoryId, setCategoryId] = useState(product.categoryId ?? "");
+  const switchId = `available-${p.id}`;
+  const body = (
+    <>
+      {withPhoto &&
+        (p.imageUrl ? (
+          <img
+            src={`${API_BASE_URL}${p.imageUrl}`}
+            alt=""
+            loading="lazy"
+            className={`h-11 w-11 shrink-0 rounded-lg object-cover ${p.active ? "" : "opacity-50 grayscale"}`}
+          />
+        ) : (
+          <span
+            aria-hidden
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground/60"
+          >
+            <ImageIcon className="h-4 w-4" />
+          </span>
+        ))}
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span
+            className={`text-sm font-medium ${p.active ? "" : "text-muted-foreground line-through decoration-muted-foreground/40"}`}
+          >
+            {p.name}
+          </span>
+          {!p.active && (
+            <span className="rounded-full bg-secondary px-2 py-px text-[11px] leading-tight text-muted-foreground">
+              {t("unavailable")}
+            </span>
+          )}
+        </span>
+        {p.description && (
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+            {p.description}
+          </span>
+        )}
+      </span>
+      <span className={`money-sm shrink-0 ${p.active ? "" : "text-muted-foreground"}`}>
+        {formatMoney(p.priceMinorUnits, p.currency)}
+      </span>
+    </>
+  );
 
   return (
-    <div className="grid gap-2">
-      <div className="grid gap-2 sm:grid-cols-[1.2fr_0.6fr]">
-        <input
-          value={name}
-          maxLength={160}
-          onChange={(e) => setName(e.target.value)}
-          className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-ring"
-        />
-        <div className="flex items-center gap-2">
-          <input
-            value={price}
-            inputMode="decimal"
-            onChange={(e) => setPrice(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-sm figure outline-none focus:border-ring"
-          />
-          <span className="text-xs text-muted-foreground">{product.currency}</span>
-        </div>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <input
-          value={description}
-          maxLength={500}
-          placeholder={t("productDescription")}
-          onChange={(e) => setDescription(e.target.value)}
-          className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm outline-none focus:border-ring"
-        />
-        <CategorySelect value={categoryId} onChange={setCategoryId} categories={categories} />
-      </div>
-      {/* La foto se guarda al elegirla, no con el botón de abajo: es una subida
-          aparte y esperar a "Guardar" para mandarla haría que el botón
-          significase dos cosas distintas. */}
-      <ProductPhoto product={product} />
-      <p className="text-[11px] text-muted-foreground">
-        Los cambios aplican a nuevos pedidos. Los precios de cuentas ya abiertas no se modifican.
-      </p>
-      {Object.entries(errors).map(([field, message]) => (
-        <p key={field} className="text-[11px] text-destructive">
-          {field}: {message}
-        </p>
-      ))}
-      {/* Guardar y cancelar a la izquierda; a la derecha, y separadas, las dos
-          que cambian lo que ve un comensal. Aquí y no en la fila de la lista:
-          allí eran treinta botones siempre a la vista, y el que borra estaba a
-          un toque de distancia del que corrige una errata. Todas a 44 px --
-          medían 27 -- porque esto se usa de pie y con una mano. */}
-      <div className="flex flex-wrap items-center gap-2 pt-1">
+    <li className="flex items-center gap-1 rounded-lg transition-colors hover:bg-secondary/50">
+      {canManage && !ordering ? (
         <button
-          disabled={pending}
-          onClick={() =>
-            onSave({
-              name: name.trim(),
-              priceMinorUnits: parseMinorInput(price),
-              description: description.trim() ? description.trim() : null,
-              // Explícitamente null al vaciarlo: sacar un producto de su sección
-              // es algo que se hace a propósito, y no es lo mismo que omitirlo.
-              categoryId: categoryId || null,
-            })
-          }
-          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground disabled:opacity-40"
+          type="button"
+          onClick={onEdit}
+          aria-label={`${t("edit")} ${p.name}`}
+          className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 text-left"
         >
-          <Check className="h-4 w-4" /> {t("save")}
+          {body}
         </button>
-        <button
-          onClick={onCancel}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm"
-        >
-          <X className="h-4 w-4" /> {t("cancel")}
-        </button>
-
-        <span className="ml-auto flex items-center gap-2">
+      ) : (
+        <div className="flex min-h-14 min-w-0 flex-1 items-center gap-3 px-2 py-2">{body}</div>
+      )}
+      {ordering ? (
+        <span className="flex shrink-0 items-center">
           <button
-            disabled={pending}
-            onClick={onToggleActive}
-            className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary disabled:opacity-40"
+            type="button"
+            disabled={first}
+            onClick={() => onMove(-1)}
+            aria-label={t("moveUp").replace("{name}", p.name)}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-25"
           >
-            {product.active ? t("deactivate") : t("activate")}
+            <ArrowUp className="h-4 w-4" />
           </button>
-          {/* Borra de verdad: el backend lo hace con `?permanent=true`. Es lo
-              único de esta pantalla que no se puede deshacer, así que va detrás
-              de una confirmación que dice el nombre del plato. */}
-          <ConfirmButton
-            title={t("confirmDeleteProduct")}
-            description={t("confirmDeleteProductBody")}
-            confirmLabel={t("confirmDeleteProductCta")}
-            onConfirm={onDelete}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-destructive transition-colors hover:bg-destructive/10"
-            aria-label={`${t("remove")} ${product.name}`}
+          <button
+            type="button"
+            disabled={last}
+            onClick={() => onMove(1)}
+            aria-label={t("moveDown").replace("{name}", p.name)}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-25"
           >
-            <Trash2 className="h-4 w-4" />
-          </ConfirmButton>
+            <ArrowDown className="h-4 w-4" />
+          </button>
         </span>
-      </div>
-    </div>
+      ) : (
+        canManage && (
+          // La etiqueta hace de zona táctil de 44 px alrededor del interruptor,
+          // que por sí solo mide 20.
+          <label htmlFor={switchId} className="flex h-11 shrink-0 cursor-pointer items-center px-2">
+            <Switch
+              id={switchId}
+              checked={p.active}
+              onCheckedChange={onToggle}
+              aria-label={t("availabilityToggle").replace("{name}", p.name)}
+            />
+          </label>
+        )
+      )}
+    </li>
   );
 }

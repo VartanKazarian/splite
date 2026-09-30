@@ -413,7 +413,7 @@ function SettingsPage() {
                       onClick={() => setCurrency.mutate(c)}
                       className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm transition-colors disabled:opacity-40 ${
                         settings.data?.menuCurrency === c
-                          ? "border-primary bg-primary/15 text-primary"
+                          ? "border-primary bg-primary/15 text-primary-ink"
                           : "border-border hover:bg-secondary"
                       }`}
                     >
@@ -640,7 +640,7 @@ function PayoutSection() {
           <span
             className={`rounded-full px-2.5 py-1 text-[11px] ${
               accountQuery.data.payout
-                ? "bg-primary/15 text-primary"
+                ? "bg-primary/15 text-primary-ink"
                 : "border border-amber-500/50 text-muted-foreground"
             }`}
           >

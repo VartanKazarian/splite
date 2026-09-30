@@ -15,7 +15,7 @@ export function StatusPill({
 }) {
   const styles = {
     neutral: "bg-secondary font-normal text-muted-foreground",
-    good: "bg-primary/15 font-normal text-primary",
+    good: "bg-primary/15 font-normal text-primary-ink",
     attention: "bg-amber-500/15 font-normal text-amber-800",
     urgent: "bg-amber-400 font-medium text-amber-950",
     bad: "bg-destructive/10 font-normal text-destructive",

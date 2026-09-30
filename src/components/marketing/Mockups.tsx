@@ -156,9 +156,9 @@ export function DashboardMockup() {
               <span
                 className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${
                   c.tone === "open"
-                    ? "bg-primary/12 text-primary"
+                    ? "bg-primary/12 text-primary-ink"
                     : c.tone === "new"
-                      ? "bg-amber-500/12 text-amber-600 dark:text-amber-400"
+                      ? "bg-amber-500/12 text-amber-800 dark:text-amber-300"
                       : "bg-secondary text-muted-foreground"
                 }`}
               >
@@ -350,7 +350,7 @@ export function LiveSplitMockup({ currency }: { currency: "USD" | "VES" }) {
           <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Casa 72</p>
           <span
             className={`rounded-full px-2 py-0.5 text-[10px] transition-colors duration-500 ${
-              settled ? "bg-primary/12 text-primary" : "bg-secondary text-muted-foreground"
+              settled ? "bg-primary/12 text-primary-ink" : "bg-secondary text-muted-foreground"
             }`}
           >
             {settled ? "Mesa libre" : `${claimed} de 4 pagaron`}

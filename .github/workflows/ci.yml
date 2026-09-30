@@ -37,8 +37,20 @@ jobs:
       - name: Tipos
         run: bun run typecheck
 
+      # Lo que decide sin pantalla: cuándo se cierra una sesión, qué cabeceras
+      # lleva cada página, qué cifra enseña el panel. Van en `unit/` y no en
+      # `tests/`, que son los recorridos de humo contra la API.
+      - name: Pruebas unitarias
+        run: bun run test
+
       - name: Compila
         run: bun run build
+
+      # Como en el backend: un aviso alto en cualquier dependencia para el CI.
+      # Aquí casi todo es de desarrollo, pero es lo que corre en la máquina de
+      # quien compila y en la de Lovable.
+      - name: Dependencias
+        run: bun audit --audit-level=high
 
   # Los seis recorridos, contra la API de verdad.
   smoke:

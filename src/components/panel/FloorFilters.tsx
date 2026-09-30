@@ -81,7 +81,7 @@ export function FloorFilters({
               on
                 ? chip.alert
                   ? "bg-amber-500/15 font-medium text-amber-700"
-                  : "bg-primary/10 font-medium text-primary"
+                  : "bg-primary/10 font-medium text-primary-ink"
                 : `hover:bg-secondary ${chip.alert ? "text-amber-700" : "text-muted-foreground"}`
             }`}
           >

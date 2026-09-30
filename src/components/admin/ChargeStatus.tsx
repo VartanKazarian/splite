@@ -3,7 +3,7 @@ import type { AdminCharge } from "@/lib/adminApi";
 export function ChargeStatus({ ch }: { ch: Pick<AdminCharge, "status" | "overdue"> }) {
   const [label, tone] =
     ch.status === "PAID"
-      ? ["Pagado", "border-primary/40 bg-primary/10 text-primary"]
+      ? ["Pagado", "border-primary/40 bg-primary/10 text-primary-ink"]
       : ch.status === "VOID"
         ? ["Anulado", "border-border text-muted-foreground line-through"]
         : ch.overdue

@@ -63,7 +63,7 @@ function Charges({ canEdit }: { canEdit: boolean }) {
             aria-pressed={status === value}
             className={`inline-flex min-h-9 items-center rounded-full border px-3 text-xs ${
               status === value
-                ? "border-primary bg-primary/10 font-medium text-primary"
+                ? "border-primary bg-primary/10 font-medium text-primary-ink"
                 : "border-border text-muted-foreground hover:border-primary"
             }`}
           >

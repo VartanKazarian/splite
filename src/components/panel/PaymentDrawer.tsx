@@ -177,7 +177,7 @@ export function PaymentDrawer({
                   aria-pressed={method === value}
                   className={`min-h-11 rounded-xl border px-2 text-[13px] transition-colors sm:px-3 sm:text-sm ${
                     method === value
-                      ? "border-primary bg-primary/10 font-medium text-primary"
+                      ? "border-primary bg-primary/10 font-medium text-primary-ink"
                       : "border-border text-muted-foreground hover:bg-secondary"
                   }`}
                 >
@@ -217,7 +217,7 @@ export function PaymentDrawer({
                       aria-pressed={overAs === value}
                       className={`min-h-11 rounded-xl border px-2 text-[13px] transition-colors sm:text-sm ${
                         overAs === value
-                          ? "border-primary bg-primary/10 font-medium text-primary"
+                          ? "border-primary bg-primary/10 font-medium text-primary-ink"
                           : "border-border text-muted-foreground hover:bg-secondary"
                       }`}
                     >

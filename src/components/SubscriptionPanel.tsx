@@ -136,7 +136,7 @@ export function SubscriptionPanel() {
                   <span
                     className={`ml-2 rounded-full border px-2 py-0.5 text-[11px] ${
                       c.status === "PAID"
-                        ? "border-primary/40 bg-primary/10 text-primary"
+                        ? "border-primary/40 bg-primary/10 text-primary-ink"
                         : c.overdue
                           ? "border-destructive/40 bg-destructive/10 text-destructive"
                           : "border-amber-500/50 bg-amber-500/10 text-amber-800"

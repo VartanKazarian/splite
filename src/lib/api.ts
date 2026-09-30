@@ -384,6 +384,18 @@ async function rawRequest<T>(path: string, opts: RequestOptions = {}): Promise<T
   return payload as T;
 }
 
+/**
+ * Si un fallo al renovar significa que la sesión se acabó.
+ *
+ * Sólo cuando el servidor rechaza el token de renovación (401, 403). Un 429,
+ * un 5xx o una red caída no dicen nada de la sesión: tirarla por eso sacaba
+ * del panel a un mesero en plena cena porque el wifi del local tuvo un mal
+ * minuto. Con la sesión intacta, la próxima petición vuelve a intentarlo.
+ */
+export function refreshFailureEndsSession(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403);
+}
+
 /** Refresh rotativo: una sola llamada en vuelo, compartida por todos. */
 let refreshInFlight: Promise<StaffSession> | null = null;
 
@@ -422,8 +434,8 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
 
     try {
       await refreshOnce();
-    } catch {
-      staffSession.set(null);
+    } catch (refreshError) {
+      if (refreshFailureEndsSession(refreshError)) staffSession.set(null);
       throw error;
     }
     return rawRequest<T>(path, { ...opts, retryOnUnauthorized: false });
@@ -451,8 +463,8 @@ export async function staffDownload(
   if (response.status === 401) {
     try {
       await refreshOnce();
-    } catch {
-      staffSession.set(null);
+    } catch (refreshError) {
+      if (refreshFailureEndsSession(refreshError)) staffSession.set(null);
     }
     response = await attempt();
   }

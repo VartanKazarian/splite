@@ -286,7 +286,7 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
                     onClick={() => jump(i)}
                     aria-current={i === active}
                     className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-left ${
-                      i === active ? "bg-primary/10 text-primary" : ""
+                      i === active ? "bg-primary/10 text-primary-ink" : ""
                     }`}
                   >
                     <span className="min-w-0 truncate text-[15px]">

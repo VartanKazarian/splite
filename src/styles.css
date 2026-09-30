@@ -34,6 +34,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-ink: var(--primary-ink);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -83,6 +84,9 @@
   --popover-foreground: oklch(0.235 0.012 60);
   --primary: oklch(0.53 0.105 162);
   --primary-foreground: oklch(0.99 0.005 85);
+  /* El verde de marca como texto sobre su propio tinte (bg-primary/10): el
+     --primary da 4,2:1 ahí y no llega al mínimo de lectura. Un punto más oscuro. */
+  --primary-ink: oklch(0.47 0.105 162);
   --secondary: oklch(0.955 0.008 85);
   --secondary-foreground: oklch(0.235 0.012 60);
   --muted: oklch(0.955 0.008 85);
@@ -390,6 +394,9 @@
   --popover-foreground: oklch(0.235 0.012 60);
   --primary: oklch(0.53 0.105 162);
   --primary-foreground: oklch(0.99 0.005 85);
+  /* El verde de marca como texto sobre su propio tinte (bg-primary/10): el
+     --primary da 4,2:1 ahí y no llega al mínimo de lectura. Un punto más oscuro. */
+  --primary-ink: oklch(0.47 0.105 162);
   --secondary: oklch(0.955 0.008 85);
   --secondary-foreground: oklch(0.235 0.012 60);
   --muted: oklch(0.955 0.008 85);

@@ -368,7 +368,7 @@ export const STATE_LABEL: Record<ClientState, string> = {
 export const STATE_TONE: Record<ClientState, string> = {
   TRIAL: "border-sky-500/40 bg-sky-500/10 text-sky-800",
   TRIAL_EXPIRED: "border-amber-500/50 bg-amber-500/10 text-amber-800",
-  ACTIVE: "border-primary/40 bg-primary/10 text-primary",
+  ACTIVE: "border-primary/40 bg-primary/10 text-primary-ink",
   OVERDUE: "border-destructive/40 bg-destructive/10 text-destructive",
   SUSPENDED: "border-border bg-secondary text-muted-foreground",
   CANCELLED: "border-border bg-secondary text-muted-foreground line-through",

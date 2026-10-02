@@ -812,10 +812,14 @@ export const guest = {
    * después, y por eso la respuesta sólo confirma. La mesa no se manda -- la
    * pone la sesión de invitado, creada verificando la firma del QR.
    */
-  order: (items: { productId: string; quantity: number }[]) =>
+  order: (items: { productId: string; quantity: number }[], note?: string) =>
     apiRequest<{ orderId: string; createdAt: string; lineCount: number }>(
       "/api/v1/guest/bill/orders",
-      { method: "POST", body: { items }, auth: "guest" },
+      {
+        method: "POST",
+        body: { items, ...(note?.trim() ? { note: note.trim() } : {}) },
+        auth: "guest",
+      },
     ),
 
   /** Aviso de pago: crea un claim PENDING, nunca cierra ni paga la cuenta. */
@@ -1188,6 +1192,10 @@ export type GuestOrder = {
   servedBy: string | null;
   lineCount: number;
   items: { name: string; quantity: number; subtotalMinor: Money }[];
+  /** Lo que escribió el comensal con el pedido, o null. Texto, nunca marcado. */
+  note: string | null;
+  /** La moneda de los importes de las líneas: la de la cuenta. */
+  currency?: MenuCurrency | null;
   createdAt: string;
   /** Lo calcula el servidor: un reloj mal puesto no puede envejecer un pedido. */
   ageSeconds: number | null;
@@ -1637,6 +1645,12 @@ export type MenuDocument = {
 
 export type PublicMenu = {
   restaurant: { id: string; name: string; menuCurrency: MenuCurrency } & Branding;
+  /**
+   * La tasa BCV en vigor para una carta en dólares o euros, para enseñar el
+   * equivalente en bolívares. Referencia: la cuenta se cobra a la tasa de
+   * cuando se abre. Null en una carta en bolívares o si no hay tasa.
+   */
+  rate?: { currency: MenuCurrency; rate: string; valueDate: string | null } | null;
   /** La carta subida, o null si no hay ninguna. */
   menuPdf: MenuDocument | null;
   categories: MenuCategory[];

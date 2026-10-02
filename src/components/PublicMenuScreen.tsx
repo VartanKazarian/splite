@@ -5,6 +5,7 @@ import { ChevronDown, FileText, List, Minus, Plus, Search, X } from "lucide-reac
 
 import { useI18n } from "@/lib/i18n";
 import { API_BASE_URL, formatMoney, menu, type PublicMenu, type PublicProduct } from "@/lib/api";
+import { formatRate, formatValueDate, vesEquivalent } from "@/lib/menu-price";
 import { GuestError } from "@/components/GuestError";
 
 /**
@@ -41,6 +42,10 @@ type Cart = {
 
 const CartContext = createContext<Cart | null>(null);
 
+/** La tasa de la carta, para el equivalente en bolívares de cada plato. */
+type Rate = PublicMenu["rate"];
+const RateContext = createContext<Rate>(null);
+
 export type { Cart };
 
 export function PublicMenuScreen({
@@ -75,7 +80,9 @@ export function PublicMenuScreen({
 
   return (
     <CartContext.Provider value={cart}>
-      <MenuList groups={groups} pdf={data.menuPdf} />
+      <RateContext.Provider value={data.rate ?? null}>
+        <MenuList groups={groups} pdf={data.menuPdf} />
+      </RateContext.Provider>
     </CartContext.Provider>
   );
 }
@@ -245,6 +252,8 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
         </div>
       </div>
 
+      <RateLine />
+
       {pdfLink && <div className="pt-4">{pdfLink}</div>}
 
       {term && shown.length === 0 && (
@@ -338,21 +347,20 @@ function MenuList({ groups, pdf }: { groups: Section[]; pdf: Pdf }) {
 function ProductRow({ product }: { product: PublicProduct }) {
   const { t } = useI18n();
   const cart = useContext(CartContext);
+  const rate = useContext(RateContext);
   const chosen = cart?.quantities[product.id] ?? 0;
+  const ves = vesEquivalent(product.priceMinorUnits, rate);
 
   return (
-    <li className="border-b border-border/60 px-5 py-4 last:border-0">
+    <li className="border-b border-border/60 px-5 py-3.5 last:border-0">
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-semibold leading-snug">{product.name}</p>
           {product.description && (
-            <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
               {product.description}
             </p>
           )}
-          <p className="money-md mt-1.5">
-            {formatMoney(product.priceMinorUnits, product.currency)}
-          </p>
         </div>
         {product.imageUrl && (
           <img
@@ -363,54 +371,91 @@ function ProductRow({ product }: { product: PublicProduct }) {
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-[104px] w-[104px] shrink-0 rounded-xl object-cover"
+            className="h-[88px] w-[88px] shrink-0 rounded-xl object-cover"
           />
         )}
       </div>
 
-      {/* Sólo donde se puede pedir de verdad. Y el paso fino aparece cuando ya
-          hay algo elegido: hasta entonces "Añadir" dice lo único que hace falta
-          saber, y dos flechas junto a un cero no. */}
-      {cart && (
-        <div className="mt-3">
-          {chosen === 0 ? (
+      {/* El precio y el botón en la misma línea.
+          Iban uno debajo del otro, y cada plato medía 160 px: cuatro por
+          pantalla. Juntos, el precio queda al lado de lo que se hace con él y
+          la carta enseña casi el doble. El equivalente en bolívares va debajo
+          del precio y en pequeño: es lo que se paga, pero lo que fija el
+          restaurante es el precio de la carta. */}
+      <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
+        <p className="min-w-0">
+          <span className="money-md">{formatMoney(product.priceMinorUnits, product.currency)}</span>
+          {ves && (
+            <span className="block text-xs text-muted-foreground figure">
+              {t("approxVes").replace("{amount}", formatMoney(ves, "VES"))}
+            </span>
+          )}
+        </p>
+
+        {/* Sólo donde se puede pedir de verdad. Y el paso fino aparece cuando
+            ya hay algo elegido: hasta entonces "Añadir" dice lo único que hace
+            falta saber, y dos flechas junto a un cero no. */}
+        {cart &&
+          (chosen === 0 ? (
             <button
               type="button"
               onClick={() => cart.bump(product.id, 1)}
+              aria-label={`${t("guestAdd")} ${product.name}`}
               // Neutro, no verde: se repite en cada plato de la carta, y veinte
               // botones verdes seguidos no dejan ninguno como la acción de la
-              // pantalla. Ésa es «Ver pedido», abajo. Con el plato ya elegido
-              // el contador sí va en verde translúcido: es lo elegido.
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border-[1.5px] border-border-strong bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+              // pantalla. Ésa es «Ver pedido», abajo.
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border-[1.5px] border-border-strong bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
             >
               <Plus aria-hidden className="h-4 w-4" /> {t("guestAdd")}
             </button>
           ) : (
-            <div className="inline-flex items-center gap-1 rounded-full border border-primary bg-primary/10">
+            <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary bg-primary/10">
               <button
                 type="button"
                 onClick={() => cart.bump(product.id, -1)}
                 aria-label={`${t("oneLessOf")} ${product.name}`}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-primary"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-primary-ink"
               >
                 <Minus aria-hidden className="h-4 w-4" />
               </button>
-              <span className="figure w-6 text-center text-sm font-medium text-primary">
+              <span
+                className="figure w-6 text-center text-sm font-medium text-primary-ink"
+                aria-live="polite"
+              >
                 {chosen}
               </span>
               <button
                 type="button"
                 onClick={() => cart.bump(product.id, 1)}
                 aria-label={`${t("oneMoreOf")} ${product.name}`}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-primary"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-primary-ink"
               >
                 <Plus aria-hidden className="h-4 w-4" />
               </button>
             </div>
-          )}
-        </div>
-      )}
+          ))}
+      </div>
     </li>
+  );
+}
+
+/**
+ * De dónde sale el equivalente en bolívares, dicho una vez arriba y no en
+ * cada plato. Sin tasa no se dice nada: los platos tampoco enseñan el
+ * equivalente entonces.
+ */
+function RateLine() {
+  const { t, lang } = useI18n();
+  const rate = useContext(RateContext);
+  if (!rate) return null;
+  const currency = rate.currency === "EUR" ? "euros" : lang === "es" ? "dólares" : "dollars";
+  return (
+    <p className="px-5 pt-3 text-xs text-muted-foreground">
+      {t("menuRateLine")
+        .replace("{currency}", rate.currency === "EUR" && lang === "en" ? "euros" : currency)
+        .replace("{rate}", formatRate(rate.rate))
+        .replace("{date}", formatValueDate(rate.valueDate, lang))}
+    </p>
   );
 }
 

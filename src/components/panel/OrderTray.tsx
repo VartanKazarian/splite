@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, HandPlatter, UtensilsCrossed } from "lucide-react";
+import { Check, HandPlatter, MessageSquareText, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
@@ -178,11 +178,25 @@ function OrderRow({
               <span className="figure">{item.quantity}</span> × {item.name}
             </span>
             <span className="money-sm shrink-0 text-muted-foreground">
-              {formatMoney(item.subtotalMinor, "VES")}
+              {formatMoney(item.subtotalMinor, order.currency ?? "VES")}
             </span>
           </li>
         ))}
       </ul>
+
+      {/* Lo que escribió el comensal, entre comillas y aparte de las líneas:
+          es lo que cambia cómo se prepara algo, y mezclado con ellas se lee
+          como un plato más. Como texto, con sus saltos de línea; nunca como
+          marcado. */}
+      {order.note && (
+        <p className="mt-2 flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+          <MessageSquareText aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+          <span className="min-w-0 whitespace-pre-line break-words">
+            <span className="sr-only">{t("orderNote")}: </span>
+            {order.note}
+          </span>
+        </p>
+      )}
 
       {removed > 0 && (
         <p className="mt-1 text-[11px] text-muted-foreground">

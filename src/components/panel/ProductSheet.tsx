@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,7 +17,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ApiError,
   errorFields,
+  exchangeRate,
   formatMinor,
+  formatMoney,
   menu,
   parseMinorInput,
   type MenuCategory,
@@ -25,6 +27,7 @@ import {
   type ProductTaxCategory,
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { vesEquivalent } from "@/lib/menu-price";
 
 const TAX_CATEGORIES: ProductTaxCategory[] = ["TAXABLE", "EXEMPT", "EXONERATED", "NON_TAXABLE"];
 
@@ -189,6 +192,24 @@ function ProductForm({
     onError: fail,
   });
 
+  // Lo que es ese precio en bolívares hoy, mientras se escribe. La carta en
+  // dólares la paga el comensal en bolívares, y quien pone el precio quiere
+  // saber cómo se va a leer en la mesa.
+  const fx = useQuery({
+    queryKey: ["fx"],
+    queryFn: exchangeRate,
+    retry: false,
+    staleTime: 5 * 60_000,
+    enabled: currency === "USD" || currency === "EUR",
+  });
+  const todayRate = fx.data?.rates[currency];
+  let priceVes: string | null = null;
+  try {
+    priceVes = price.trim() ? vesEquivalent(parseMinorInput(price), todayRate) : null;
+  } catch {
+    priceVes = null;
+  }
+
   const canSave = Boolean(name.trim() && price.trim()) && !save.isPending;
   const field =
     "w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring";
@@ -238,7 +259,9 @@ function ProductForm({
           />
           <span className="mt-1.5 self-center text-sm text-muted-foreground">{currency}</span>
           <p id={`${ids}-price-hint`} className="col-span-2 mt-1 text-xs text-muted-foreground">
-            {t("priceInputHint")}
+            {priceVes
+              ? t("priceVesPreview").replace("{amount}", formatMoney(priceVes, "VES"))
+              : t("priceInputHint")}
           </p>
           <div className="col-span-2">{error("priceMinorUnits")}</div>
         </div>

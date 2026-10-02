@@ -1,9 +1,24 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Check, Send } from "lucide-react";
+import { Check, Minus, Plus, Send, ShoppingBag } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
-import { ApiError, formatMoney, guest, guestSession, type PublicProduct } from "@/lib/api";
+import {
+  ApiError,
+  formatMoney,
+  guest,
+  guestSession,
+  type PublicMenu,
+  type PublicProduct,
+} from "@/lib/api";
+import { vesEquivalent } from "@/lib/menu-price";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 /**
  * Una barra pegada abajo, y el hueco que se reserva para ella.
@@ -58,39 +73,55 @@ export function FixedBottomBar({ children }: { children: React.ReactNode }) {
  * **Sólo aparece con algo dentro.** Vacía sería una franja permanente tapando
  * dos platos para decir "cero".
  *
- * **La sesión se acuña aquí, al pulsar.** Leer la carta no abre ninguna -- el
- * código se resuelve con `POST /guest/qr/context`, sin gastar sesión -- así que
- * quien sólo mira no deja nada abierto. Y se acuña en el manejador del clic y
- * no en un efecto, por lo mismo que en `TableLanding`: un clic ocurre una vez y
- * un efecto las que React decida, y ahí se midieron dos sesiones por pulsación.
+ * **No envía: abre el pedido.** Enviaba directamente, y lo elegido estaba
+ * repartido por toda la carta -- un 1 en un plato de arriba, un 2 en otro de
+ * abajo --, así que se mandaba a la cocina algo que nadie había visto junto.
+ * Ahora la barra abre una hoja con lo elegido, las cantidades, el total y una
+ * nota para el personal, y desde ahí se envía.
+ *
+ * **La sesión se acuña al enviar.** Leer la carta no abre ninguna -- el código
+ * se resuelve con `POST /guest/qr/context`, sin gastar sesión -- así que quien
+ * sólo mira no deja nada abierto. Y se acuña en el manejador del clic y no en
+ * un efecto, por lo mismo que en `TableLanding`: un clic ocurre una vez y un
+ * efecto las que React decida, y ahí se midieron dos sesiones por pulsación.
  */
 export function GuestOrderBar({
   quantities,
   products,
   qrToken,
+  bump,
+  rate,
   onSent,
 }: {
   quantities: Record<string, number>;
   products: PublicProduct[];
   /** Para acuñar la sesión si todavía no hay. Sin él no se puede pedir. */
   qrToken: string | null;
+  /** Cambiar una cantidad desde la hoja, igual que desde la carta. */
+  bump: (productId: string, delta: number) => void;
+  /** La tasa de la carta, para el total en bolívares. */
+  rate?: PublicMenu["rate"];
   onSent: () => void;
 }) {
   const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
 
   const chosen = Object.entries(quantities).filter(([, n]) => n > 0);
+  const lines = chosen
+    .map(([id, quantity]) => ({ product: products.find((p) => p.id === id), quantity }))
+    .filter((line): line is { product: PublicProduct; quantity: number } => Boolean(line.product));
   const units = chosen.reduce((a, [, n]) => a + n, 0);
-  const total = chosen.reduce((sum, [id, n]) => {
-    const product = products.find((p) => p.id === id);
-    return product ? sum + BigInt(product.priceMinorUnits) * BigInt(n) : sum;
-  }, 0n);
+  const total = lines.reduce(
+    (sum, { product, quantity }) => sum + BigInt(product.priceMinorUnits) * BigInt(quantity),
+    0n,
+  );
   const currency = products[0]?.currency ?? "VES";
+  const totalVes = vesEquivalent(total.toString(), rate);
 
   const send = useMutation({
     mutationFn: async () => {
       if (!guestSession.get()) {
-        // Sin código no hay con qué acuñar sesión: es el caso de una pestaña
-        // que perdió el token, y lo que toca es volver a escanear.
         if (!qrToken) {
           throw new ApiError(401, {
             code: "GUEST_SESSION_MISSING",
@@ -101,40 +132,146 @@ export function GuestOrderBar({
         }
         await guest.openSession(qrToken);
       }
-      return guest.order(chosen.map(([productId, quantity]) => ({ productId, quantity })));
+      return guest.order(
+        chosen.map(([productId, quantity]) => ({ productId, quantity })),
+        note,
+      );
     },
-    onSuccess: onSent,
+    onSuccess: () => {
+      setOpen(false);
+      setNote("");
+      onSent();
+    },
   });
+
+  // Si se quita lo último desde la hoja, la hoja no tiene nada que enseñar.
+  useEffect(() => {
+    if (units === 0) setOpen(false);
+  }, [units]);
 
   if (units === 0) return null;
 
   return (
-    <FixedBottomBar>
-      <div className="mx-auto w-full max-w-md px-5 pb-5 pt-3">
-        {send.isError && (
-          <p className="mb-2 text-xs text-destructive">
-            {send.error instanceof ApiError && send.error.code === "PRODUCT_INACTIVE"
-              ? t("guestOrderGone")
-              : t("guestOrderFailed")}
-          </p>
-        )}
-        <div className="mb-2 flex items-baseline justify-between gap-3">
-          <span className="text-sm text-muted-foreground">
-            {units === 1 ? t("cartUnitsOne") : t("cartUnits").replace("{n}", String(units))}
-          </span>
-          <span className="money-md">{formatMoney(total.toString(), currency)}</span>
+    <>
+      <FixedBottomBar>
+        <div className="mx-auto w-full max-w-md px-5 pb-5 pt-3">
+          <div className="mb-2 flex items-baseline justify-between gap-3">
+            <span className="text-sm text-muted-foreground">
+              {units === 1 ? t("cartUnitsOne") : t("cartUnits").replace("{n}", String(units))}
+            </span>
+            <span className="money-md">{formatMoney(total.toString(), currency)}</span>
+          </div>
+          <button type="button" onClick={() => setOpen(true)} className="btn-primary w-full">
+            <ShoppingBag aria-hidden className="h-4 w-4" />
+            {t("guestReviewOrder")}
+          </button>
         </div>
-        <button
-          type="button"
-          disabled={send.isPending}
-          onClick={() => send.mutate()}
-          className="btn-primary w-full"
+      </FixedBottomBar>
+
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent
+          side="bottom"
+          className="mx-auto max-h-[90vh] max-w-md overflow-y-auto rounded-t-2xl px-5 pb-0"
         >
-          <Send aria-hidden className="h-4 w-4" />
-          {send.isPending ? t("loading") : t("guestSendOrder")}
-        </button>
-      </div>
-    </FixedBottomBar>
+          <SheetHeader className="pr-10 text-left">
+            <SheetTitle>{t("guestReviewTitle")}</SheetTitle>
+            <SheetDescription>{t("guestReviewHint")}</SheetDescription>
+          </SheetHeader>
+
+          <ul className="mt-4 divide-y divide-border">
+            {lines.map(({ product, quantity }) => (
+              <li key={product.id} className="flex items-center gap-3 py-2.5">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">{product.name}</span>
+                  <span className="money-sm block text-muted-foreground">
+                    {formatMoney(
+                      (BigInt(product.priceMinorUnits) * BigInt(quantity)).toString(),
+                      product.currency,
+                    )}
+                  </span>
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border">
+                  <button
+                    type="button"
+                    onClick={() => bump(product.id, -1)}
+                    aria-label={`${t("oneLessOf")} ${product.name}`}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full"
+                  >
+                    <Minus aria-hidden className="h-4 w-4" />
+                  </button>
+                  <span className="figure w-6 text-center text-sm font-medium">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => bump(product.id, 1)}
+                    aria-label={`${t("oneMoreOf")} ${product.name}`}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full"
+                  >
+                    <Plus aria-hidden className="h-4 w-4" />
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-2 flex items-baseline justify-between gap-3 border-t border-border pt-3">
+            <span className="text-sm font-medium">{t("guestOrderTotal")}</span>
+            <span className="text-right">
+              <span className="money-md block">{formatMoney(total.toString(), currency)}</span>
+              {totalVes && (
+                <span className="block text-xs text-muted-foreground figure">
+                  {t("approxVes").replace("{amount}", formatMoney(totalVes, "VES"))}
+                </span>
+              )}
+            </span>
+          </div>
+
+          <div className="mt-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <label htmlFor="guest-order-note" className="text-sm font-medium">
+                {t("guestNoteLabel")}
+              </label>
+              <span className="text-xs text-muted-foreground figure">{note.length}/200</span>
+            </div>
+            <textarea
+              id="guest-order-note"
+              value={note}
+              maxLength={200}
+              rows={2}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={t("guestNotePlaceholder")}
+              className="mt-1.5 w-full resize-none rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
+            />
+          </div>
+
+          <div className="sticky bottom-0 -mx-5 mt-4 space-y-2 border-t border-border bg-background px-5 py-4">
+            {send.isError && (
+              <p role="alert" className="text-xs text-destructive">
+                {send.error instanceof ApiError && send.error.code === "PRODUCT_INACTIVE"
+                  ? t("guestOrderGone")
+                  : t("guestOrderFailed")}
+              </p>
+            )}
+            <button
+              type="button"
+              data-testid="guest-send-order"
+              disabled={send.isPending}
+              onClick={() => send.mutate()}
+              className="btn-primary w-full"
+            >
+              <Send aria-hidden className="h-4 w-4" />
+              {send.isPending ? t("loading") : t("guestSendOrder")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full text-sm text-muted-foreground hover:text-foreground"
+            >
+              {t("guestKeepBrowsing")}
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 

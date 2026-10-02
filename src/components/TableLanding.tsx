@@ -291,6 +291,8 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
             quantities={cart}
             products={menuProducts}
             qrToken={token}
+            bump={bumpCart}
+            rate={menuQuery.data?.rate ?? null}
             onSent={() => {
               setCart({});
               setSent(true);

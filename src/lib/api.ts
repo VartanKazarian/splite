@@ -1093,12 +1093,17 @@ export type BankColumnMap = {
 
 export type BankConnection = {
   id: string;
-  kind: "WEBHOOK" | "STATEMENT_IMPORT";
+  kind: "WEBHOOK" | "STATEMENT_IMPORT" | "MERCANTIL_P2C";
   label: string;
   bankCode: string | null;
   autoConfirm: boolean;
   secretVersion: number;
   columnMap: BankColumnMap | null;
+  /** De Mercantil: el RIF del comercio y si hay llave guardada. La llave no sale nunca. */
+  merchantRif?: string | null;
+  hasKey?: boolean;
+  /** Adónde llegan sus movimientos: la ruta que se le da a Mercantil o al servicio. */
+  inboundPath?: string | null;
   lastMovementAt: string | null;
   lastError: string | null;
   lastErrorAt: string | null;
@@ -1851,7 +1856,13 @@ export const bankConnections = {
     apiRequest<{ data: BankConnection[] }>("/api/v1/bank-connections", { auth: "staff" }).then(
       (r) => r.data,
     ),
-  create: (body: { kind: BankConnection["kind"]; label: string; bankCode?: string | null }) =>
+  create: (body: {
+    kind: BankConnection["kind"];
+    label: string;
+    bankCode?: string | null;
+    merchantRif?: string;
+    masterKey?: string;
+  }) =>
     apiRequest<{ connection: BankConnection; secret?: string; path?: string }>(
       "/api/v1/bank-connections",
       { method: "POST", auth: "staff", body },
@@ -1863,6 +1874,8 @@ export const bankConnections = {
       autoConfirm?: boolean;
       columnMap?: BankColumnMap | null;
       active?: boolean;
+      merchantRif?: string;
+      masterKey?: string;
     },
   ) =>
     apiRequest<{ connection: BankConnection }>(`/api/v1/bank-connections/${id}`, {

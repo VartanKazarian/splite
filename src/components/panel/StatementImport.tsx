@@ -221,10 +221,7 @@ export function StatementImport({
   );
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={close}
-    >
+    <Dialog open={open} onOpenChange={close}>
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t("bankImportTitle")}</DialogTitle>
@@ -332,11 +329,7 @@ export function StatementImport({
             {/* Todo cierre limpia: si «Listo» no lo hiciera, al reabrir el
                 diálogo volvería el resumen anterior y no el selector de
                 fichero, y no habría forma de subir otro estado de cuenta. */}
-            <button
-              type="button"
-              onClick={() => close(false)}
-              className="btn-primary mt-2 w-full"
-            >
+            <button type="button" onClick={() => close(false)} className="btn-primary mt-2 w-full">
               {t("staffInviteDone")}
             </button>
           </div>

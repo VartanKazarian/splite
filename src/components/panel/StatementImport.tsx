@@ -76,6 +76,13 @@ export function StatementImport({
     setTotals(null);
   };
 
+  /** Cualquier cierre (Radix, «Listo», el padre) pasa por aquí: así el
+      reabrir siempre ofrece el selector de fichero, nunca el resumen viejo. */
+  const close = (v: boolean) => {
+    if (!v) reset();
+    onOpenChange(v);
+  };
+
   async function onFile(file: File | undefined) {
     if (!file) return;
     setTotals(null);
@@ -216,10 +223,7 @@ export function StatementImport({
   return (
     <Dialog
       open={open}
-      onOpenChange={(v) => {
-        if (!v) reset();
-        onOpenChange(v);
-      }}
+      onOpenChange={close}
     >
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
@@ -325,9 +329,12 @@ export function StatementImport({
                 {t("bankImportSkipped").replace("{n}", String(totals.debits + totals.skipped))}
               </p>
             )}
+            {/* Todo cierre limpia: si «Listo» no lo hiciera, al reabrir el
+                diálogo volvería el resumen anterior y no el selector de
+                fichero, y no habría forma de subir otro estado de cuenta. */}
             <button
               type="button"
-              onClick={() => onOpenChange(false)}
+              onClick={() => close(false)}
               className="btn-primary mt-2 w-full"
             >
               {t("staffInviteDone")}

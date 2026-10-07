@@ -76,6 +76,13 @@ export function StatementImport({
     setTotals(null);
   };
 
+  /** Cualquier cierre (Radix, «Listo», el padre) pasa por aquí: así el
+      reabrir siempre ofrece el selector de fichero, nunca el resumen viejo. */
+  const close = (v: boolean) => {
+    if (!v) reset();
+    onOpenChange(v);
+  };
+
   async function onFile(file: File | undefined) {
     if (!file) return;
     setTotals(null);

@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -36,7 +37,10 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+// `error` es `unknown`: con TanStack Router 1.170.46 el tipo dejó de suponer
+// que lo lanzado es un Error, que es lo correcto -- se puede lanzar cualquier
+// cosa. Nada de aquí lee sus propiedades, así que basta con aceptarlo tal cual.
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {

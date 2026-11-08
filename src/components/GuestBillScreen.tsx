@@ -1038,6 +1038,9 @@ export function GuestBillScreen({
             ? {
                 splitParticipantId: myParticipant.id,
                 shareRemainingVes: myParticipant.remainingVes,
+                ...(myParticipant.availableVes
+                  ? { shareAvailableVes: myParticipant.availableVes }
+                  : {}),
               }
             : // Reparto calculado pero todavía no acordado: es la rama normal
               // de "divido, elijo lo mío y pago", donde nadie ha pulsado

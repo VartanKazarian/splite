@@ -616,6 +616,8 @@ const dict = {
     payNotThere: "No aparece",
     payRejectClaim: "Rechazar aviso",
     payIncludesTip: "{bill} de la cuenta + {tip} de propina",
+    payOverlapsPending:
+      "Otro aviso de esta mesa ya cubría este saldo. Comprueba en el banco si llegaron los dos: si es así, uno hay que devolverlo.",
     tipsTodayHint:
       "El efectivo ya está en caja; lo electrónico lo tiene el restaurante y se le debe al personal.",
     c2pUnresolvedHint:
@@ -871,6 +873,14 @@ const dict = {
     guestPhone: "Teléfono",
     guestAmount: "Monto",
     guestNothingLeft: "No queda nada por pagar en esta mesa.",
+    // Avisos de otros en la mesa que el restaurante todavía no verificó.
+    guestPendingSomeTitle: "Ya hay {amount} en verificación en esta mesa",
+    guestPendingSomeBody:
+      "Alguien ya avisó de un pago. Te sugerimos sólo lo que queda; si ya transferiste, avisa igual.",
+    guestPendingCoversTitle: "Ya avisaron {amount}: cubre lo que queda",
+    guestPendingCoversBody:
+      "Espera a que el restaurante lo verifique antes de transferir. Si ya transferiste, avisa igual con tu referencia.",
+    guestPendingOnShare: "{amount} en verificación",
     guestClaimSent: "Aviso enviado",
     guestClaimSentBody:
       "Le avisamos al restaurante que pagaste {amount} con la referencia {reference}. Un miembro del personal lo va a verificar.",
@@ -1898,6 +1908,8 @@ const dict = {
     payNotThere: "Not there",
     payRejectClaim: "Reject claim",
     payIncludesTip: "{bill} for the bill + {tip} tip",
+    payOverlapsPending:
+      "Another report from this table already covered this balance. Check the bank for both transfers: if both arrived, one must be returned.",
     tipsTodayHint:
       "Cash is already in the till; electronic tips are held by the restaurant and owed to staff.",
     c2pUnresolvedHint:
@@ -2148,6 +2160,13 @@ const dict = {
     guestPhone: "Phone",
     guestAmount: "Amount",
     guestNothingLeft: "There is nothing left to pay on this table.",
+    guestPendingSomeTitle: "{amount} already being verified on this table",
+    guestPendingSomeBody:
+      "Someone has already reported a payment. We suggest only what is left; if you already transferred, report it anyway.",
+    guestPendingCoversTitle: "{amount} already reported: it covers what is left",
+    guestPendingCoversBody:
+      "Wait for the restaurant to verify it before transferring. If you already transferred, report it anyway with your reference.",
+    guestPendingOnShare: "{amount} being verified",
     guestClaimSent: "The restaurant has been told",
     guestClaimSentBody:
       "We let the restaurant know you paid {amount} with reference {reference}. A member of staff will check it.",

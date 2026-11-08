@@ -120,6 +120,17 @@ export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props)
                       {t("stillOwes").replace("{amount}", formatMoney(p.remainingVes, "VES"))}
                     </span>
                   )}
+                  {/* Alguien avisó por esta parte: no es «pagada» hasta que el
+                      restaurante lo verifique, pero quien mira no debería
+                      pagarla otra vez. */}
+                  {!p.settled && BigInt(p.pendingVes ?? "0") > 0n && (
+                    <span className="money-sm block text-amber-700 dark:text-amber-400">
+                      {t("guestPendingOnShare").replace(
+                        "{amount}",
+                        formatMoney(p.pendingVes ?? "0", "VES"),
+                      )}
+                    </span>
+                  )}
                 </span>
               </button>
             </li>

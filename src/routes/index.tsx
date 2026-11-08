@@ -518,9 +518,8 @@ function GetPaid() {
           <Eyebrow>Cómo cobras</Eyebrow>
           <h2 className={H2.lg}>El dinero entra a tu cuenta. Y sabes que entró.</h2>
           <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground">
-            Tu cliente paga su parte desde el banco que ya usa. Splite cruza cada aviso con tu
-            estado de cuenta y te dice cuáles llegaron: nadie tiene que revisar la app del banco
-            mesa por mesa.
+            Tu cliente paga su parte desde el banco que ya usa. Subes tu estado de cuenta y Splite
+            te dice qué avisos llegaron: no hace falta revisar la app del banco mesa por mesa.
           </p>
           {/* La moneda, dicha donde toca y sin ambigüedad. */}
           <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
@@ -539,7 +538,15 @@ function GetPaid() {
               {
                 icon: Banknote,
                 t: "Clave 2 Pagos",
-                d: `Si tu cuenta es Mercantil: el comensal paga con la clave de su banco (${C2P_BANKS} bancos) y se confirma solo.`,
+                /*
+                 * Próximamente, y dicho en la tarjeta. El cobro por C2P está
+                 * construido pero no encendido con dinero real: falta confirmar
+                 * con Mercantil el formato del mensaje (README del backend,
+                 * «Blocking real use»). Prometerlo como disponible hacía que un
+                 * restaurante se registrara por algo que todavía no tendría.
+                 */
+                soon: true,
+                d: `Para cuentas Mercantil: el comensal pagará con la clave de su banco (${C2P_BANKS} bancos) y se confirmará solo.`,
               },
               {
                 icon: HandCoins,
@@ -553,7 +560,14 @@ function GetPaid() {
                 className="reveal reveal-item rounded-2xl border border-border bg-card p-5"
               >
                 <c.icon className="h-5 w-5 text-primary" />
-                <h3 className="mt-3 text-lg">{c.t}</h3>
+                <h3 className="mt-3 flex flex-wrap items-center gap-2 text-lg">
+                  {c.t}
+                  {"soon" in c && c.soon && (
+                    <span className="rounded-full border border-border-strong px-2 py-0.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+                      Próximamente
+                    </span>
+                  )}
+                </h3>
                 <p className="mt-1.5 text-[14px] leading-relaxed text-muted-foreground">{c.d}</p>
               </article>
             ))}
@@ -705,8 +719,12 @@ function Trust() {
   const items = [
     {
       icon: ShieldCheck,
-      t: "Nadie cambia el monto desde su teléfono",
-      d: "Lo que paga cada comensal lo calcula Splite, no el teléfono de quien paga.",
+      /*
+       * «El monto» no: el comensal sí escribe cuánto transfirió, y puede elegir
+       * un importe propio. Lo que no puede tocar es lo que se debe.
+       */
+      t: "Nadie cambia lo que se debe",
+      d: "El total y la parte de cada comensal los calcula Splite, no el teléfono de quien paga.",
     },
     {
       icon: CopyCheck,

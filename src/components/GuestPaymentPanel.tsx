@@ -5,6 +5,7 @@ import { Check, Copy } from "lucide-react";
 import { GuestC2PForm } from "@/components/GuestC2PForm";
 import { useI18n } from "@/lib/i18n";
 import { rememberPayment, rememberPayerEmail } from "@/lib/guest-payment";
+import { apportionTransfer } from "@/lib/transfer";
 
 import {
   ApiError,
@@ -197,6 +198,7 @@ export function GuestPaymentPanel({
   demo = false,
   splitParticipantId,
   shareRemainingVes,
+  shareAvailableVes,
   tipVes = "0",
   onClaimSent,
 }: {
@@ -206,6 +208,8 @@ export function GuestPaymentPanel({
   splitParticipantId?: string;
   /** Techo de esa parte: el backend rechaza cualquier cosa por encima. */
   shareRemainingVes?: string;
+  /** Lo que queda de esa parte descontando lo ya avisado por otros. */
+  shareAvailableVes?: string;
   /** Lo que el comensal eligió dejar de propina, en céntimos. */
   tipVes?: string;
   /** Avisa a la pantalla de que el aviso salió: ya no hay paso al que volver. */
@@ -223,7 +227,14 @@ export function GuestPaymentPanel({
   // es lo que el comensal teclea en su app del banco. Sin sumarla, la pantalla
   // decía "Total a pagar 12.320,00" y justo debajo daba 11.200,00 para copiar,
   // y la propina no llegaba a cobrarse nunca.
-  const billShareVes = shareRemainingVes ?? bill.remainingVes ?? "0";
+  // Sin parte elegida, lo que queda por transferir es lo que deja libre lo ya
+  // avisado por otros de la mesa (`availableVes`): sugerir el saldo entero
+  // invitaba a pagar dos veces lo que alguien acababa de mandar.
+  const billShareVes =
+    shareAvailableVes ?? shareRemainingVes ?? bill.availableVes ?? bill.remainingVes ?? "0";
+  const pendingAtTable = BigInt(bill.pendingVes ?? "0");
+  // Lo que dice el libro, sin descontar avisos: sólo esto puede decir «pagada».
+  const ledgerShareVes = shareRemainingVes ?? bill.remainingVes ?? "0";
   const dueVes = (BigInt(billShareVes) + BigInt(tipVes || "0")).toString();
 
   const [tab, setTab] = useState<"payee" | "claim" | "c2p">("payee");
@@ -287,8 +298,10 @@ export function GuestPaymentPanel({
   const referenceRef = useRef<HTMLInputElement>(null);
   const successRef = useRef<HTMLDivElement>(null);
 
-  const remaining = BigInt(dueVes);
-  const billPaid = remaining === 0n;
+  // Pagada es pagada según el libro. Que otros hayan avisado por todo lo que
+  // queda no la paga: hasta que el restaurante lo verifique, puede que no.
+  const billPaid = BigInt(ledgerShareVes) === 0n;
+  const coveredByPending = !billPaid && BigInt(billShareVes) === 0n && pendingAtTable > 0n;
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -343,12 +356,16 @@ export function GuestPaymentPanel({
           createdAt: new Date().toISOString(),
         };
       }
+      // Lo escrito es lo transferido; de ahí sale cuánto es cuenta y cuánto
+      // propina, y las dos cifras suman siempre lo que salió del banco.
+      const parts = apportionTransfer({
+        transferredVes: amountVes,
+        tipVes,
+        shareVes: billShareVes,
+      });
       return guest.paymentClaim({
-        amountVes: (BigInt(amountVes) - BigInt(tipVes || "0") > 0n
-          ? BigInt(amountVes) - BigInt(tipVes || "0")
-          : BigInt(amountVes)
-        ).toString(),
-        ...(BigInt(tipVes || "0") > 0n ? { tipVes } : {}),
+        amountVes: parts.amountVes,
+        ...(BigInt(parts.tipVes) > 0n ? { tipVes: parts.tipVes } : {}),
         reference: reference.trim(),
         ...(phoneOrigin.trim() ? { phoneOrigin: phoneOrigin.trim() } : {}),
         ...(bankOrigin.trim() ? { bankOrigin: bankOrigin.trim() } : {}),
@@ -454,6 +471,28 @@ export function GuestPaymentPanel({
         ))}
       </div>
 
+      {/* Lo que otros de la mesa ya avisaron, encima de las pestañas y no
+          dentro de una: el momento que importa es antes de copiar el importe
+          e ir al banco, que es la pestaña «Pago móvil», y después ya sólo
+          queda avisar. Visto sólo en «Ya pagué» llegaba tarde. */}
+      {!billPaid && !claim && pendingAtTable > 0n && (
+        <div
+          role="status"
+          data-testid="guest-pending-notice"
+          className="mt-5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm"
+        >
+          <p className="font-medium">
+            {t(coveredByPending ? "guestPendingCoversTitle" : "guestPendingSomeTitle").replace(
+              "{amount}",
+              formatMoney(pendingAtTable.toString(), "VES"),
+            )}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            {t(coveredByPending ? "guestPendingCoversBody" : "guestPendingSomeBody")}
+          </p>
+        </div>
+      )}
+
       {tab === "payee" && (
         <div className="mt-5">
           <p className="text-sm text-muted-foreground">
@@ -507,7 +546,7 @@ export function GuestPaymentPanel({
           pedirle la clave a su banco; el reparto en dos lo hace él antes de
           llamar a la API.
         */
-        <GuestC2PForm maxVes={billShareVes} tipVes={tipVes} demo={demo} />
+        <GuestC2PForm maxVes={ledgerShareVes} tipVes={tipVes} demo={demo} />
       )}
 
       {tab === "claim" && (

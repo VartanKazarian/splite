@@ -443,6 +443,17 @@ function PaymentsPage() {
                           .replace("{tip}", formatMoney(claim.tipVes, "VES"))}
                       </p>
                     )}
+                    {/* Dos avisos por el mismo saldo: uno de los dos dineros puede
+                        tener que devolverse. Se dice antes de confirmar, que es
+                        cuando todavía se puede mirar el banco con eso en mente. */}
+                    {claim.overlapsPending && (
+                      <p
+                        data-testid={`claim-overlap-${claim.id}`}
+                        className="mt-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-xs"
+                      >
+                        {t("payOverlapsPending")}
+                      </p>
+                    )}
                     {claim.bankMatch && <BankMatchBadge match={claim.bankMatch} id={claim.id} />}
                     <dl className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
                       <div>

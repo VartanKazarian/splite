@@ -1014,6 +1014,14 @@ export type Bill = {
   totalDueVes: Money;
   amountPaidVes: Money;
   remainingVes: Money;
+  /**
+   * Avisado por comensales y sin verificar todavía; no está en amountPaidVes.
+   * Sólo en la cuenta del invitado. Ausente con un servidor anterior.
+   */
+  pendingVes?: Money;
+  pendingCount?: number;
+  /** remainingVes menos pendingVes, nunca negativo: lo que conviene transferir ya. */
+  availableVes?: Money;
   /** El backend lo llama fxRateVesPerUnit; se acepta el alias corto por compatibilidad. */
   fxRateVesPerUnit?: string | null;
   fxRate?: string | null;
@@ -1140,6 +1148,11 @@ export type StaffPaymentClaim = PaymentClaim & {
   /** La cédula o el RIF del pagador, que el banco imprime junto al movimiento. */
   idOrigin?: string | null;
   declaredAt?: string | null;
+  /**
+   * Al declararlo, este aviso y los demás pendientes sumaban más de lo que se
+   * debía: puede que dos comensales hayan pagado lo mismo.
+   */
+  overlapsPending?: boolean;
   /** Lo que el comensal añadió de propina en la misma transferencia. */
   tipVes?: Money;
   /** Parte + propina: la cifra que llegó al banco y que se busca en su app. */
@@ -1373,6 +1386,10 @@ export type SplitParticipant = {
   amountVes: Money;
   amountPaidVes: Money;
   remainingVes: Money;
+  /** Avisado contra esta parte y sin verificar. */
+  pendingVes?: Money;
+  /** remainingVes menos pendingVes, nunca negativo. */
+  availableVes?: Money;
   settled: boolean;
   usdReference: string | null;
 };

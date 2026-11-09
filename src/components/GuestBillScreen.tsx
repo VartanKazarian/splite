@@ -13,6 +13,7 @@ import {
   guest,
   guestSession,
   parseMinorInput,
+  scannedQr,
   type Bill,
   type BillSplit,
   type MenuCurrency,
@@ -149,6 +150,20 @@ export function GuestBillScreen({
     };
   }, [qr, demo]);
 
+  /*
+   * Por qué no hay cuenta, cuando no la hay. La sesión es de una cuenta, no de
+   * la mesa: cuando esa cuenta se cierra, este teléfono ya no ve la siguiente
+   * de la mesa aunque la haya (`SESSION_BILL_ENDED`), y una sesión abierta en
+   * una mesa vacía hace mucho no se engancha a la cuenta nueva de otros
+   * (`SESSION_PREDATES_BILL`). En los dos casos lo que hace falta es una
+   * sesión nueva, y la pantalla tiene que decirlo en vez de «sin cuenta».
+   */
+  const [noBillReason, setNoBillReason] = useState<string | null>(null);
+  const sessionEnded =
+    noBillReason === "SESSION_BILL_ENDED" || noBillReason === "SESSION_PREDATES_BILL";
+  const [rejoining, setRejoining] = useState(false);
+  const [rejoinFailed, setRejoinFailed] = useState(false);
+
   const billQuery = useQuery({
     queryKey: ["guest-bill", demo],
     enabled: sessionReady && !demo,
@@ -160,13 +175,43 @@ export function GuestBillScreen({
     refetchInterval: 10000,
     queryFn: async (): Promise<Bill | null> => {
       try {
-        return await guest.bill<Bill>();
+        const found = await guest.bill<Bill>();
+        setNoBillReason(null);
+        return found;
       } catch (error) {
-        if (error instanceof ApiError && error.status === 404) return null;
+        if (error instanceof ApiError && error.status === 404) {
+          const reason = (error.details as { reason?: unknown }).reason;
+          setNoBillReason(typeof reason === "string" ? reason : null);
+          return null;
+        }
         throw error;
       }
     },
   });
+
+  /**
+   * Una sesión nueva con el QR que este teléfono escaneó, para la cuenta que
+   * tiene la mesa ahora. Es lo mismo que volver a escanear.
+   */
+  const rejoinTable = async () => {
+    const token = scannedQr.get();
+    if (!token) {
+      setRejoinFailed(true);
+      return;
+    }
+    setRejoining(true);
+    setRejoinFailed(false);
+    try {
+      guestSession.set(null);
+      await guest.openSession(token);
+      setNoBillReason(null);
+      await billQuery.refetch();
+    } catch {
+      setRejoinFailed(true);
+    } finally {
+      setRejoining(false);
+    }
+  };
 
   const [mode, setMode] = useState<SplitMode>("FULL");
   const [diners, setDiners] = useState(2);
@@ -479,9 +524,35 @@ export function GuestBillScreen({
      * salió mal. Si este teléfono declaró un pago, es la segunda.
      */
     const justPaid = !demo && recallPayment() !== null;
+    const ended = !demo && !justPaid && sessionEnded;
     return (
       <Shell {...(onBack ? { onBack } : {})}>
-        <h1 className="text-3xl">{justPaid ? t("paidThanks") : t("noOpenBill")}</h1>
+        <h1 className="text-3xl">
+          {justPaid ? t("paidThanks") : ended ? t("sessionBillEndedTitle") : t("noOpenBill")}
+        </h1>
+        {ended && (
+          <>
+            <p data-testid="guest-session-ended" className="mt-3 text-sm text-muted-foreground">
+              {t(
+                noBillReason === "SESSION_PREDATES_BILL"
+                  ? "sessionPredatesBillBody"
+                  : "sessionBillEndedBody",
+              )}
+            </p>
+            <button
+              type="button"
+              data-testid="guest-rejoin-table"
+              onClick={() => void rejoinTable()}
+              disabled={rejoining}
+              className="btn-primary mt-5 w-full"
+            >
+              {rejoining ? t("loading") : t("sessionRejoin")}
+            </button>
+            {rejoinFailed && (
+              <p className="mt-3 text-sm text-muted-foreground">{t("sessionRejoinScan")}</p>
+            )}
+          </>
+        )}
         {/* Qué pasa ahora, no cuál es la regla.
             Debajo de «Sin cuenta abierta» ponía «Una sola cuenta abierta por
             mesa», que es cierto y no le sirve de nada a quien acaba de escanear
@@ -489,9 +560,11 @@ export function GuestBillScreen({
             decir quién abre la cuenta y qué puede hacer mientras. Esa frase
             sigue donde sí ayuda -- en el panel, cuando alguien del local
             intenta abrir una segunda. */}
-        <p className="mt-3 text-sm text-muted-foreground">
-          {justPaid ? t("paidThanksBody") : t("noOpenBillBody")}
-        </p>
+        {!ended && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            {justPaid ? t("paidThanksBody") : t("noOpenBillBody")}
+          </p>
+        )}
         {/*
           Aquí cae justamente quien acaba de que le confirmen el pago: confirmar
           cierra la cuenta, y sin cuenta abierta esta pantalla es lo único que

@@ -236,6 +236,14 @@ const dict = {
     errorOfflineTitle: "Sin conexión",
     requestId: "ID de solicitud",
     noOpenBill: "Sin cuenta abierta",
+    // La sesión es de una cuenta: cuando esa termina, no ve la siguiente.
+    sessionBillEndedTitle: "Esta cuenta ya terminó",
+    sessionBillEndedBody:
+      "Se cerró la cuenta con la que entraste. Si sigues en la mesa, abre la cuenta que tiene ahora.",
+    sessionPredatesBillBody:
+      "La mesa tiene una cuenta nueva desde que escaneaste. Si estás sentado aquí, ábrela.",
+    sessionRejoin: "Ver la cuenta de la mesa ahora",
+    sessionRejoinScan: "No pudimos abrirla. Escanea otra vez el QR de la mesa.",
     noOpenBillBody: "El personal la abre cuando pidas algo. Mientras tanto puedes ver la carta.",
     previewSplit: "Calcular división",
     participants: "Comensales",
@@ -1541,6 +1549,13 @@ const dict = {
     errorOfflineTitle: "No connection",
     requestId: "Request ID",
     noOpenBill: "No open bill",
+    sessionBillEndedTitle: "This bill has ended",
+    sessionBillEndedBody:
+      "The bill you joined has closed. If you're still at the table, open its current bill.",
+    sessionPredatesBillBody:
+      "The table has a new bill since you scanned. If you're sitting here, open it.",
+    sessionRejoin: "Open the table's current bill",
+    sessionRejoinScan: "We couldn't open it. Scan the table's QR code again.",
     noOpenBillBody: "The staff open it when you order. In the meantime you can look at the menu.",
     previewSplit: "Preview split",
     participants: "Diners",

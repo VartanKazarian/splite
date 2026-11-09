@@ -4,6 +4,7 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { API_BASE_URL } from "./lib/api";
 import { withSecurityHeaders } from "./lib/security-headers";
+import { CSP_NONCE_HEADER, newCspNonce } from "./lib/csp-nonce";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -46,14 +47,27 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+// Solo las páginas (GET/HEAD) llevan el nonce: el resto pasa tal cual, con su
+// cuerpo intacto. Se construye desde la URL y no con new Request(request, …),
+// que en Node falla con la petición envuelta del servidor.
+function withNonceHeader(request: Request, nonce: string): Request {
+  if (request.method !== "GET" && request.method !== "HEAD") return request;
+  const headers = new Headers(request.headers);
+  headers.set(CSP_NONCE_HEADER, nonce);
+  return new Request(request.url, { method: request.method, headers, signal: request.signal });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
+      // Uno nuevo por petición. Viaja al router en una cabecera interna (una
+      // que mandara el navegador se pisa aquí) y sale en la política.
+      const nonce = newCspNonce();
       const response = await normalizeCatastrophicSsrResponse(
-        await handler.fetch(request, env, ctx),
+        await handler.fetch(withNonceHeader(request, nonce), env, ctx),
       );
-      return import.meta.env.PROD ? withSecurityHeaders(response, API_BASE_URL) : response;
+      return import.meta.env.PROD ? withSecurityHeaders(response, API_BASE_URL, nonce) : response;
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

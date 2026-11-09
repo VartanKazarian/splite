@@ -41,6 +41,19 @@ describe("securityHeaders", () => {
     expect(broken).not.toContain("*;");
   });
 
+  test("con nonce, sólo corren los scripts de la página y lo que ellos carguen", () => {
+    const strict = securityHeaders(API, "abc123==")["Content-Security-Policy"] ?? "";
+    const scripts = directive(strict, "script-src");
+    expect(scripts).toContain("'nonce-abc123=='");
+    expect(scripts).toContain("'strict-dynamic'");
+    // Lo que la dejaba abierta: cualquier script en línea.
+    expect(scripts).not.toContain("'unsafe-inline'");
+  });
+
+  test("sin nonce no rompe la página: se queda en la política anterior", () => {
+    expect(directive(csp, "script-src")).toContain("'unsafe-inline'");
+  });
+
   test("lleva el resto de cabeceras", () => {
     const headers = securityHeaders(API);
     expect(headers["X-Content-Type-Options"]).toBe("nosniff");
@@ -71,5 +84,15 @@ describe("withSecurityHeaders", () => {
       headers: { "content-type": "text/html", "x-content-type-options": "otra" },
     });
     expect(withSecurityHeaders(page, API).headers.get("x-content-type-options")).toBe("otra");
+  });
+});
+
+describe("newCspNonce", () => {
+  test("16 bytes al azar en base64, distinto cada vez", async () => {
+    const { newCspNonce } = await import("../src/lib/csp-nonce");
+    const a = newCspNonce();
+    const b = newCspNonce();
+    expect(atob(a).length).toBe(16);
+    expect(a).not.toBe(b);
   });
 });

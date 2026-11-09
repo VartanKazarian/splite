@@ -881,6 +881,17 @@ const dict = {
     guestPendingCoversBody:
       "Espera a que el restaurante lo verifique antes de transferir. Si ya transferiste, avisa igual con tu referencia.",
     guestPendingOnShare: "{amount} en verificación",
+    // Reservas de pago: otro comensal está pagando ahora mismo.
+    guestHoldBlockedTitle: "Otra persona de la mesa está pagando {amount}",
+    guestHoldBlockedUntil:
+      "No transfieras todavía. Si no termina, se libera a las {time} y podrás pagarlo tú.",
+    guestHoldBlockedBody: "No transfieras todavía: espera a que termine.",
+    guestHoldPaidAnyway: "Ya transferí, quiero avisar",
+    guestHoldHeld: "Reservado para ti hasta las {time}. Nadie más de la mesa puede pagarlo.",
+    guestHoldTrimmed: "Otra persona está pagando parte. Te toca {amount}.",
+    guestHoldExpired: "Tu reserva venció.",
+    guestHoldRetry: "Reservar de nuevo",
+    guestHeldOnShare: "Alguien la está pagando",
     guestClaimSent: "Aviso enviado",
     guestClaimSentBody:
       "Le avisamos al restaurante que pagaste {amount} con la referencia {reference}. Un miembro del personal lo va a verificar.",
@@ -2167,6 +2178,16 @@ const dict = {
     guestPendingCoversBody:
       "Wait for the restaurant to verify it before transferring. If you already transferred, report it anyway with your reference.",
     guestPendingOnShare: "{amount} being verified",
+    guestHoldBlockedTitle: "Someone else at the table is paying {amount}",
+    guestHoldBlockedUntil:
+      "Don't transfer yet. If they don't finish, it frees up at {time} and you can pay it.",
+    guestHoldBlockedBody: "Don't transfer yet: wait for them to finish.",
+    guestHoldPaidAnyway: "I already transferred, let me report it",
+    guestHoldHeld: "Reserved for you until {time}. No one else at the table can pay it.",
+    guestHoldTrimmed: "Someone else is paying part of it. Your part is {amount}.",
+    guestHoldExpired: "Your reservation expired.",
+    guestHoldRetry: "Reserve again",
+    guestHeldOnShare: "Someone is paying it",
     guestClaimSent: "The restaurant has been told",
     guestClaimSentBody:
       "We let the restaurant know you paid {amount} with reference {reference}. A member of staff will check it.",

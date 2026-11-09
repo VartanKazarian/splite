@@ -6,6 +6,7 @@ import { GuestC2PForm } from "@/components/GuestC2PForm";
 import { useI18n } from "@/lib/i18n";
 import { rememberPayment, rememberPayerEmail } from "@/lib/guest-payment";
 import { apportionTransfer } from "@/lib/transfer";
+import { usePaymentHold } from "@/lib/use-payment-hold";
 
 import {
   ApiError,
@@ -193,6 +194,11 @@ function toClaimError(error: unknown, t: (k: never) => string): ClaimError {
   }
 }
 
+/** «14:32», en la hora del teléfono del comensal. */
+function clockTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" });
+}
+
 export function GuestPaymentPanel({
   bill,
   demo = false,
@@ -235,7 +241,36 @@ export function GuestPaymentPanel({
   const pendingAtTable = BigInt(bill.pendingVes ?? "0");
   // Lo que dice el libro, sin descontar avisos: sólo esto puede decir «pagada».
   const ledgerShareVes = shareRemainingVes ?? bill.remainingVes ?? "0";
-  const dueVes = (BigInt(billShareVes) + BigInt(tipVes || "0")).toString();
+  // Pagada es pagada según el libro. Que otros hayan avisado por todo lo que
+  // queda no la paga: hasta que el restaurante lo verifique, puede que no.
+  const billPaid = BigInt(ledgerShareVes) === 0n;
+
+  const [claim, setClaim] = useState<PaymentClaim | null>(null);
+
+  // «Voy a pagar esto», antes de que el comensal vaya a su banco: el resto de
+  // la mesa ve esta parte como «alguien está pagando» y no la puede tomar.
+  // Después de avisar ya no: el aviso es lo que cuenta.
+  const { state: hold, retry: retryHold } = usePaymentHold({
+    amountVes: billShareVes,
+    splitParticipantId,
+    enabled: !demo && !billPaid && !claim,
+    tableState: `${bill.heldVes ?? ""}|${bill.pendingVes ?? ""}|${bill.amountPaidVes}`,
+  });
+  // Si otro estaba pagando parte, lo que toca es lo que quedó libre.
+  const payShareVes = hold.kind === "held" && hold.trimmed ? hold.amountVes : billShareVes;
+  // Bloqueado por otro que está pagando: o la reserva se rechazó, o la cuenta
+  // ya llega diciendo que lo que queda lo tiene otro (entonces ni se pide: el
+  // importe a reservar es cero). La cuenta se relee cada pocos segundos, así
+  // que si el otro vuelve atrás o vence, esto se libera solo.
+  const heldAtTable = BigInt(bill.heldVes ?? "0");
+  const blockedByHold =
+    !billPaid &&
+    !claim &&
+    ((hold.kind === "blocked" && BigInt(hold.heldVes) > 0n) ||
+      (BigInt(billShareVes) === 0n && heldAtTable > 0n));
+  const blockedHeldVes = hold.kind === "blocked" ? hold.heldVes : heldAtTable.toString();
+  const blockedUntil = hold.kind === "blocked" ? hold.heldUntil : (bill.heldUntil ?? null);
+  const dueVes = (BigInt(payShareVes) + BigInt(tipVes || "0")).toString();
 
   const [tab, setTab] = useState<"payee" | "claim" | "c2p">("payee");
   const [amount, setAmount] = useState(() => formatMinor(dueVes));
@@ -291,16 +326,12 @@ export function GuestPaymentPanel({
     if (!c2pPossible && tab === "c2p") setTab("payee");
   }, [c2pPossible, tab]);
 
-  const [claim, setClaim] = useState<PaymentClaim | null>(null);
   const [error, setError] = useState<ClaimError | null>(null);
   const [cooldown, setCooldown] = useState(0);
 
   const referenceRef = useRef<HTMLInputElement>(null);
   const successRef = useRef<HTMLDivElement>(null);
 
-  // Pagada es pagada según el libro. Que otros hayan avisado por todo lo que
-  // queda no la paga: hasta que el restaurante lo verifique, puede que no.
-  const billPaid = BigInt(ledgerShareVes) === 0n;
   const coveredByPending = !billPaid && BigInt(billShareVes) === 0n && pendingAtTable > 0n;
 
   useEffect(() => {
@@ -361,7 +392,7 @@ export function GuestPaymentPanel({
       const parts = apportionTransfer({
         transferredVes: amountVes,
         tipVes,
-        shareVes: billShareVes,
+        shareVes: payShareVes,
       });
       return guest.paymentClaim({
         amountVes: parts.amountVes,
@@ -493,11 +524,58 @@ export function GuestPaymentPanel({
         </div>
       )}
 
-      {tab === "payee" && (
+      {/* Otro de la mesa está pagando todo lo que queda. Sin los datos para
+          copiar: es justo lo que hay que evitar que se transfiera dos veces.
+          Quien ya transfirió de todos modos sigue pudiendo avisar. */}
+      {tab === "payee" && blockedByHold && (
+        <div
+          role="status"
+          data-testid="guest-hold-blocked"
+          className="mt-5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm"
+        >
+          <p className="font-medium">
+            {t("guestHoldBlockedTitle").replace("{amount}", formatMoney(blockedHeldVes, "VES"))}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            {blockedUntil
+              ? t("guestHoldBlockedUntil").replace("{time}", clockTime(blockedUntil))
+              : t("guestHoldBlockedBody")}
+          </p>
+          <button
+            type="button"
+            data-testid="guest-hold-paid-anyway"
+            onClick={() => setTab("claim")}
+            className="mt-3 text-sm font-medium underline underline-offset-4"
+          >
+            {t("guestHoldPaidAnyway")}
+          </button>
+        </div>
+      )}
+
+      {tab === "payee" && !blockedByHold && (
         <div className="mt-5">
           <p className="text-sm text-muted-foreground">
             Paga desde tu app del banco y luego confírmanos aquí.
           </p>
+          {hold.kind === "held" && (
+            <p data-testid="guest-hold-held" className="mt-2 text-xs text-muted-foreground">
+              {hold.trimmed
+                ? t("guestHoldTrimmed").replace("{amount}", formatMoney(hold.amountVes, "VES"))
+                : t("guestHoldHeld").replace("{time}", clockTime(hold.expiresAt))}
+            </p>
+          )}
+          {hold.kind === "expired" && (
+            <p data-testid="guest-hold-expired" className="mt-2 text-xs text-muted-foreground">
+              {t("guestHoldExpired")}{" "}
+              <button
+                type="button"
+                onClick={retryHold}
+                className="font-medium underline underline-offset-4"
+              >
+                {t("guestHoldRetry")}
+              </button>
+            </p>
+          )}
           <div className="mt-3 rounded-lg border border-border px-3">
             <CopyRow
               label={t("payoutBank")}

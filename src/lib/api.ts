@@ -153,6 +153,14 @@ export type ApiErrorBody = {
   requestId: string;
 };
 
+/** Reserva de pago de un comensal (POST /guest/bill/holds). */
+export type PaymentHold = {
+  id: string;
+  amountVes: Money;
+  splitParticipantId: string | null;
+  expiresAt: string;
+};
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -822,6 +830,18 @@ export const guest = {
       },
     ),
 
+  /**
+   * «Voy a pagar esto»: aparta lo que el comensal va a transferir antes de que
+   * vaya a su banco, para que nadie más de la mesa empiece a pagarlo.
+   * 409 PAYMENT_HELD con lo que queda libre si otro llegó antes.
+   */
+  placeHold: (body: { amountVes: Money; splitParticipantId?: string }) =>
+    apiRequest<PaymentHold>("/api/v1/guest/bill/holds", { method: "POST", body, auth: "guest" }),
+
+  /** Volvió atrás: la parte queda libre para los demás. */
+  releaseHold: () =>
+    apiRequest<void>("/api/v1/guest/bill/holds", { method: "DELETE", auth: "guest" }),
+
   /** Aviso de pago: crea un claim PENDING, nunca cierra ni paga la cuenta. */
   paymentClaim: (body: PaymentClaimInput) =>
     apiRequest<PaymentClaim>("/api/v1/guest/bill/payment-claims", {
@@ -1020,7 +1040,19 @@ export type Bill = {
    */
   pendingVes?: Money;
   pendingCount?: number;
-  /** remainingVes menos pendingVes, nunca negativo: lo que conviene transferir ya. */
+  /**
+   * Lo que otros comensales están pagando ahora mismo (reservas de pago), sin
+   * la reserva propia. Ausente con un servidor anterior.
+   */
+  heldVes?: Money;
+  /** Cuándo vence la primera de esas reservas. */
+  heldUntil?: string | null;
+  /** La reserva propia, si la hay. */
+  myHold?: PaymentHold | null;
+  /**
+   * remainingVes menos lo pendiente y lo reservado por otros, nunca negativo:
+   * lo que este comensal puede pagar ya sin pagar dos veces lo de otro.
+   */
   availableVes?: Money;
   /** El backend lo llama fxRateVesPerUnit; se acepta el alias corto por compatibilidad. */
   fxRateVesPerUnit?: string | null;
@@ -1388,7 +1420,9 @@ export type SplitParticipant = {
   remainingVes: Money;
   /** Avisado contra esta parte y sin verificar. */
   pendingVes?: Money;
-  /** remainingVes menos pendingVes, nunca negativo. */
+  /** Otro comensal la está pagando ahora mismo. */
+  heldVes?: Money;
+  /** remainingVes menos lo pendiente y lo reservado por otros, nunca negativo. */
   availableVes?: Money;
   settled: boolean;
   usdReference: string | null;

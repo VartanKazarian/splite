@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, BookOpen, Receipt } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
-import { ApiError, guest, guestSession, menu, scannedQr } from "@/lib/api";
+import { ApiError, guest, guestSession, menu, scannedQr, type GuestOrderStatus } from "@/lib/api";
 import { GuestError } from "@/components/GuestError";
 import { GuestBillScreen } from "@/components/GuestBillScreen";
 import { GuestMenuView } from "@/components/GuestMenuView";
@@ -135,7 +135,7 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
    * otra. Se vacía al enviar.
    */
   const [cart, setCart] = useState<Record<string, number>>({});
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState<{ orderId: string; status: GuestOrderStatus } | null>(null);
   const bumpCart = (productId: string, delta: number) =>
     setCart((prev) => ({ ...prev, [productId]: Math.max(0, (prev[productId] ?? 0) + delta) }));
 
@@ -283,7 +283,12 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
         {sent ? (
           <FixedBottomBar>
             <div className="mx-auto w-full max-w-md px-5 pb-5 pt-3">
-              <GuestOrderSent onMenu={() => setSent(false)} onBill={openBill} />
+              <GuestOrderSent
+                orderId={sent.orderId}
+                status={sent.status}
+                onMenu={() => setSent(null)}
+                onBill={openBill}
+              />
             </div>
           </FixedBottomBar>
         ) : (
@@ -293,9 +298,9 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
             qrToken={token}
             bump={bumpCart}
             rate={menuQuery.data?.rate ?? null}
-            onSent={() => {
+            onSent={(result) => {
               setCart({});
-              setSent(true);
+              setSent(result);
             }}
           />
         )}

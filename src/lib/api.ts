@@ -816,18 +816,29 @@ export const guest = {
   /**
    * Pedir desde la mesa.
    *
-   * Las líneas entran en la cuenta en el acto: no hay estado que seguir
-   * después, y por eso la respuesta sólo confirma. La mesa no se manda -- la
-   * pone la sesión de invitado, creada verificando la firma del QR.
+   * PLACED: las líneas ya están en la cuenta. HELD: es el primer pedido de este
+   * teléfono y el restaurante pide aprobarlo; se sigue con `orderStatus`. La
+   * mesa no se manda -- la pone la sesión de invitado, creada verificando la
+   * firma del QR.
    */
   order: (items: { productId: string; quantity: number }[], note?: string) =>
-    apiRequest<{ orderId: string; createdAt: string; lineCount: number }>(
-      "/api/v1/guest/bill/orders",
-      {
-        method: "POST",
-        body: { items, ...(note?.trim() ? { note: note.trim() } : {}) },
-        auth: "guest",
-      },
+    apiRequest<{
+      orderId: string;
+      createdAt: string;
+      lineCount: number;
+      /** Ausente en un backend anterior: se lee como PLACED. */
+      status?: GuestOrderStatus;
+    }>("/api/v1/guest/bill/orders", {
+      method: "POST",
+      body: { items, ...(note?.trim() ? { note: note.trim() } : {}) },
+      auth: "guest",
+    }),
+
+  /** En qué quedó un pedido de este teléfono: el que espera aprobación. */
+  orderStatus: (orderId: string) =>
+    apiRequest<{ orderId: string; status: GuestOrderStatus; decidedAt: string | null }>(
+      `/api/v1/guest/bill/orders/${orderId}`,
+      { auth: "guest" },
     ),
 
   /**
@@ -1230,8 +1241,17 @@ export type TakingsChannel = { paymentsVes: Money; payments: number };
  * línea, ya no se debe y nadie tiene que prepararla, pero el pedido siguió
  * teniendo tres. Las dos cifras dicen cosas distintas.
  */
+/** PLACED: en la cuenta. HELD: espera a que la sala lo apruebe. REJECTED: la sala dijo que no. */
+export type GuestOrderStatus = "PLACED" | "HELD" | "REJECTED";
+
 export type GuestOrder = {
   id: string;
+  /**
+   * HELD: el primer pedido de un teléfono nuevo, con la aprobación encendida.
+   * Sus líneas todavía no están en ninguna cuenta (`billId` null). Ausente en
+   * un backend anterior.
+   */
+  status?: "PLACED" | "HELD";
   tableId: string;
   tableName: string;
   billId: string | null;
@@ -2376,9 +2396,32 @@ export const orders = {
   summary: () =>
     apiRequest<{
       pending: number;
+      /** De esos, los retenidos: hay un comensal esperando. */
+      awaitingApproval?: number;
       oldestPendingAt: string | null;
       oldestPendingAgeSeconds: number | null;
     }>("/api/v1/orders/summary", { auth: "staff" }),
+  /** Aprobar el primero de un teléfono nuevo: entra en la cuenta (abriéndola si hace falta). */
+  approve: (id: string) =>
+    apiRequest<{ id: string; status: "PLACED"; billId: string | null }>(
+      `/api/v1/orders/${id}/approve`,
+      { method: "POST", auth: "staff" },
+    ),
+  /** Rechazarlo: no llega a ninguna cuenta y ese teléfono no vuelve a pedir sin escanear. */
+  reject: (id: string) =>
+    apiRequest<{ id: string; status: "REJECTED" }>(`/api/v1/orders/${id}/reject`, {
+      method: "POST",
+      auth: "staff",
+    }),
+  /** Si el primer pedido de cada teléfono nuevo espera a la sala. */
+  settings: () =>
+    apiRequest<{ approveNewPhones: boolean }>("/api/v1/orders/settings", { auth: "staff" }),
+  setSettings: (approveNewPhones: boolean) =>
+    apiRequest<{ approveNewPhones: boolean }>("/api/v1/orders/settings", {
+      method: "PATCH",
+      auth: "staff",
+      body: { approveNewPhones },
+    }),
   /** Sacarlo de la bandeja. No toca la cuenta: el dinero ya estaba dentro. */
   ack: (id: string) =>
     apiRequest<{ id: string; acknowledgedAt: string }>(`/api/v1/orders/${id}/ack`, {

@@ -8,9 +8,11 @@
  *
  * - **Que no corra.** `script-src` sólo deja los scripts que llevan el nonce
  *   de esta petición, que el router pone en los suyos (src/lib/csp-nonce.ts),
- *   y lo que esos carguen ('strict-dynamic'). Ni scripts en línea sin nonce,
- *   ni de cualquier sitio https. 'self' y https: quedan sólo para navegadores
- *   sin CSP 3, que ignoran 'strict-dynamic'; los demás los descartan.
+ *   y los archivos de la propia web ('self'). Ni scripts en línea sin nonce
+ *   ni manejadores como onerror=, ni scripts de otros sitios.
+ *   Sin 'strict-dynamic' a propósito: con él, 'self' deja de contar, y Lovable
+ *   añade al publicar un script suyo de la propia web (/__l5e/…) sin nonce
+ *   que quedaría bloqueado.
  * - **Que no salga.** `connect-src` sólo deja hablar con la propia web y con
  *   la API de Splite, y las imágenes sólo cargan de ahí mismo o de datos
  *   incrustados: un token robado no tiene a dónde viajar por `fetch`, un
@@ -34,9 +36,7 @@ export function securityHeaders(apiBaseUrl: string, nonce?: string): Record<stri
     "default-src 'self'",
     // Sin nonce (no debería pasar en producción) se queda en la política
     // anterior antes que romper la página.
-    nonce
-      ? `script-src 'nonce-${nonce}' 'strict-dynamic' 'self' https:`
-      : "script-src 'self' 'unsafe-inline' https:",
+    nonce ? `script-src 'nonce-${nonce}' 'self'` : "script-src 'self' 'unsafe-inline' https:",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     `img-src 'self' data: blob: ${api}`.trim(),

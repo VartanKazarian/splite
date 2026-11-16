@@ -41,11 +41,14 @@ describe("securityHeaders", () => {
     expect(broken).not.toContain("*;");
   });
 
-  test("con nonce, sólo corren los scripts de la página y lo que ellos carguen", () => {
+  test("con nonce, sólo corren los scripts de la página y los de la propia web", () => {
     const strict = securityHeaders(API, "abc123==")["Content-Security-Policy"] ?? "";
     const scripts = directive(strict, "script-src");
-    expect(scripts).toContain("'nonce-abc123=='");
-    expect(scripts).toContain("'strict-dynamic'");
+    expect(scripts).toEqual(["'nonce-abc123=='", "'self'"]);
+    // 'strict-dynamic' haría ignorar 'self' y bloquearía el script que Lovable
+    // añade al publicar (/__l5e/…, sin nonce).
+    expect(scripts).not.toContain("'strict-dynamic'");
+    expect(scripts).not.toContain("https:");
     // Lo que la dejaba abierta: cualquier script en línea.
     expect(scripts).not.toContain("'unsafe-inline'");
   });

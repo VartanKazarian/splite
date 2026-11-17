@@ -546,6 +546,8 @@ const dict = {
     guestOrderHeld: "Esperando al personal",
     guestOrderHeldBody:
       "Es tu primer pedido desde este teléfono: el personal lo confirma y entra en tu cuenta.",
+    guestOrderExpired: "Nadie confirmó tu pedido a tiempo",
+    guestOrderExpiredBody: "No llegó a tu cuenta. Llama a tu mesero o vuelve a pedirlo.",
     guestOrderRejected: "El personal no aceptó el pedido",
     guestOrderRejectedBody:
       "Pregunta a tu mesero. Para volver a pedir, escanea otra vez el QR de la mesa.",
@@ -1878,6 +1880,8 @@ const dict = {
     guestOrderHeld: "Waiting for the staff",
     guestOrderHeldBody:
       "It is your first order from this phone: the staff confirm it and it goes on your bill.",
+    guestOrderExpired: "Nobody confirmed your order in time",
+    guestOrderExpiredBody: "It did not reach your bill. Call your waiter or order it again.",
     guestOrderRejected: "The staff did not accept the order",
     guestOrderRejectedBody: "Ask your waiter. To order again, scan the table's QR again.",
     guestOrderAwaiting: "Your first order is still waiting for the staff.",

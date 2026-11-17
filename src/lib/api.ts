@@ -882,6 +882,8 @@ export const guest = {
       id: string;
       status: PaymentClaim["status"];
       amountVes: Money;
+      /** Cuándo lo confirmó o rechazó el personal; null mientras está por verificar. */
+      decidedAt?: string | null;
       billClosed: boolean;
       invoiced: boolean;
       /**
@@ -1105,7 +1107,8 @@ export type PaymentClaim = {
   id: string;
   billId?: string;
   amountVes: Money;
-  status: "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+  /** IN_DOUBT y AMBIGUOUS siguen siendo «por verificar» para el comensal. */
+  status: "PENDING" | "IN_DOUBT" | "AMBIGUOUS" | "SUCCEEDED" | "FAILED" | "CANCELLED";
   paymentMethod?: "PAGO_MOVIL";
   declaredReference: string | null;
   createdAt: string;

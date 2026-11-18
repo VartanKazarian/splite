@@ -1,6 +1,6 @@
 # Pruebas de humo
 
-Seis recorridos con Playwright sobre lo que da dinero. Afirman que **se puede
+Recorridos con Playwright sobre lo que da dinero. Afirman que **se puede
 llegar hasta el final**, no cómo se ve nada: una prueba que fija píxeles o
 textos se rompe con cada retoque y acaba borrándose, y a este producto le queda
 rediseño por delante.
@@ -13,6 +13,10 @@ rediseño por delante.
 | 4   | Personal: entrar → panel → mesas → cuenta abierta                   |
 | 5   | Personal: confirmar un pago declarado y ver la cuenta cerrarse      |
 | 6   | Ajustes: RIF y serie fiscal                                         |
+| 7   | Dos comensales, un saldo: un pago por verificar se ve en la cuenta  |
+| 8   | «Ana está pagando»: la parte retenida no se puede pagar dos veces   |
+| 9   | Un teléfono es de una cuenta: la siguiente de la mesa no se ve      |
+| 10  | Un pago rechazado aparece en el teléfono y se puede volver a avisar |
 
 ## Correrlas
 

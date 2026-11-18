@@ -330,6 +330,25 @@ export function GuestOrderSent({
     );
   }
 
+  // Nadie lo aprobó a tiempo. No es un «no»: puede volver a pedir, y lo más
+  // útil es que llame a alguien de la sala.
+  if (status === "EXPIRED") {
+    return (
+      <div role="alert" className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-4">
+        <p className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+          <Clock aria-hidden className="h-5 w-5 text-amber-700 dark:text-amber-300" />
+          {t("guestOrderExpired")}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("guestOrderExpiredBody")}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" onClick={onMenu} className="btn-choice min-h-11 px-4 text-sm">
+            {t("guestOrderMore")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (status === "REJECTED") {
     return (
       <div role="alert" className="rounded-xl border border-destructive/50 bg-destructive/10 p-4">

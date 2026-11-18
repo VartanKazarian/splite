@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, HandPlatter, MessageSquareText, UtensilsCrossed } from "lucide-react";
+import {
+  Check,
+  HandPlatter,
+  MessageSquareText,
+  ShieldQuestion,
+  UtensilsCrossed,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
@@ -16,7 +23,9 @@ import { canAssignServer } from "@/components/BillServerPicker";
  * distinguen de seis que tecleó un mesero hace media hora.
  *
  * Por eso el botón dice "Visto" y no "Aceptar". Aceptar sugiere que se puede
- * rechazar, y no se puede: el dinero ya está en la cuenta. Lo único que hace es
+ * rechazar, y no se puede: el dinero ya está en la cuenta. La excepción es el
+ * primer pedido de un teléfono nuevo cuando el restaurante pide aprobarlo
+ * (Ajustes): ése sí espera, sale primero y lleva Aprobar / Rechazar. Lo único que hace es
  * sacar el aviso de la bandeja y dejar escrito quién se hizo cargo.
  *
  * **Y el otro botón, "Lo atiendo yo".** Una cuenta que abrió el comensal
@@ -72,6 +81,39 @@ export function OrderTray({ onOpenTable }: { onOpenTable?: (tableId: string) => 
     onError: fail,
   });
 
+  // El primero de un teléfono nuevo, con la aprobación encendida: aprobarlo
+  // lo pone en la cuenta (y la abre si la mesa estaba libre).
+  const decided = () => {
+    settled();
+    void queryClient.invalidateQueries({ queryKey: ["floor"] });
+    void queryClient.invalidateQueries({ queryKey: ["bills", "OPEN"] });
+  };
+  const approve = useMutation({
+    mutationFn: (id: string) => orders.approve(id),
+    onSuccess: () => {
+      toast.success(t("orderApproved"));
+      decided();
+    },
+    onError: (error) => {
+      // Otro de la sala se adelantó: la bandeja se pone al día sola.
+      if (error instanceof ApiError && error.code === "GUEST_ORDER_ALREADY_DECIDED")
+        return settled();
+      return fail(error);
+    },
+  });
+  const reject = useMutation({
+    mutationFn: (id: string) => orders.reject(id),
+    onSuccess: () => {
+      toast.success(t("orderRejected"));
+      settled();
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.code === "GUEST_ORDER_ALREADY_DECIDED")
+        return settled();
+      return fail(error);
+    },
+  });
+
   /**
    * Ponerse la mesa y dar el pedido por visto, en ese orden.
    *
@@ -120,8 +162,10 @@ export function OrderTray({ onOpenTable }: { onOpenTable?: (tableId: string) => 
           <OrderRow
             key={order.id}
             order={order}
-            pending={ack.isPending || claim.isPending}
+            pending={ack.isPending || claim.isPending || approve.isPending || reject.isPending}
             onAck={() => ack.mutate(order.id)}
+            onApprove={() => approve.mutate(order.id)}
+            onReject={() => reject.mutate(order.id)}
             {...(order.servedBy === null && order.billId && canAssign
               ? { onMine: () => claim.mutate({ orderId: order.id, billId: order.billId! }) }
               : {})}
@@ -137,12 +181,16 @@ function OrderRow({
   order,
   pending,
   onAck,
+  onApprove,
+  onReject,
   onMine,
   onOpen,
 }: {
   order: GuestOrder;
   pending: boolean;
   onAck: () => void;
+  onApprove: () => void;
+  onReject: () => void;
   /** Ausente cuando la cuenta ya tiene mesero, que es cuando no hay nada que pedir. */
   onMine?: () => void;
   onOpen?: () => void;
@@ -152,10 +200,17 @@ function OrderRow({
   // Lo que se pidió y lo que queda. Coinciden casi siempre; cuando no, es que
   // un mesero ya quitó una línea, y decirlo evita que alguien vaya a la cocina
   // a por algo que ya nadie debe.
-  const removed = order.lineCount - order.items.length;
+  const held = order.status === "HELD";
+  // Un retenido no está en ninguna cuenta: no hay líneas quitadas que contar.
+  const removed = held ? 0 : order.lineCount - order.items.length;
 
   return (
-    <li className="px-4 py-3">
+    <li className={held ? "bg-amber-500/5 px-4 py-3" : "px-4 py-3"}>
+      {held && (
+        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-amber-800 dark:text-amber-200">
+          <ShieldQuestion aria-hidden className="h-3.5 w-3.5" /> {t("orderHeldBadge")}
+        </p>
+      )}
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         {onOpen ? (
           <button
@@ -210,26 +265,50 @@ function OrderRow({
           lo que hay que hacer, y "Visto" queda como la salida para quien sólo
           está mirando la bandeja desde la caja. Con mesero ya puesto, "Visto"
           vuelve a ser el único botón y recupera su sitio. */}
-      <div className="mt-2.5 flex flex-wrap gap-2">
-        {onMine && (
+      {held ? (
+        <>
+          <p className="mt-2 text-xs text-muted-foreground">{t("orderHeldHint")}</p>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onApprove}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+            >
+              <Check aria-hidden className="h-4 w-4" /> {t("orderApprove")}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onReject}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary disabled:opacity-40"
+            >
+              <X aria-hidden className="h-4 w-4" /> {t("orderReject")}
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {onMine && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onMine}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+            >
+              <HandPlatter aria-hidden className="h-4 w-4" /> {t("orderMine")}
+            </button>
+          )}
           <button
             type="button"
             disabled={pending}
-            onClick={onMine}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+            onClick={onAck}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary disabled:opacity-40"
           >
-            <HandPlatter aria-hidden className="h-4 w-4" /> {t("orderMine")}
+            <Check aria-hidden className="h-4 w-4" /> {t("orderSeen")}
           </button>
-        )}
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onAck}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm transition-colors hover:bg-secondary disabled:opacity-40"
-        >
-          <Check aria-hidden className="h-4 w-4" /> {t("orderSeen")}
-        </button>
-      </div>
+        </div>
+      )}
     </li>
   );
 }

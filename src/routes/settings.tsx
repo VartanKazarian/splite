@@ -25,6 +25,7 @@ import { ConfirmButton } from "@/components/ConfirmButton";
 import { MfaPanel } from "@/components/MfaPanel";
 import { RestaurantName } from "@/components/RestaurantName";
 import { RestaurantBranding } from "@/components/RestaurantBranding";
+import { OrderApprovalSetting } from "@/components/OrderApprovalSetting";
 import { FiscalRif } from "@/components/FiscalRif";
 import { FiscalSeries } from "@/components/FiscalSeries";
 import { PanelHeader } from "@/components/PanelHeader";
@@ -394,6 +395,7 @@ function SettingsPage() {
                 restaurantId={settings.data?.id}
                 canEdit={role === "OWNER" || role === "MANAGER"}
               />
+              <OrderApprovalSetting canEdit={role === "OWNER" || role === "MANAGER"} />
             </Group>
 
             {/* El dinero, junto y arriba. Estaba repartido: la moneda y los

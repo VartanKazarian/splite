@@ -1,6 +1,6 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Check, Minus, Plus, Send, ShoppingBag } from "lucide-react";
+import { Check, Clock, Minus, Plus, Send, ShoppingBag, X } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import {
@@ -8,6 +8,7 @@ import {
   formatMoney,
   guest,
   guestSession,
+  type GuestOrderStatus,
   type PublicMenu,
   type PublicProduct,
 } from "@/lib/api";
@@ -101,7 +102,8 @@ export function GuestOrderBar({
   bump: (productId: string, delta: number) => void;
   /** La tasa de la carta, para el total en bolívares. */
   rate?: PublicMenu["rate"];
-  onSent: () => void;
+  /** HELD: el primero de este teléfono espera a la sala; lo sigue `GuestOrderSent`. */
+  onSent: (sent: { orderId: string; status: GuestOrderStatus }) => void;
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -137,10 +139,10 @@ export function GuestOrderBar({
         note,
       );
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       setOpen(false);
       setNote("");
-      onSent();
+      onSent({ orderId: result.orderId, status: result.status ?? "PLACED" });
     },
   });
 
@@ -246,9 +248,7 @@ export function GuestOrderBar({
           <div className="sticky bottom-0 -mx-5 mt-4 space-y-2 border-t border-border bg-background px-5 py-4">
             {send.isError && (
               <p role="alert" className="text-xs text-destructive">
-                {send.error instanceof ApiError && send.error.code === "PRODUCT_INACTIVE"
-                  ? t("guestOrderGone")
-                  : t("guestOrderFailed")}
+                {orderErrorMessage(send.error, t)}
               </p>
             )}
             <button
@@ -275,17 +275,80 @@ export function GuestOrderBar({
   );
 }
 
+function orderErrorMessage(error: unknown, t: ReturnType<typeof useI18n>["t"]): string {
+  if (!(error instanceof ApiError)) return t("guestOrderFailed");
+  if (error.code === "PRODUCT_INACTIVE") return t("guestOrderGone");
+  if (error.code === "GUEST_ORDER_AWAITING_APPROVAL") return t("guestOrderAwaiting");
+  if (error.code === "GUEST_ORDERS_BLOCKED") return t("guestOrdersBlocked");
+  return t("guestOrderFailed");
+}
+
 /**
  * Lo que se ve después de enviar, y nada más.
  *
- * No hay estados que seguir: lo pedido ya está en la cuenta del comensal, así
- * que la confirmación remata y la propia cuenta es donde se comprueba. Un
- * "preparando / servido" aquí sería inventar una cocina que Splite no gobierna.
+ * Casi siempre no hay estados que seguir: lo pedido ya está en la cuenta del
+ * comensal, así que la confirmación remata y la propia cuenta es donde se
+ * comprueba. Un "preparando / servido" aquí sería inventar una cocina que
+ * Splite no gobierna.
+ *
+ * La excepción es el primer pedido de un teléfono nuevo cuando el restaurante
+ * pide aprobarlo: ése espera a la sala, y esta tarjeta lo dice y se pone al día
+ * sola hasta que alguien lo aprueba o lo rechaza.
  */
-export function GuestOrderSent({ onMenu, onBill }: { onMenu: () => void; onBill: () => void }) {
+export function GuestOrderSent({
+  orderId,
+  status: initial = "PLACED",
+  onMenu,
+  onBill,
+}: {
+  orderId?: string;
+  status?: GuestOrderStatus;
+  onMenu: () => void;
+  onBill: () => void;
+}) {
   const { t } = useI18n();
+  const followed = useQuery({
+    queryKey: ["guest-order", orderId],
+    queryFn: () => guest.orderStatus(orderId!),
+    enabled: initial === "HELD" && Boolean(orderId),
+    retry: false,
+    // Cada pocos segundos mientras espera; cuando la sala decide, se para.
+    refetchInterval: (query) =>
+      query.state.data?.status === "HELD" || !query.state.data ? 4000 : false,
+  });
+  const status = followed.data?.status ?? initial;
+
+  if (status === "HELD") {
+    return (
+      <div role="status" className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-4">
+        <p className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+          <Clock aria-hidden className="h-5 w-5 text-amber-700 dark:text-amber-300" />
+          {t("guestOrderHeld")}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("guestOrderHeldBody")}</p>
+      </div>
+    );
+  }
+
+  if (status === "REJECTED") {
+    return (
+      <div role="alert" className="rounded-xl border border-destructive/50 bg-destructive/10 p-4">
+        <p className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+          <X aria-hidden className="h-5 w-5 text-destructive" />
+          {t("guestOrderRejected")}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("guestOrderRejectedBody")}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" onClick={onBill} className="btn-choice min-h-11 px-4 text-sm">
+            {t("yourBill")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-xl border border-primary/50 bg-primary/10 p-4">
+    <div role="status" className="rounded-xl border border-primary/50 bg-primary/10 p-4">
       <p className="flex items-center gap-2 text-xl font-semibold tracking-tight">
         <Check aria-hidden className="h-5 w-5 text-primary" />
         {t("guestOrderSent")}

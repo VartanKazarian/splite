@@ -15,9 +15,11 @@ import { Route as InvitacionRouteImport } from './routes/invitacion'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as MesasRouteImport } from './routes/mesas'
+import { Route as OlvideRouteImport } from './routes/olvide'
 import { Route as PagosRouteImport } from './routes/pagos'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as RegistroRouteImport } from './routes/registro'
+import { Route as RestablecerRouteImport } from './routes/restablecer'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TasasRouteImport } from './routes/tasas'
@@ -64,6 +66,11 @@ const MesasRoute = MesasRouteImport.update({
   path: '/mesas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OlvideRoute = OlvideRouteImport.update({
+  id: '/olvide',
+  path: '/olvide',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PagosRoute = PagosRouteImport.update({
   id: '/pagos',
   path: '/pagos',
@@ -77,6 +84,11 @@ const PreviewRoute = PreviewRouteImport.update({
 const RegistroRoute = RegistroRouteImport.update({
   id: '/registro',
   path: '/registro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RestablecerRoute = RestablecerRouteImport.update({
+  id: '/restablecer',
+  path: '/restablecer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -163,9 +175,11 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/mesas': typeof MesasRoute
+  '/olvide': typeof OlvideRoute
   '/pagos': typeof PagosRoute
   '/preview': typeof PreviewRoute
   '/registro': typeof RegistroRoute
+  '/restablecer': typeof RestablecerRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
@@ -189,9 +203,11 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/mesas': typeof MesasRoute
+  '/olvide': typeof OlvideRoute
   '/pagos': typeof PagosRoute
   '/preview': typeof PreviewRoute
   '/registro': typeof RegistroRoute
+  '/restablecer': typeof RestablecerRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
@@ -216,9 +232,11 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/mesas': typeof MesasRoute
+  '/olvide': typeof OlvideRoute
   '/pagos': typeof PagosRoute
   '/preview': typeof PreviewRoute
   '/registro': typeof RegistroRoute
+  '/restablecer': typeof RestablecerRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tasas': typeof TasasRoute
@@ -244,9 +262,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/menu'
     | '/mesas'
+    | '/olvide'
     | '/pagos'
     | '/preview'
     | '/registro'
+    | '/restablecer'
     | '/settings'
     | '/sitemap.xml'
     | '/tasas'
@@ -270,9 +290,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/menu'
     | '/mesas'
+    | '/olvide'
     | '/pagos'
     | '/preview'
     | '/registro'
+    | '/restablecer'
     | '/settings'
     | '/sitemap.xml'
     | '/tasas'
@@ -296,9 +318,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/menu'
     | '/mesas'
+    | '/olvide'
     | '/pagos'
     | '/preview'
     | '/registro'
+    | '/restablecer'
     | '/settings'
     | '/sitemap.xml'
     | '/tasas'
@@ -323,9 +347,11 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MenuRoute: typeof MenuRoute
   MesasRoute: typeof MesasRoute
+  OlvideRoute: typeof OlvideRoute
   PagosRoute: typeof PagosRoute
   PreviewRoute: typeof PreviewRoute
   RegistroRoute: typeof RegistroRoute
+  RestablecerRoute: typeof RestablecerRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TasasRoute: typeof TasasRoute
@@ -387,6 +413,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MesasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/olvide': {
+      id: '/olvide'
+      path: '/olvide'
+      fullPath: '/olvide'
+      preLoaderRoute: typeof OlvideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pagos': {
       id: '/pagos'
       path: '/pagos'
@@ -406,6 +439,13 @@ declare module '@tanstack/react-router' {
       path: '/registro'
       fullPath: '/registro'
       preLoaderRoute: typeof RegistroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/restablecer': {
+      id: '/restablecer'
+      path: '/restablecer'
+      fullPath: '/restablecer'
+      preLoaderRoute: typeof RestablecerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -523,9 +563,11 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MenuRoute: MenuRoute,
   MesasRoute: MesasRoute,
+  OlvideRoute: OlvideRoute,
   PagosRoute: PagosRoute,
   PreviewRoute: PreviewRoute,
   RegistroRoute: RegistroRoute,
+  RestablecerRoute: RestablecerRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TasasRoute: TasasRoute,

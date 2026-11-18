@@ -217,6 +217,14 @@ function Login() {
             >
               {pending ? t("loading") : t("enter")}
             </button>
+
+            <Link
+              to="/olvide"
+              data-testid="login-forgot"
+              className="mt-4 block text-center text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              {t("forgotLink")}
+            </Link>
           </form>
         )}
       </main>

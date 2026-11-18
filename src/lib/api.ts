@@ -616,6 +616,27 @@ export const auth = {
       body: { token },
     }),
 
+  /**
+   * «¿Olvidaste tu contraseña?»: pedir el enlace por correo. El servidor
+   * contesta igual exista o no la cuenta, así que aquí no hay nada que decidir
+   * con la respuesta.
+   */
+  forgotPassword: (email: string) =>
+    apiRequest<{ accepted: true }>("/api/v1/auth/password/forgot", {
+      method: "POST",
+      body: { email },
+    }),
+
+  /**
+   * Usar el enlace: contraseña nueva. Cierra todas las sesiones de la cuenta y
+   * no abre ninguna: después se entra con la contraseña nueva.
+   */
+  resetPassword: (token: string, password: string) =>
+    apiRequest<void>("/api/v1/auth/password/reset", {
+      method: "POST",
+      body: { token, password },
+    }),
+
   /** Aceptarla: la persona pone su contraseña y entra, como tras un login. */
   acceptInvitation: (body: { token: string; password: string; displayName?: string | null }) =>
     apiRequest<StaffSession>("/api/v1/auth/invitations/accept", {

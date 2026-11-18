@@ -926,6 +926,14 @@ const dict = {
     guestClaimSentBody:
       "Le avisamos al restaurante que pagaste {amount} con la referencia {reference}. Un miembro del personal lo va a verificar.",
     guestClaimClosesOnConfirm: "La cuenta se cierra cuando lo confirmen.",
+    guestClaimWaiting: "Esperando al personal",
+    guestClaimConfirmed: "Pago confirmado",
+    guestClaimConfirmedBody: "El restaurante confirmó tu pago de {amount}.",
+    guestClaimConfirmedAt: "El restaurante confirmó tu pago de {amount} a las {time}.",
+    guestClaimRejected: "El restaurante no encontró este pago",
+    guestClaimRejectedBody:
+      "No aparece tu pago de {amount} con la referencia {reference}. Si ya pagaste, enséñale el comprobante a tu mesero. Si te equivocaste de referencia, vuelve a avisar.",
+    guestClaimDeclareAgain: "Volver a avisar del pago",
     receiptTitle: "Recibo",
     receiptTable: "Mesa",
     receiptBillId: "Cuenta",
@@ -2250,6 +2258,14 @@ const dict = {
     guestClaimSentBody:
       "We let the restaurant know you paid {amount} with reference {reference}. A member of staff will check it.",
     guestClaimClosesOnConfirm: "The bill closes when they confirm it.",
+    guestClaimWaiting: "Waiting for the staff",
+    guestClaimConfirmed: "Payment confirmed",
+    guestClaimConfirmedBody: "The restaurant confirmed your payment of {amount}.",
+    guestClaimConfirmedAt: "The restaurant confirmed your payment of {amount} at {time}.",
+    guestClaimRejected: "The restaurant couldn't find this payment",
+    guestClaimRejectedBody:
+      "Your payment of {amount} with reference {reference} doesn't show up. If you did pay, show the receipt to your waiter. If you mistyped the reference, declare it again.",
+    guestClaimDeclareAgain: "Declare the payment again",
     receiptTitle: "Receipt",
     receiptTable: "Table",
     receiptBillId: "Bill",

@@ -73,8 +73,10 @@ backend's `main` on every pull request.
 
 ## Domain
 
-The site moves from `splite.lovable.app` to `splite.lat`, and the API to
-`api.splite.lat`. The code is ready. What remains: DNS records in Cloudflare,
-connecting the domain in Lovable, adding the new origin to the API's
-`CORS_ORIGINS`, and then switching `VITE_API_BASE_URL` in `.env` to
-`https://api.splite.lat`.
+The site is served at `https://splite.lat` (`www` and `splite.lovable.app`
+redirect there, path and query included, so QR codes printed with the old
+address keep working). The API is at `https://api.splite.lat`; its Railway
+address still works. Both are set in `.env`: `VITE_API_BASE_URL` for the API
+and `VITE_GUEST_BASE_URL` for the links new QR codes carry. DNS is in
+Cloudflare, with every web record set to **DNS only**, so Lovable and Railway
+can issue their certificates.

@@ -20,7 +20,37 @@
  */
 
 export const API_BASE_URL: string =
-  import.meta.env["VITE_API_BASE_URL"] ?? "https://splite-backend-production.up.railway.app";
+  import.meta.env["VITE_API_BASE_URL"] ?? "https://api.splite.lat";
+
+/**
+ * Si el refresh token del personal va en una cookie HttpOnly (que ningún
+ * script de la página puede leer) en vez de en localStorage.
+ *
+ * Sólo cuando la página y la API son el mismo sitio -- splite.lat y
+ * api.splite.lat --, porque entonces la cookie es de primera parte. Desde
+ * splite.lovable.app sería de terceros, Safari la descarta y la sesión se
+ * perdería: ahí sigue el token en el cuerpo, como antes. Se decide en el
+ * navegador, en cada petición; en el servidor no hay sesión de personal.
+ */
+const COOKIE_SITE = "splite.lat";
+function onSite(host: string): boolean {
+  return host === COOKIE_SITE || host.endsWith(`.${COOKIE_SITE}`);
+}
+export function cookieSite(pageHost: string, apiBase: string): boolean {
+  try {
+    return onSite(pageHost) && onSite(new URL(apiBase).hostname);
+  } catch {
+    return false;
+  }
+}
+export function refreshViaCookie(): boolean {
+  if (typeof window === "undefined") return false;
+  return cookieSite(window.location.hostname, API_BASE_URL);
+}
+/** Las rutas que emiten, renuevan o cierran una sesión de personal. */
+function issuesStaffSession(path: string): boolean {
+  return path.startsWith("/api/v1/auth/") || path === "/api/v1/onboarding/verify";
+}
 
 /**
  * De dónde cuelgan los enlaces que se imprimen en un QR de mesa.
@@ -199,7 +229,13 @@ export function errorFieldsText(error: unknown): string {
 
 export type StaffSession = {
   accessToken: string;
-  refreshToken: string;
+  /**
+   * Ausente cuando el servidor lo puso en la cookie HttpOnly
+   * (`refreshViaCookie`): entonces no hay nada que guardar ni que robar aquí.
+   */
+  refreshToken?: string;
+  /** "cookie" cuando el refresh token está en la cookie y no en el cuerpo. */
+  refreshDelivery?: "cookie";
   expiresIn: number;
   user: {
     id: string;
@@ -354,6 +390,8 @@ async function rawRequest<T>(path: string, opts: RequestOptions = {}): Promise<T
   const headers: Record<string, string> = { Accept: "application/json", ...opts.headers };
   // Con FormData el navegador pone el boundary: fijar Content-Type lo rompe.
   if (opts.body !== undefined && !isForm) headers["Content-Type"] = "application/json";
+  const viaCookie = refreshViaCookie() && issuesStaffSession(path);
+  if (viaCookie) headers["X-Refresh-Mode"] = "cookie";
 
   if (opts.auth === "staff") {
     const s = staffSession.get();
@@ -370,6 +408,8 @@ async function rawRequest<T>(path: string, opts: RequestOptions = {}): Promise<T
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: opts.method ?? "GET",
     headers,
+    // La cookie sólo viaja -- y sólo se guarda -- con `include`.
+    ...(viaCookie ? { credentials: "include" as const } : {}),
     ...(opts.body === undefined
       ? {}
       : { body: isForm ? (opts.body as FormData) : JSON.stringify(opts.body) }),
@@ -419,7 +459,8 @@ async function refreshOnce(): Promise<StaffSession> {
       });
     const next = await rawRequest<StaffSession>("/api/v1/auth/refresh", {
       method: "POST",
-      body: { refreshToken: current.refreshToken },
+      // En modo cookie no hay token que mandar: lo pone el navegador.
+      body: current.refreshToken ? { refreshToken: current.refreshToken } : {},
     });
     staffSession.set(next);
     return next;
@@ -675,7 +716,7 @@ export const auth = {
     if (!s) return;
     await rawRequest<void>("/api/v1/auth/logout", {
       method: "POST",
-      body: { refreshToken: s.refreshToken },
+      body: s.refreshToken ? { refreshToken: s.refreshToken } : {},
     }).catch(() => undefined);
   },
 };
@@ -713,7 +754,8 @@ export const onboarding = {
     }).then((result) => {
       staffSession.set({
         accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
+        ...(result.refreshToken ? { refreshToken: result.refreshToken } : {}),
+        ...(result.refreshDelivery ? { refreshDelivery: result.refreshDelivery } : {}),
         expiresIn: result.expiresIn,
         user: result.user,
       });

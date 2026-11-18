@@ -1286,8 +1286,11 @@ export type TakingsChannel = { paymentsVes: Money; payments: number };
  * línea, ya no se debe y nadie tiene que prepararla, pero el pedido siguió
  * teniendo tres. Las dos cifras dicen cosas distintas.
  */
-/** PLACED: en la cuenta. HELD: espera a que la sala lo apruebe. REJECTED: la sala dijo que no. */
-export type GuestOrderStatus = "PLACED" | "HELD" | "REJECTED";
+/**
+ * PLACED: en la cuenta. HELD: espera a que la sala lo apruebe. REJECTED: la
+ * sala dijo que no. EXPIRED: nadie decidió a tiempo; el teléfono puede volver a pedir.
+ */
+export type GuestOrderStatus = "PLACED" | "HELD" | "REJECTED" | "EXPIRED";
 
 export type GuestOrder = {
   id: string;

@@ -553,28 +553,16 @@ const dict = {
  * en `i18n-guest.ts`, `i18n-staff.ts` e `i18n-public.ts`.
  *
  * Cada archivo que usa una clave de una parte importa esa parte (`import
- * "@/lib/i18n-staff"`), y al cargarse se registra aquí. Así el empaquetador
- * la pone sólo en las páginas que la usan, y cuando un componente pinta su
- * primera palabra su parte ya está. `unit/i18n-parts.test.ts` falla si alguien
- * usa una clave sin importar su parte.
+ * "@/lib/i18n-staff"`; en `routes/`, `useI18n(staffStrings)`), y al cargarse
+ * se registra en `i18n-registry.ts`. Así el empaquetador la pone sólo en las
+ * páginas que la usan, y cuando un componente pinta su primera palabra su
+ * parte ya está. `unit/i18n-parts.test.ts` falla si alguien usa una clave sin
+ * importar su parte, y `scripts/i18n-build-check.mjs` si una parte no llega a
+ * la compilación (`package.json` las declara en `sideEffects` por eso).
  */
 
-type Strings = Record<string, string>;
-
-/** Lo registrado hasta ahora, por idioma: lo común y las partes que ya cargaron. */
-const registry: Record<Lang, Strings> = { es: { ...dict.es }, en: { ...dict.en } };
-
-/**
- * Declara una parte del diccionario y la registra.
- *
- * El tipo obliga a que el inglés tenga exactamente las claves del español: una
- * que falte o sobre no compila, igual que con el diccionario único.
- */
-export function defineStrings<T extends Strings>(part: { es: T; en: { [K in keyof T]: string } }) {
-  Object.assign(registry.es, part.es);
-  Object.assign(registry.en, part.en);
-  return part;
-}
+import { registry, type Strings } from "@/lib/i18n-registry";
+export { defineStrings } from "@/lib/i18n-registry";
 
 export type Key =
   | keyof (typeof dict)["es"]
@@ -584,7 +572,8 @@ export type Key =
 
 /** La palabra en este idioma; en español si faltara, y la clave si ni eso. */
 function lookup(lang: Lang, key: string): string {
-  return registry[lang][key] ?? registry.es[key] ?? key;
+  const common = key as keyof (typeof dict)["es"];
+  return dict[lang][common] ?? registry[lang][key] ?? dict.es[common] ?? registry.es[key] ?? key;
 }
 
 /**
@@ -642,4 +631,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export const useI18n = () => useContext(Ctx);
+/**
+ * `parts`: en un archivo de `routes/`, la parte del diccionario que usa la
+ * página (`useI18n(staffStrings)`) en vez de `import "@/lib/i18n-staff"`.
+ *
+ * El enrutador mete la cabecera de cada archivo de ruta -- y con ella sus
+ * importaciones sueltas -- en el código de arranque de *todas* las páginas.
+ * Una importación que el componente usa viaja con el componente, en el archivo
+ * de su página. Medido: las tres partes, 43 KB comprimidos, se cargaban en
+ * cada página.
+ */
+export const useI18n = (..._parts: { es: Strings }[]) => useContext(Ctx);

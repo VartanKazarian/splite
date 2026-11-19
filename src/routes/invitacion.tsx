@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, staffSession, type InvitationPreview } from "@/lib/api";
 import { homeFor } from "@/lib/roles";
-import "@/lib/i18n-staff";
+import { staffStrings } from "@/lib/i18n-staff";
 
 export const Route = createFileRoute("/invitacion")({
   head: () => ({
@@ -29,7 +29,7 @@ const MIN_PASSWORD = 12;
  * alguien que ya entró.
  */
 function AcceptInvitation() {
-  const { t } = useI18n();
+  const { t } = useI18n(staffStrings);
   const navigate = useNavigate();
   const [token, setToken] = useState<string | null>(null);
   const [preview, setPreview] = useState<InvitationPreview | null>(null);

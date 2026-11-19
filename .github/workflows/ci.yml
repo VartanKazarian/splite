@@ -50,6 +50,11 @@ jobs:
       - name: Compila
         run: bun run build
 
+      # Los textos tienen que llegar a la compilación: en producción el panel
+      # y la mesa llegaron a enseñar «settingsTitle» en vez de «Configuración».
+      - name: Textos en la compilación
+        run: bun run i18n:build
+
       # Lo que descarga cada página antes de pintarse. La del QR la abre un
       # comensal con 3G: su presupuesto es 180 KB comprimidos.
       - name: JavaScript budget per page

@@ -1,7 +1,12 @@
 {
   "name": "tanstack_start_ts",
   "private": true,
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/lib/i18n-guest.ts",
+    "./src/lib/i18n-staff.ts",
+    "./src/lib/i18n-public.ts",
+    "*.css"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -12,6 +17,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "bun test unit",
     "size": "node scripts/bundle-budget.mjs",
+    "i18n:build": "node scripts/i18n-build-check.mjs",
     "api:types": "openapi-typescript contract/openapi.json -o src/lib/api-schema.gen.ts",
     "api:sync": "node scripts/api-sync.mjs",
     "api:check": "node scripts/api-types-check.mjs",

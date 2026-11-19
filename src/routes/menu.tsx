@@ -34,7 +34,7 @@ import { ErrorBox } from "@/routes/dashboard";
 import { PanelHeader } from "@/components/PanelHeader";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { formatDateTime } from "../lib/dates";
-import "@/lib/i18n-staff";
+import { staffStrings } from "@/lib/i18n-staff";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -113,7 +113,7 @@ const UNCATEGORIZED = "Sin categoría";
 type Group = { key: string; categoryId: string | null; category: string; items: Product[] };
 
 function MenuPage() {
-  const { t, lang } = useI18n();
+  const { t, lang } = useI18n(staffStrings);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
@@ -675,7 +675,7 @@ function ProductRow({
   onToggle: (active: boolean) => void;
   onMove: (delta: -1 | 1) => void;
 }) {
-  const { t } = useI18n();
+  const { t } = useI18n(staffStrings);
   const switchId = `available-${p.id}`;
   const body = (
     <>

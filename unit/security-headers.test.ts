@@ -113,3 +113,30 @@ describe("newCspNonce", () => {
     expect(a).not.toBe(b);
   });
 });
+
+describe("buscadores", () => {
+  test("sólo la web pública se puede guardar; lo demás sale con noindex", () => {
+    for (const path of ["/", "/registro", "/registro/", "/tpv-hosteleria", "/login"]) {
+      expect(securityHeaders(API, "n", "splite.lat", path)["X-Robots-Tag"]).toBeUndefined();
+    }
+    for (const path of [
+      "/dashboard",
+      "/mesas",
+      "/menu",
+      "/pagos",
+      "/settings",
+      "/preview",
+      "/tasas",
+      "/admin",
+      "/admin/precios",
+      "/t/abc",
+      "/recibo/x",
+      "/invitacion",
+      "/una-nueva",
+    ]) {
+      expect(securityHeaders(API, "n", "splite.lat", path)["X-Robots-Tag"]).toBe(
+        "noindex, nofollow",
+      );
+    }
+  });
+});

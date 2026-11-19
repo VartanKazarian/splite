@@ -63,4 +63,15 @@ describe("el diccionario por partes", () => {
     }
     expect(missing).toEqual([]);
   });
+
+  test("en routes/, la parte se pasa a useI18n y no se importa suelta", () => {
+    // El enrutador mete la cabecera de cada archivo de ruta en el arranque de
+    // todas las páginas; una importación suelta arrastraría la parte con ella.
+    const loose: string[] = [];
+    for (const file of sources(join(SRC, "routes"))) {
+      if (/import "@\/lib\/i18n-(guest|staff|public)"/.test(readFileSync(file, "utf8")))
+        loose.push(relative(SRC, file));
+    }
+    expect(loose).toEqual([]);
+  });
 });

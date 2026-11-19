@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, staffSession } from "@/lib/api";
-import "@/lib/i18n-public";
+import { publicStrings } from "@/lib/i18n-public";
 
 export const Route = createFileRoute("/restablecer")({
   head: () => ({
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/restablecer")({
  * contraseña nueva (y el segundo factor, si lo hay).
  */
 function ResetPassword() {
-  const { t } = useI18n();
+  const { t } = useI18n(publicStrings);
   const [token, setToken] = useState<string | null>(null);
   const [read, setRead] = useState(false);
   const [password, setPassword] = useState("");

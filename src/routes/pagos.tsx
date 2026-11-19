@@ -31,7 +31,7 @@ import { PanelHeader } from "@/components/PanelHeader";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { StatementImport } from "@/components/panel/StatementImport";
 import { formatDateTime } from "../lib/dates";
-import "@/lib/i18n-staff";
+import { staffStrings } from "@/lib/i18n-staff";
 
 export const Route = createFileRoute("/pagos")({
   head: () => ({
@@ -71,7 +71,7 @@ function formatWait(seconds: number, underMinute: string) {
  * aviso puede ser un pago real mal tecleado o uno que no llegó entero.
  */
 function BankMatchBadge({ match, id }: { match: BankMatch; id: string }) {
-  const { t } = useI18n();
+  const { t } = useI18n(staffStrings);
   const ref = match.movementReference ? `…${match.movementReference.slice(-6)}` : "";
   const [tone, text] =
     match.outcome === "MATCHED"
@@ -102,7 +102,7 @@ function BankMatchBadge({ match, id }: { match: BankMatch; id: string }) {
 }
 
 function PaymentsPage() {
-  const { t, lang, plural } = useI18n();
+  const { t, lang, plural } = useI18n(staffStrings);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);

@@ -8,7 +8,7 @@ import { PanelHeader } from "@/components/PanelHeader";
 import { GuestMenuView } from "@/components/GuestMenuView";
 import { ErrorBox } from "@/routes/dashboard";
 import { account, menu, staffSession, tables as tablesApi, GUEST_BASE_URL } from "@/lib/api";
-import "@/lib/i18n-guest";
+import { guestStrings } from "@/lib/i18n-guest";
 
 export const Route = createFileRoute("/preview")({
   head: () => ({ meta: [{ title: "Vista del comensal — Splite" }] }),
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/preview")({
  * enlace a una mesa de verdad.
  */
 function PreviewPage() {
-  const { t } = useI18n();
+  const { t } = useI18n(guestStrings);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {

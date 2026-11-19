@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth } from "@/lib/api";
-import "@/lib/i18n-public";
+import { publicStrings } from "@/lib/i18n-public";
 
 export const Route = createFileRoute("/olvide")({
   head: () => ({
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/olvide")({
  * cualquiera qué correos están dados de alta.
  */
 function ForgotPassword() {
-  const { t } = useI18n();
+  const { t } = useI18n(publicStrings);
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);

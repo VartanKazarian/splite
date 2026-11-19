@@ -5,7 +5,7 @@ import { ApiError, sharedReceipts } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { ReceiptView } from "@/components/GuestReceipt";
 import { LangToggle } from "@/components/LangToggle";
-import "@/lib/i18n-guest";
+import { guestStrings } from "@/lib/i18n-guest";
 
 /**
  * Un recibo abierto desde el enlace que el comensal se mandó por WhatsApp (R20).
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/recibo/$token")({
 
 function SharedReceiptPage() {
   const { token } = Route.useParams();
-  const { t } = useI18n();
+  const { t } = useI18n(guestStrings);
   const query = useQuery({
     queryKey: ["shared-receipt", token],
     queryFn: () => sharedReceipts.get(token),

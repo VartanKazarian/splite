@@ -25,7 +25,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, bills, staffSession, tables as tablesApi } from "@/lib/api";
 import { canManageTables } from "@/lib/roles";
-import "@/lib/i18n-staff";
+import { staffStrings } from "@/lib/i18n-staff";
 
 type Search = { filtro?: FloorFilter };
 
@@ -74,7 +74,7 @@ export const Route = createFileRoute("/mesas")({
  * hay una segunda forma de cobrar ni una segunda forma de cerrar una cuenta.
  */
 function Mesas() {
-  const { t } = useI18n();
+  const { t } = useI18n(staffStrings);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // `search` ya es el texto del buscador en esta pantalla.

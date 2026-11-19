@@ -32,7 +32,7 @@ import { FiscalSeries } from "@/components/FiscalSeries";
 import { PanelHeader } from "@/components/PanelHeader";
 import { BankConnections } from "@/components/BankConnections";
 import { SubscriptionPanel } from "@/components/SubscriptionPanel";
-import "@/lib/i18n-staff";
+import { staffStrings } from "@/lib/i18n-staff";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -85,7 +85,7 @@ function bpsFromInput(value: string): number | null {
  * le paga a Splite, no lo que le pagan a él.
  */
 function PlanSection() {
-  const { t, lang } = useI18n();
+  const { t, lang } = useI18n(staffStrings);
   const accountQuery = useQuery({
     queryKey: ["account"],
     queryFn: () => account.get(),
@@ -175,7 +175,7 @@ function Group({
 }
 
 function SettingsPage() {
-  const { t } = useI18n();
+  const { t } = useI18n(staffStrings);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
@@ -565,7 +565,7 @@ function SettingsPage() {
  * se ve configurado en pantalla y no puede recibir dinero.
  */
 function PayoutSection() {
-  const { t } = useI18n();
+  const { t } = useI18n(staffStrings);
   const queryClient = useQueryClient();
 
   const accountQuery = useQuery({
@@ -757,7 +757,7 @@ const MERCANTIL_FIELD_LABEL = {
  * Nunca se devuelven: la pantalla sólo puede decir si están configuradas.
  */
 function ProvidersSection() {
-  const { t } = useI18n();
+  const { t } = useI18n(staffStrings);
   const queryClient = useQueryClient();
   const [values, setValues] = useState<Record<string, string>>({});
 

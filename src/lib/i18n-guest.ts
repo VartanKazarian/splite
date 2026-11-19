@@ -1,4 +1,4 @@
-import { defineStrings } from "@/lib/i18n";
+import { defineStrings } from "@/lib/i18n-registry";
 
 /**
  * Lo que lee el comensal: la cuenta, dividir, pagar, pedir, el recibo.

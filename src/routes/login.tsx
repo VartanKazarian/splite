@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, isMfaChallenge, staffSession } from "@/lib/api";
 import { homeFor } from "@/lib/roles";
-import "@/lib/i18n-public";
+import { publicStrings } from "@/lib/i18n-public";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function Login() {
-  const { t } = useI18n();
+  const { t } = useI18n(publicStrings);
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -261,7 +261,7 @@ function Login() {
  * dárselos. Siguen en la respuesta y en los logs del servidor.
  */
 function AuthError({ code, step }: { code: string; step: "password" | "code" }) {
-  const { t } = useI18n();
+  const { t } = useI18n(publicStrings);
   const message =
     code === "INVALID_CREDENTIALS"
       ? step === "code"

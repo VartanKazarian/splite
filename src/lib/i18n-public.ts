@@ -1,4 +1,4 @@
-import { defineStrings } from "@/lib/i18n";
+import { defineStrings } from "@/lib/i18n-registry";
 
 /**
  * Las páginas públicas: alta, entrada, contraseña y páginas de venta.

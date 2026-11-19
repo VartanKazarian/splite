@@ -229,13 +229,9 @@ function SettingsPage() {
       if (open > 0) toast.success(t("openBillsUnaffected").replace("{n}", String(open)));
       else toast.success(t("ratesSaved"));
     },
-    onError: (error) => {
-      if (error instanceof ApiError) {
-        fail(error);
-        return;
-      }
-      toast.error(t("ratesRange"));
-    },
+    // Sin conexión era «revisa los porcentajes»: culpaba a unos números que
+    // estaban bien. `fail` ya distingue un rechazo del servidor de una caída.
+    onError: fail,
   });
 
   const setCurrency = useMutation({
@@ -613,6 +609,9 @@ function PayoutSection() {
       setHolderId("");
       toast.success(t("payoutDeleted"));
     },
+    // Sin esto, si fallaba no pasaba nada: el botón volvía a estar activo y
+    // los datos seguían ahí, y parecía que se habían borrado.
+    onError: (error) => toast.error(staffErrorText(error, t)),
   });
 
   const field =
@@ -780,6 +779,7 @@ function ProvidersSection() {
       queryClient.invalidateQueries({ queryKey: ["payment-providers"] });
       toast.success(t("c2pDeleted"));
     },
+    onError: (error) => toast.error(staffErrorText(error, t)),
   });
 
   const forbidden =

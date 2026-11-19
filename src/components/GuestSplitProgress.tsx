@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { formatMoney, guest, type BillSplit } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { GuestError } from "@/components/GuestError";
 import "@/lib/i18n-guest";
 
 /**
@@ -182,6 +183,9 @@ export function GuestSplitProgress({ split, mineRef, onPick, onChanged }: Props)
           >
             {rename.isPending ? t("loading") : t("saveName")}
           </button>
+          {/* Si no se guarda, que se vea: antes el nombre simplemente no
+              aparecía y nada decía por qué. */}
+          {rename.isError && <GuestError error={rename.error} />}
         </form>
       )}
     </div>

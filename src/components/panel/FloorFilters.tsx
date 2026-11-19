@@ -1,24 +1,6 @@
 import { useI18n } from "@/lib/i18n";
 import type { FloorTable } from "@/lib/api";
-import { isFree, toneOf } from "./tableStatus";
-
-export type FloorFilter = "ALL" | "BUSY" | "FREE" | "ALERT";
-
-/**
- * Si una mesa entra en un filtro.
- *
- * Vive junto a las fichas y no dentro de cada ruta porque el recuento de la
- * ficha y la lista que sale al pulsarla tienen que salir de la misma regla. El
- * panel y la pantalla de mesas tenían cada uno la suya, escritas a mano y por
- * separado, que es como una ficha acaba diciendo "Libre (6)" y enseñando
- * cinco.
- */
-export function matchesFilter(table: FloorTable, filter: FloorFilter): boolean {
-  if (filter === "ALL") return true;
-  if (filter === "BUSY") return Boolean(table.openBill);
-  if (filter === "FREE") return isFree(table);
-  return toneOf(table) === "attention";
-}
+import { isFree, toneOf, type FloorFilter } from "./tableStatus";
 
 /**
  * Las fichas que filtran el plano.

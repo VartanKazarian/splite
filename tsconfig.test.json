@@ -1,0 +1,10 @@
+{
+  // Las pruebas de `unit/`, comprobadas igual que la aplicación. Antes sólo se
+  // comprobaba `src/`, así que una prueba podía estar mal escrita y pasar.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "bun"],
+    "noEmit": true
+  },
+  "include": ["src", "unit"]
+}

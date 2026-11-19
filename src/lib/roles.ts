@@ -19,6 +19,9 @@ type Role = StaffRole | null | undefined;
 /** `routes/menu.js`: escribir en la carta es OWNER y MANAGER. */
 export const canManageMenu = (role: Role) => role === "OWNER" || role === "MANAGER";
 
+/** `routes/bills.js`: PATCH /bills/{id}/server acepta OWNER y MANAGER. */
+export const canAssignServer = (role: Role) => role === "OWNER" || role === "MANAGER";
+
 /** `routes/payments.js`: confirmar o rechazar un aviso es OWNER, MANAGER y CASHIER. */
 export const canVerifyPayments = (role: Role) =>
   role === "OWNER" || role === "MANAGER" || role === "CASHIER";

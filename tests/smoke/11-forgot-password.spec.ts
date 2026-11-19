@@ -1,4 +1,4 @@
-import { test, expect } from "./support/fixtures";
+import { test, expect, gotoHydrated } from "./support/fixtures";
 import { API } from "./support/api";
 
 /**
@@ -16,9 +16,14 @@ test("pedir el enlace y abrir uno que no sirve", async ({ page, request }) => {
   });
   test.skip(probe.status() === 404, "la API todavía no tiene restablecer contraseña");
 
-  await page.goto("/login");
+  // Con la página viva antes de tocar nada (`gotoHydrated`): sin esperar, el
+  // clic en «Enviar» a veces llegaba antes que React, el formulario se
+  // mandaba solo al servidor y no salía ninguna petición -- falló así una vez
+  // en CI, con la API sin recibir nada.
+  await gotoHydrated(page, "/login");
   await page.getByTestId("login-forgot").click();
   await expect(page).toHaveURL(/\/olvide$/);
+  await page.waitForLoadState("networkidle");
 
   await page.locator("#forgot-email").fill(`nadie-${Date.now()}@example.com`);
   await page.getByTestId("forgot-submit").click();
@@ -26,7 +31,7 @@ test("pedir el enlace y abrir uno que no sirve", async ({ page, request }) => {
   await expect(page.getByTestId("forgot-sent")).toBeVisible();
 
   // Un enlace con un token que no existe: se ofrece pedir otro.
-  await page.goto(`/restablecer#${"a".repeat(43)}`);
+  await gotoHydrated(page, `/restablecer#${"a".repeat(43)}`);
   await expect(page).not.toHaveURL(/#/);
   await page.locator("#reset-password").fill("una-contraseña-larga-1");
   await page.locator("#reset-repeat").fill("una-contraseña-larga-1");
@@ -34,6 +39,6 @@ test("pedir el enlace y abrir uno que no sirve", async ({ page, request }) => {
   await expect(page.getByTestId("reset-invalid")).toBeVisible();
 
   // Sin token: lo mismo, sin pedir contraseña.
-  await page.goto("/restablecer");
+  await gotoHydrated(page, "/restablecer");
   await expect(page.getByTestId("reset-invalid")).toBeVisible();
 });

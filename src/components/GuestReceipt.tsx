@@ -1,4 +1,6 @@
+import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { MessageCircle } from "lucide-react";
 
 import { guest, formatMoney, type GuestReceipt as Receipt } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -24,7 +26,6 @@ import { useRememberedPayment } from "@/lib/guest-payment";
  * aparte y la emite una imprenta autorizada.
  */
 export function GuestReceipt() {
-  const { t, lang } = useI18n();
   const paymentId = useRememberedPayment();
 
   const query = useQuery({
@@ -38,7 +39,29 @@ export function GuestReceipt() {
   // dice no se enseña un esqueleto: esto va debajo de todo y no bloquea nada.
   if (!paymentId || query.isPending || query.isError || !query.data) return null;
 
-  const receipt: Receipt = query.data;
+  return (
+    <ReceiptView
+      receipt={query.data}
+      footer={<ShareReceiptOnWhatsApp paymentId={paymentId} receipt={query.data} />}
+    />
+  );
+}
+
+/**
+ * El recibo pintado, venga de donde venga: del teléfono que pagó o del enlace
+ * que se mandó por WhatsApp (`/recibo/$token`, R20). Lo mismo en los dos.
+ */
+export function ReceiptView({
+  receipt,
+  footer,
+  shared = false,
+}: {
+  receipt: Receipt;
+  footer?: ReactNode;
+  /** Abierto desde el enlace: no hay «arriba» donde pedir la factura. */
+  shared?: boolean;
+}) {
+  const { t, lang } = useI18n();
   const { bill, payment, restaurant, table } = receipt;
   const currency = bill.currency;
   const money = (minor: string) => formatMoney(minor, currency);
@@ -169,7 +192,10 @@ export function GuestReceipt() {
         no sirve para desgravar. Decirlo aquí es más barato que descubrirlo
         delante del SENIAT.
       */}
-      <p className="hint border-t border-border px-5 py-3">{t("receiptNotFiscal")}</p>
+      <p className="hint border-t border-border px-5 py-3">
+        {t(shared ? "receiptNotFiscalShared" : "receiptNotFiscal")}
+      </p>
+      {footer ? <div className="border-t border-border px-5 py-4">{footer}</div> : null}
     </section>
   );
 }
@@ -188,4 +214,63 @@ function formatBps(bps: number): string {
   const whole = Math.trunc(bps / 100);
   const frac = String(bps % 100).padStart(2, "0");
   return `${whole},${frac} %`;
+}
+
+/**
+ * «Enviar el recibo a mi WhatsApp» (R20).
+ *
+ * Sin cuenta de WhatsApp Business ni coste: abre WhatsApp con un mensaje ya
+ * escrito y el enlace al recibo, y el comensal elige a quién -- a sí mismo, o
+ * al grupo de la cena. El recibo de este teléfono se cierra con la sesión de
+ * la mesa; el enlace dura seis meses y se abre en cualquier sitio.
+ */
+function ShareReceiptOnWhatsApp({ paymentId, receipt }: { paymentId: string; receipt: Receipt }) {
+  const { t, lang } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const share = async () => {
+    setBusy(true);
+    setFailed(false);
+    // La ventana se abre antes de esperar al servidor: un navegador de móvil
+    // bloquea la que se abre después de un `await`, porque ya no parece
+    // respuesta al toque.
+    const win = window.open("", "_blank");
+    try {
+      const { token } = await guest.receiptLink(paymentId);
+      const url = `${window.location.origin}/recibo/${token}`;
+      const text = t("receiptShareText")
+        .replace("{restaurant}", receipt.restaurant.name)
+        .replace("{date}", formatDateTime(receipt.payment.declaredAt, lang) ?? "")
+        .replace("{amount}", formatMoney(receipt.payment.handedOverVes, "VES"))
+        .replace("{url}", url);
+      const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      if (win) win.location.href = wa;
+      else window.location.href = wa;
+    } catch {
+      win?.close();
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={share}
+        disabled={busy}
+        data-testid="receipt-share-whatsapp"
+        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium transition-colors hover:bg-secondary disabled:opacity-40"
+      >
+        <MessageCircle className="h-4 w-4" aria-hidden /> {t("receiptShareWhatsApp")}
+      </button>
+      {failed ? (
+        <p role="alert" className="mt-2 text-sm text-destructive">
+          {t("receiptShareFailed")}
+        </p>
+      ) : null}
+    </div>
+  );
 }

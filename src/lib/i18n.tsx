@@ -550,7 +550,7 @@ const dict = {
  * sin comprimir que un comensal descargaba antes de ver su cuenta, la mayoría
  * del panel. Ahora aquí sólo queda lo común (lo que usa el esqueleto de la app
  * y las claves que se arman con variables, como `role${…}`), y el resto vive
- * en `i18n-guest.ts`, `i18n-staff.ts` e `i18n-public.ts`.
+ * en `i18n-guest.ts`, `i18n-staff.ts`, `i18n-public.ts` e `i18n-errors.ts`.
  *
  * Cada archivo que usa una clave de una parte importa esa parte (`import
  * "@/lib/i18n-staff"`; en `routes/`, `useI18n(staffStrings)`), y al cargarse
@@ -568,7 +568,8 @@ export type Key =
   | keyof (typeof dict)["es"]
   | keyof (typeof import("./i18n-guest"))["guestStrings"]["es"]
   | keyof (typeof import("./i18n-staff"))["staffStrings"]["es"]
-  | keyof (typeof import("./i18n-public"))["publicStrings"]["es"];
+  | keyof (typeof import("./i18n-public"))["publicStrings"]["es"]
+  | keyof (typeof import("./i18n-errors"))["errorStrings"]["es"];
 
 /** La palabra en este idioma; en español si faltara, y la clave si ni eso. */
 function lookup(lang: Lang, key: string): string {

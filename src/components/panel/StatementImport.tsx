@@ -15,6 +15,7 @@ import { detectDelimiter, guessColumns, parseStatement, type Delimiter } from "@
 import { useI18n } from "@/lib/i18n";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /** Filas por llamada: lo que acepta el servidor. */
 const BATCH = 500;
@@ -193,7 +194,7 @@ export function StatementImport({
       void qc.invalidateQueries({ queryKey: ["payment-claims-summary"] });
       void qc.invalidateQueries({ queryKey: ["bank-connections"] });
     } catch (e) {
-      toast.error(e instanceof ApiError ? `${e.code} · ${e.message}` : t("apiUnreachable"));
+      toast.error(staffErrorText(e, t));
     } finally {
       setPending(false);
     }

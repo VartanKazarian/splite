@@ -22,7 +22,7 @@ export default defineConfig({
                     // lib/i18n.tsx): si no, la compilación las junta en el paquete
                     // común y todas las páginas descargan las tres.
                     name: (id: string) => {
-                      const part = /src\/lib\/i18n-(guest|staff|public)\.ts$/.exec(id)?.[1];
+                      const part = /src\/lib\/i18n-(guest|staff|public|errors)\.ts$/.exec(id)?.[1];
                       return part ? `i18n-${part}` : null;
                     },
                     // Sólo la parte: lo que importa (el registro) se queda donde

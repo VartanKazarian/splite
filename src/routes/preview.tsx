@@ -6,7 +6,7 @@ import { ExternalLink, Smartphone } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { PanelHeader } from "@/components/PanelHeader";
 import { GuestMenuView } from "@/components/GuestMenuView";
-import { ErrorBox } from "@/routes/dashboard";
+import { ErrorBox } from "@/components/ErrorBox";
 import { account, menu, staffSession, tables as tablesApi, GUEST_BASE_URL } from "@/lib/api";
 import { guestStrings } from "@/lib/i18n-guest";
 

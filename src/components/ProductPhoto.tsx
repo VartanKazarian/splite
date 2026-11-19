@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { API_BASE_URL, ApiError, menu, type Product } from "@/lib/api";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /** Lo que acepta el backend, y el tope que aplica antes de subir nada. */
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
@@ -35,7 +36,7 @@ export function ProductPhoto({ product }: { product: Product }) {
   };
 
   const fail = (error: unknown) => {
-    if (error instanceof ApiError) toast.error(`${error.code} · ${error.message}`);
+    if (error instanceof ApiError) toast.error(staffErrorText(error, t));
     else toast.error(t("apiDown"));
   };
 

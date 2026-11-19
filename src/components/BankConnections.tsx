@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/dates";
 import { formatRif, normaliseRif } from "@/lib/rif";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 const MERCANTIL_PATH = "/api/v1/bank-inbound/mercantil";
 
@@ -43,7 +44,7 @@ export function BankConnections({ canEdit }: { canEdit: boolean }) {
       e instanceof ApiError
         ? e.code === "BANK_CONNECTION_RIF_TAKEN"
           ? t("bankMercantilRifTaken")
-          : `${e.code} · ${e.message}`
+          : staffErrorText(e, t)
         : t("apiUnreachable"),
     );
 

@@ -7,6 +7,7 @@ import { ApiError, menu, type MenuCategory } from "@/lib/api";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useI18n } from "@/lib/i18n";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /**
  * Las secciones del menú, mantenidas a mano.
@@ -55,7 +56,7 @@ export function MenuSections({
         refresh();
         return toast.error(t("sectionGone"));
       }
-      return toast.error(`${error.code} · ${error.message}`);
+      return toast.error(staffErrorText(error, t));
     }
     return toast.error(t("apiUnreachable"));
   };

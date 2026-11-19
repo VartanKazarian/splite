@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, bills, staff, type StaffMember, type StaffRole } from "@/lib/api";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /**
  * Quién atendió la mesa, y cómo corregirlo.
@@ -64,7 +65,7 @@ export function BillServerPicker({
       if (error instanceof ApiError) {
         if (error.code === "STAFF_NOT_FOUND") return toast.error(t("serverGone"));
         if (error.code === "FORBIDDEN_ROLE") return toast.error(t("serverForbidden"));
-        return toast.error(`${error.code} · ${error.message}`);
+        return toast.error(staffErrorText(error, t));
       }
       return toast.error(t("apiDown"));
     },

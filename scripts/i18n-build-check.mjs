@@ -19,7 +19,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const out = ".output";
-const PARTS = ["guest", "staff", "public"];
+const PARTS = ["guest", "staff", "public", "errors"];
 
 /** Unos textos en español de la parte, tal cual están en el archivo. */
 function samples(part) {
@@ -66,7 +66,7 @@ const rootJs = [
 ].filter((f) => typeof f === "string");
 for (const file of rootJs) {
   const name = path.basename(file);
-  if (/^i18n-(guest|staff|public)-/.test(name))
+  if (/^i18n-(guest|staff|public|errors)-/.test(name))
     problems.push(`${name} va en el arranque: lo descargarían todas las páginas`);
 }
 

@@ -6,7 +6,6 @@ import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
   account,
-  errorFieldsText,
   formatBps,
   menu,
   parseBpsInput,
@@ -17,7 +16,7 @@ import {
   type StaffRole,
 } from "@/lib/api";
 
-import { ErrorBox } from "@/routes/dashboard";
+import { ErrorBox } from "@/components/ErrorBox";
 import { StaffManager } from "@/components/StaffManager";
 import { ChangePassword } from "@/components/ChangePassword";
 import { PushSettings } from "@/components/PushSettings";
@@ -33,6 +32,7 @@ import { PanelHeader } from "@/components/PanelHeader";
 import { BankConnections } from "@/components/BankConnections";
 import { SubscriptionPanel } from "@/components/SubscriptionPanel";
 import { staffStrings } from "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -212,12 +212,7 @@ function SettingsPage() {
   }, [settings.data]);
 
   const fail = (error: unknown) => {
-    if (!(error instanceof ApiError)) {
-      toast.error(t("apiDown"));
-      return;
-    }
-    const fields = errorFieldsText(error);
-    toast.error(fields ? `${error.code} · ${fields}` : `${error.code} · ${error.message}`);
+    toast.error(staffErrorText(error, t));
   };
 
   const saveCharges = useMutation({
@@ -605,12 +600,7 @@ function PayoutSection() {
       queryClient.setQueryData(["account"], data);
       toast.success(t("payoutSaved"));
     },
-    onError: (error) => {
-      if (error instanceof ApiError) {
-        const fields = errorFieldsText(error);
-        toast.error(fields ? `${error.code} · ${fields}` : `${error.code} · ${error.message}`);
-      } else toast.error(t("apiDown"));
-    },
+    onError: (error) => toast.error(staffErrorText(error, t)),
   });
 
   const clear = useMutation({
@@ -779,7 +769,7 @@ function ProvidersSection() {
       toast.success(t("c2pSaved"));
     },
     onError: (error) => {
-      if (error instanceof ApiError) toast.error(`${error.code} · ${error.message}`);
+      if (error instanceof ApiError) toast.error(staffErrorText(error, t));
       else toast.error(t("apiDown"));
     },
   });

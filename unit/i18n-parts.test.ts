@@ -3,6 +3,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import { guestStrings } from "../src/lib/i18n-guest";
+import { errorStrings } from "../src/lib/i18n-errors";
 import { publicStrings } from "../src/lib/i18n-public";
 import { staffStrings } from "../src/lib/i18n-staff";
 
@@ -14,7 +15,12 @@ import { staffStrings } from "../src/lib/i18n-staff";
  */
 
 const SRC = join(import.meta.dir, "..", "src");
-const parts = { guest: guestStrings, staff: staffStrings, public: publicStrings } as const;
+const parts = {
+  guest: guestStrings,
+  staff: staffStrings,
+  public: publicStrings,
+  errors: errorStrings,
+} as const;
 
 function sources(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -69,7 +75,7 @@ describe("el diccionario por partes", () => {
     // todas las páginas; una importación suelta arrastraría la parte con ella.
     const loose: string[] = [];
     for (const file of sources(join(SRC, "routes"))) {
-      if (/import "@\/lib\/i18n-(guest|staff|public)"/.test(readFileSync(file, "utf8")))
+      if (/import "@\/lib\/i18n-(guest|staff|public|errors)"/.test(readFileSync(file, "utf8")))
         loose.push(relative(SRC, file));
     }
     expect(loose).toEqual([]);

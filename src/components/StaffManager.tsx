@@ -11,10 +11,11 @@ import {
   type StaffMember,
   type StaffRole,
 } from "@/lib/api";
-import { ErrorBox } from "@/routes/dashboard";
+import { ErrorBox } from "@/components/ErrorBox";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useI18n } from "@/lib/i18n";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /** Los nombres viven en el diccionario: son los mismos que enseña la cabecera. */
 const ROLE_HINT_KEY: Record<
@@ -93,7 +94,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
       setFieldErrors(errorFields(error));
       return toast.error(error.message);
     }
-    return toast.error(`${error.code} · ${error.message}`);
+    return toast.error(staffErrorText(error, t));
   };
 
   const create = useMutation({

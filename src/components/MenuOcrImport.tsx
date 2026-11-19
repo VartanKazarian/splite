@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ApiError, formatMinor, menu, parseMinorInput, type MenuOcrDraft } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 type Row = {
   name: string;
@@ -55,7 +56,7 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
         toast.error(t("ocrNotConfigured"));
         return;
       }
-      toast.error(`${error.code} · ${error.message}`);
+      toast.error(staffErrorText(error, t));
     },
   });
 
@@ -83,7 +84,7 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
         toast.error(t("apiUnreachable"));
         return;
       }
-      toast.error(`${error.code} · ${error.message}`);
+      toast.error(staffErrorText(error, t));
     },
   });
 

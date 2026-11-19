@@ -8,6 +8,7 @@ import { ConfirmButton } from "@/components/ConfirmButton";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "../lib/dates";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /** "394" -> "394 B", "2100000" -> "2,1 MB". Sólo para enseñar un tamaño. */
 function humanSize(bytes: number): string {
@@ -55,7 +56,7 @@ export function MenuPdfCard() {
           `El archivo es demasiado grande${max ? ` (máximo ${humanSize(max)})` : ""}`,
         );
       }
-      return toast.error(`${error.code} · ${error.message}`);
+      return toast.error(staffErrorText(error, t));
     }
     return toast.error(t("apiUnreachable"));
   };

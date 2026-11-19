@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 const field =
   "min-h-11 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring";
@@ -292,7 +293,7 @@ function NotifyForm({ open, onDone }: { open: SubscriptionView["charges"]; onDon
         e instanceof ApiError && e.code === "SUBSCRIPTION_NOTICE_DUPLICATE"
           ? t("subNotifyDuplicate")
           : e instanceof ApiError
-            ? `${e.code} · ${e.message}`
+            ? staffErrorText(e, t)
             : t("apiUnreachable"),
       ),
   });

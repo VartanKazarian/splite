@@ -10,6 +10,7 @@ import { usePaymentHold } from "@/lib/use-payment-hold";
 
 import {
   ApiError,
+  NetworkError,
   formatMinor,
   formatMoney,
   guest,
@@ -116,6 +117,9 @@ type ClaimError = {
 /** El traductor va por parámetro: esto no es un componente y no puede usar el hook. */
 function toClaimError(error: unknown, t: (k: never) => string): ClaimError {
   const say = (k: string) => t(k as never);
+  if (error instanceof NetworkError) {
+    return { message: say(error.kind === "timeout" ? "claimMaybeSent" : "offlineRetry") };
+  }
   if (!(error instanceof ApiError)) {
     return { message: say("guestErrRetry") };
   }

@@ -997,6 +997,19 @@ export const guest = {
    */
   receipt: (paymentId: string) =>
     apiRequest<GuestReceipt>(`/api/v1/guest/payments/${paymentId}/receipt`, { auth: "guest" }),
+  /** Un enlace firmado a este recibo, para mandarlo por WhatsApp (R20). */
+  receiptLink: (paymentId: string) =>
+    apiRequest<{ token: string; expiresAt: string }>(
+      `/api/v1/guest/payments/${paymentId}/receipt-link`,
+      { method: "POST", auth: "guest" },
+    ),
+  /** «¿Qué tal todo?» después de pagar (R20). */
+  rate: (paymentId: string, body: { rating: number; comment?: string }) =>
+    apiRequest<{ googleReviewUrl: string | null }>(`/api/v1/guest/payments/${paymentId}/feedback`, {
+      method: "POST",
+      auth: "guest",
+      body,
+    }),
 
   /**
    * El correo del comensal, con la finalidad separada del dato.
@@ -1666,6 +1679,8 @@ export type Account = {
   fiscalInvoicePolicy?: "PER_DINER" | "SINGLE_BILL";
   /** El domicilio que encabeza el recibo. Nulo si no se ha registrado. */
   fiscalAddress?: string | null;
+  /** Adónde se invita a dejar una reseña después de pagar (R20). */
+  googleReviewUrl?: string | null;
   createdAt?: string;
 };
 
@@ -2497,6 +2512,36 @@ export const push = {
     }),
 };
 
+/* -------------------------------------------------------------- recibos */
+
+/** Un recibo abierto desde el enlace de WhatsApp: sin sesión (R20). */
+export const sharedReceipts = {
+  get: (token: string) =>
+    apiRequest<GuestReceipt>(`/api/v1/receipts/${encodeURIComponent(token)}`, { auth: "none" }),
+};
+
+/* ------------------------------------------------------------ opiniones */
+
+export type FeedbackSummary = {
+  days: number;
+  count: number;
+  average: number | null;
+  distribution: Record<"1" | "2" | "3" | "4" | "5", number>;
+  recent: {
+    id: string;
+    rating: number;
+    comment: string | null;
+    tableName: string | null;
+    createdAt: string;
+  }[];
+};
+
+/** Lo que opinan los comensales: dueño y encargado (R20). */
+export const feedback = {
+  summary: (days = 30) =>
+    apiRequest<FeedbackSummary>(`/api/v1/feedback?days=${days}`, { auth: "staff" }),
+};
+
 export const orders = {
   list: () =>
     apiRequest<{ data: GuestOrder[] }>("/api/v1/orders", { auth: "staff" }).then((r) => r.data),
@@ -2625,7 +2670,7 @@ export const account = {
    * es como se renombra un restaurante sin querer al corregir su dirección.
    * `fiscalAddress: ""` **borra** la dirección; omitirlo la deja como estaba.
    */
-  updateProfile: (body: { name?: string; fiscalAddress?: string }) =>
+  updateProfile: (body: { name?: string; fiscalAddress?: string; googleReviewUrl?: string }) =>
     apiRequest<Account>("/api/v1/account", { method: "PATCH", auth: "staff", body }),
   /**
    * La serie autorizada. `null` significa «todavía no la ha configurado», que

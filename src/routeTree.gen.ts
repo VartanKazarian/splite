@@ -31,6 +31,7 @@ import { Route as AdminCobrosRouteImport } from './routes/admin.cobros'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminPreciosRouteImport } from './routes/admin.precios'
 import { Route as AdminResumenRouteImport } from './routes/admin.resumen'
+import { Route as ReciboTokenRouteImport } from './routes/recibo.$token'
 import { Route as RegistroVerificarRouteImport } from './routes/registro_.verificar'
 import { Route as TIndexRouteImport } from './routes/t.index'
 import { Route as TSplatRouteImport } from './routes/t.$'
@@ -146,6 +147,11 @@ const AdminResumenRoute = AdminResumenRouteImport.update({
   path: '/admin/resumen',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReciboTokenRoute = ReciboTokenRouteImport.update({
+  id: '/recibo/$token',
+  path: '/recibo/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegistroVerificarRoute = RegistroVerificarRouteImport.update({
   id: '/registro_/verificar',
   path: '/registro/verificar',
@@ -190,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/admin/precios': typeof AdminPreciosRoute
   '/admin/resumen': typeof AdminResumenRoute
+  '/recibo/$token': typeof ReciboTokenRoute
   '/registro/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
   '/admin/': typeof AdminIndexRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/admin/precios': typeof AdminPreciosRoute
   '/admin/resumen': typeof AdminResumenRoute
+  '/recibo/$token': typeof ReciboTokenRoute
   '/registro/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
   '/admin': typeof AdminIndexRoute
@@ -247,6 +255,7 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/admin/precios': typeof AdminPreciosRoute
   '/admin/resumen': typeof AdminResumenRoute
+  '/recibo/$token': typeof ReciboTokenRoute
   '/registro_/verificar': typeof RegistroVerificarRoute
   '/t/$': typeof TSplatRoute
   '/admin/': typeof AdminIndexRoute
@@ -277,6 +286,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/precios'
     | '/admin/resumen'
+    | '/recibo/$token'
     | '/registro/verificar'
     | '/t/$'
     | '/admin/'
@@ -305,6 +315,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/precios'
     | '/admin/resumen'
+    | '/recibo/$token'
     | '/registro/verificar'
     | '/t/$'
     | '/admin'
@@ -333,6 +344,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/precios'
     | '/admin/resumen'
+    | '/recibo/$token'
     | '/registro_/verificar'
     | '/t/$'
     | '/admin/'
@@ -362,6 +374,7 @@ export interface RootRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminPreciosRoute: typeof AdminPreciosRoute
   AdminResumenRoute: typeof AdminResumenRoute
+  ReciboTokenRoute: typeof ReciboTokenRoute
   RegistroVerificarRoute: typeof RegistroVerificarRoute
   TSplatRoute: typeof TSplatRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -525,6 +538,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminResumenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recibo/$token': {
+      id: '/recibo/$token'
+      path: '/recibo/$token'
+      fullPath: '/recibo/$token'
+      preLoaderRoute: typeof ReciboTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/registro_/verificar': {
       id: '/registro_/verificar'
       path: '/registro/verificar'
@@ -578,6 +598,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminPreciosRoute: AdminPreciosRoute,
   AdminResumenRoute: AdminResumenRoute,
+  ReciboTokenRoute: ReciboTokenRoute,
   RegistroVerificarRoute: RegistroVerificarRoute,
   TSplatRoute: TSplatRoute,
   AdminIndexRoute: AdminIndexRoute,

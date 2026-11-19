@@ -88,6 +88,24 @@ jobs:
       - name: Los tipos siguen al contrato
         run: bun run typecheck
 
+  # Lo que se publica, en un navegador: la compilación de producción servida
+  # tal cual, recorrida en español y en inglés, buscando claves sin traducir.
+  # Las pruebas de humo corren contra el servidor de desarrollo, y ahí no se
+  # vio que la compilación había quitado los textos (llegó a producción).
+  pages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Navegador
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Pantallas de la compilación, sin claves sin traducir
+        run: bun run test:pages
+
   # Los seis recorridos, contra la API de verdad.
   smoke:
     runs-on: ubuntu-latest

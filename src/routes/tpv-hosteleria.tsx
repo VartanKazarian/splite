@@ -25,6 +25,14 @@ export const Route = createFileRoute("/tpv-hosteleria")({
       { property: "og:type", content: "website" },
       { property: "og:url", content: `${SITE_URL}/tpv-hosteleria` },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: TITLE },
+      { name: "twitter:description", content: DESC },
+      // La suya: la de la raíz habla de dividir la cuenta en la mesa, ésta de
+      // sumarse al TPV, que es lo que busca quien llega por «tpv hostelería».
+      { property: "og:image", content: `${SITE_URL}/og-tpv-hosteleria.jpg` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "640" },
+      { name: "twitter:image", content: `${SITE_URL}/og-tpv-hosteleria.jpg` },
     ],
     links: [{ rel: "canonical", href: `${SITE_URL}/tpv-hosteleria` }],
   }),

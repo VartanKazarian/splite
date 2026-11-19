@@ -982,7 +982,15 @@ export const guest = {
    * mesa no se manda -- la pone la sesión de invitado, creada verificando la
    * firma del QR.
    */
-  order: (items: { productId: string; quantity: number }[], note?: string) =>
+  order: (
+    items: { productId: string; quantity: number }[],
+    note?: string,
+    /**
+     * Una por intento de pedido: reintentar con la misma tras un corte devuelve
+     * el pedido que ya llegó en vez de pedirlo dos veces (la sesión la acota).
+     */
+    idempotencyKey?: string,
+  ) =>
     apiRequest<{
       orderId: string;
       createdAt: string;
@@ -993,6 +1001,7 @@ export const guest = {
       method: "POST",
       body: { items, ...(note?.trim() ? { note: note.trim() } : {}) },
       auth: "guest",
+      ...(idempotencyKey ? { headers: { "Idempotency-Key": idempotencyKey } } : {}),
     }),
 
   /** En qué quedó un pedido de este teléfono: el que espera aprobación. */
@@ -1688,6 +1697,8 @@ export type C2PChargeRequest = {
    * propina que no llegaba a cobrarse.
    */
   tipVes?: Money;
+  /** La parte de un reparto que paga este cargo. Opcional; GuestC2PForm no lo manda hoy. */
+  splitParticipantId?: string;
 };
 
 export type C2PStatus = "SUCCEEDED" | "FAILED" | "IN_DOUBT" | "AMBIGUOUS";
@@ -1698,7 +1709,6 @@ export type C2PChargeResult = {
   invoiceNumber?: string;
   bankReference?: string | null;
   reason?: string | null;
-  safeToRetry?: boolean;
   settlement?: PaymentResult;
   /** El banco no confirmó ni negó: el cargo queda pendiente de resolver. */
   requiresResolution?: boolean;

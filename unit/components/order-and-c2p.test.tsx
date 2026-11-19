@@ -106,6 +106,53 @@ describe("pedir desde la mesa", () => {
     expect(sent).toEqual([]);
   });
 
+  test("un reintento tras un corte lleva la misma clave de idempotencia", async () => {
+    // Primero se corta (sin señal); el comensal pulsa otra vez y llega.
+    let calls = 0;
+    const keys: (string | undefined)[] = [];
+    globalThis.fetch = ((_: unknown, init?: RequestInit) => {
+      keys.push((init?.headers as Record<string, string>)["Idempotency-Key"]);
+      calls++;
+      if (calls === 1) return Promise.reject(new TypeError("Failed to fetch"));
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({ orderId: "o3", createdAt: "x", lineCount: 1, status: "PLACED" }),
+          { status: 201, headers: { "content-type": "application/json" } },
+        ),
+      );
+    }) as unknown as typeof fetch;
+    const sent: unknown[] = [];
+    orderBar((s) => sent.push(s));
+
+    await sendOrder();
+    expect(await screen.findByText(/Sin conexión/)).toBeTruthy();
+    await userEvent.setup().click(screen.getByTestId("guest-send-order"));
+
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toBeTruthy();
+    expect(keys[1]).toBe(keys[0]);
+  });
+
+  test("otro pedido igual después de uno que llegó es un pedido nuevo, con otra clave", async () => {
+    const api = stubApi({
+      [`POST ${ORDERS}`]: {
+        status: 201,
+        body: { orderId: "o4", createdAt: "x", lineCount: 1, status: "PLACED" },
+      },
+    });
+    orderBar();
+
+    await sendOrder();
+    await waitFor(() => expect(api.to("POST", ORDERS)).toHaveLength(1));
+    await sendOrder();
+    await waitFor(() => expect(api.to("POST", ORDERS)).toHaveLength(2));
+
+    const [first, second] = api.to("POST", ORDERS).map((c) => c.headers["Idempotency-Key"]);
+    expect(first).toBeTruthy();
+    expect(second).not.toBe(first);
+  });
+
   test("sin señal, pide reintentar", async () => {
     globalThis.fetch = (() =>
       Promise.reject(new TypeError("Failed to fetch"))) as unknown as typeof fetch;

@@ -1,3 +1,5 @@
+import { robotsTag } from "@/lib/site";
+
 /**
  * Las cabeceras de seguridad de cada página que sirve el servidor.
  *
@@ -37,6 +39,7 @@ export function securityHeaders(
   apiBaseUrl: string,
   nonce?: string,
   host?: string,
+  pathname?: string,
 ): Record<string, string> {
   let api = "";
   try {
@@ -72,6 +75,10 @@ export function securityHeaders(
     // Nada del panel usa la cámara, el micrófono ni la ubicación. La foto de
     // la carta entra como archivo, no con la cámara del navegador.
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    // Fuera de Google todo lo que no es la web pública (lib/site.ts).
+    ...(pathname !== undefined && robotsTag(pathname)
+      ? { "X-Robots-Tag": robotsTag(pathname) as string }
+      : {}),
   };
 }
 
@@ -81,11 +88,12 @@ export function withSecurityHeaders(
   apiBaseUrl: string,
   nonce?: string,
   host?: string,
+  pathname?: string,
 ): Response {
   const type = response.headers.get("content-type") ?? "";
   if (!type.includes("text/html")) return response;
   const headers = new Headers(response.headers);
-  for (const [name, value] of Object.entries(securityHeaders(apiBaseUrl, nonce, host))) {
+  for (const [name, value] of Object.entries(securityHeaders(apiBaseUrl, nonce, host, pathname))) {
     if (!headers.has(name)) headers.set(name, value);
   }
   return new Response(response.body, {

@@ -4265,6 +4265,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/client-errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Errors browsers reported, most frequent first
+         * @description ADMIN and SUPPORT. One row per fingerprint (message + first stack frame, without bundle hashes or line numbers) over the last `days` (default 7, max 30). Paths carry no query string or fragment, and QR and receipt tokens are replaced by placeholders.
+         */
+        get: operations["adminClientErrors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/prices": {
         parameters: {
             query?: never;
@@ -5113,6 +5133,128 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/guest/payments/{id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rate the meal after paying
+         * @description One rating per diner per bill: rating again corrects it instead of adding another. The
+         *     payment must be on the scanning session's own bill and must have gone through (PENDING or
+         *     SUCCEEDED); a rejected one answers 409 `PAYMENT_NOT_RATEABLE`.
+         *
+         *     **The Google link goes to everyone who rates, whatever the stars.** Inviting only happy
+         *     diners is what Google calls selectively soliciting positive reviews; it is against its
+         *     policy and can cost the restaurant its reviews. The stars and comment are stored privately
+         *     for the restaurant either way.
+         */
+        post: operations["rateGuestPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/guest/payments/{id}/receipt-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A link to this receipt, to send to yourself on WhatsApp
+         * @description The phone's receipt opens only with the table session, which expires and stays in that
+         *     browser. This returns a signed token that opens the same receipt without a session, from
+         *     anywhere, for 180 days: the page is `/recibo/{token}` on the frontend, which reads
+         *     `GET /api/v1/receipts/{token}`. Nothing is stored; the signature is the permission.
+         */
+        post: operations["createGuestReceiptLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/receipts/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A receipt opened from a shared link
+         * @description No session: the signed token is the permission. The same receipt as
+         *     `GET /api/v1/guest/payments/{id}/receipt`, except that the bank reference is cut to its
+         *     last four digits (`…1234`): a link gets forwarded and sits in chats, and the full
+         *     reference has no reason to travel with it.
+         *
+         *     A forged, mangled or expired link answers 404 `RECEIPT_LINK_INVALID`, the same as a
+         *     payment that does not exist, so it does not say which of the three it was.
+         */
+        get: operations["getSharedReceipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What diners said after paying
+         * @description OWNER and MANAGER. The average, how many of each rating, and the latest 50 with their table and date. Nothing about the diner is stored, so nothing about them is returned.
+         */
+        get: operations["getFeedback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/client-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a browser error or a Web Vitals sample
+         * @description No session: a diner without an account fails too. 30 per minute per IP, 12 KB body.
+         *     Sent as `text/plain` holding JSON (a CORS "simple" request, which is all a
+         *     `fetch(…, { keepalive: true })` on page exit can send); `application/json` is accepted too.
+         *
+         *     `error` events are stored one row per fingerprint per day and listed in
+         *     `GET /api/v1/admin/client-errors`; `vital` events only go to the log (`WEB_VITAL`).
+         *     Paths are stripped of query and fragment, and QR and receipt tokens are replaced.
+         */
+        post: operations["reportClientEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/onboarding/restaurants": {
         parameters: {
             query?: never;
@@ -5195,7 +5337,7 @@ export interface components {
                  * @description Stable identifier for what went wrong. Branch on this, never on `message`. A code always carries the same HTTP status.
                  * @enum {string}
                  */
-                code: "VALIDATION_FAILED" | "BILL_ID_MISMATCH" | "INVALID_AMOUNT" | "INVALID_MONETARY_VALUE" | "FISCAL_RIF_MALFORMED" | "WEBHOOK_BODY_UNVERIFIABLE" | "MENU_OCR_UNSUPPORTED_MEDIA" | "MENU_OCR_FILE_REQUIRED" | "MENU_OCR_PDF_UNREADABLE" | "MENU_OCR_FILE_TOO_LARGE" | "MENU_PDF_UNSUPPORTED_MEDIA" | "PRODUCT_IMAGE_UNSUPPORTED_MEDIA" | "BRANDING_UNSUPPORTED_MEDIA" | "MENU_PDF_FILE_REQUIRED" | "MENU_PDF_FILE_TOO_LARGE" | "PRODUCT_IMAGE_FILE_TOO_LARGE" | "PRODUCT_IMAGE_FILE_REQUIRED" | "BRANDING_FILE_TOO_LARGE" | "BRANDING_FILE_REQUIRED" | "SPLIT_PARTICIPANTS_INVALID" | "SPLIT_CLAIMS_INCOMPLETE" | "SPLIT_CLAIM_UNKNOWN" | "SPLIT_AMOUNT_MISMATCH" | "AUTH_TOKEN_MISSING" | "AUTH_TOKEN_INVALID" | "BANK_INBOUND_UNAUTHORIZED" | "INVALID_CREDENTIALS" | "MFA_CODE_INVALID" | "GUEST_SESSION_MISSING" | "GUEST_SESSION_INVALID" | "ONBOARDING_TOKEN_INVALID" | "QR_INVALID" | "WEBHOOK_SIGNATURE_MISSING" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_TIMESTAMP_OUT_OF_TOLERANCE" | "FORBIDDEN_ROLE" | "PLAN_UPGRADE_REQUIRED" | "CROSS_TENANT_DENIED" | "CORS_ORIGIN_NOT_ALLOWED" | "STAFF_OUTRANKED" | "STAFF_ROLE_TOO_HIGH" | "STAFF_SELF_FORBIDDEN" | "SUBSCRIPTION_SUSPENDED" | "NOT_FOUND" | "STAFF_NOT_FOUND" | "STAFF_INVITATION_NOT_FOUND" | "BANK_CONNECTION_NOT_FOUND" | "OPERATOR_NOT_FOUND" | "OPERATOR_SETUP_INVALID" | "OPERATOR_BOOTSTRAP_UNAVAILABLE" | "SUBSCRIPTION_CHARGE_NOT_FOUND" | "SUBSCRIPTION_NOTICE_NOT_FOUND" | "LEAD_NOT_FOUND" | "INVITATION_INVALID" | "BILL_NOT_FOUND" | "BILL_ITEM_NOT_FOUND" | "PAYMENT_NOT_FOUND" | "FISCAL_REQUEST_NOT_FOUND" | "TABLE_NOT_FOUND" | "GUEST_ORDER_NOT_FOUND" | "GUEST_ORDERS_BLOCKED" | "GUEST_ORDER_AWAITING_APPROVAL" | "GUEST_ORDER_ALREADY_DECIDED" | "GUEST_ORDER_NEEDS_APPROVAL" | "PUSH_DISABLED" | "PUSH_NOT_SUBSCRIBED" | "PRODUCT_NOT_FOUND" | "CATEGORY_NOT_FOUND" | "MENU_PDF_NOT_FOUND" | "PRODUCT_IMAGE_NOT_FOUND" | "BRANDING_NOT_FOUND" | "RESTAURANT_NOT_FOUND" | "OPEN_BILL_NOT_FOUND" | "PAYMENT_CLAIM_NOT_FOUND" | "SPLIT_NOT_FOUND" | "SPLIT_SHARE_NOT_FOUND" | "WEBHOOK_PROVIDER_UNKNOWN" | "OPEN_BILL_EXISTS" | "STAFF_EMAIL_TAKEN" | "INVITATION_EMAIL_IN_USE" | "BANK_MOVEMENT_ALREADY_USED" | "BANK_CONNECTION_KIND_MISMATCH" | "BANK_CONNECTION_RIF_TAKEN" | "OPERATOR_EMAIL_TAKEN" | "SUBSCRIPTION_CHARGE_EXISTS" | "SUBSCRIPTION_CHARGE_CLOSED" | "SUBSCRIPTION_PRICE_MISSING" | "SUBSCRIPTION_NOTICE_DUPLICATE" | "SUBSCRIPTION_NOTICE_CLOSED" | "ONBOARDING_DISABLED" | "PASSWORD_UNCHANGED" | "PASSWORD_RESET_INVALID" | "STAFF_LAST_OWNER" | "MFA_ALREADY_ENABLED" | "MFA_NOT_ENABLED" | "MFA_NOT_ENROLLED" | "BILL_NOT_OPEN" | "BILL_NOT_ITEMISED" | "TOTAL_BELOW_AMOUNT_PAID" | "PRODUCT_INACTIVE" | "SPLIT_NOT_ITEMISED" | "SPLIT_NOTHING_OUTSTANDING" | "BILL_HAS_PAYMENTS" | "BILL_ALREADY_SERVED" | "PAYMENT_EXCEEDS_BALANCE" | "PAYMENT_HELD" | "PAYMENT_STATE_INVALID" | "IDEMPOTENCY_KEY_REUSED" | "IDEMPOTENCY_IN_FLIGHT" | "TABLE_NAME_TAKEN" | "PRODUCT_NAME_TAKEN" | "PRODUCT_TAX_CONFLICT" | "FISCAL_NOTHING_TO_DECLARE" | "FISCAL_ALREADY_REQUESTED" | "FISCAL_RIF_MISSING" | "FISCAL_SERIES_MISSING" | "FISCAL_RANGE_EXHAUSTED" | "FISCAL_SERIES_LOCKED" | "FISCAL_RIF_LOCKED" | "FISCAL_RIF_TAKEN" | "PLAN_DOWNGRADE_BLOCKED" | "MENU_CURRENCY_MISMATCH" | "CATEGORY_NAME_TAKEN" | "WEBHOOK_ALREADY_PROCESSED" | "EMAIL_ALREADY_REGISTERED" | "RIF_ALREADY_REGISTERED" | "PAYMENT_REFERENCE_ALREADY_USED" | "PAYMENT_CLAIM_NOT_PENDING" | "SPLIT_ALREADY_EXISTS" | "SPLIT_NOT_ACTIVE" | "SPLIT_STALE" | "SPLIT_HAS_PAYMENTS" | "SPLIT_SHARE_OVERPAID" | "PAYMENT_CREDENTIALS_UNREADABLE" | "MFA_SECRET_UNREADABLE" | "PAYMENT_PROVIDER_UNKNOWN" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "FX_UNAVAILABLE" | "WEBHOOK_PAYMENT_UNRESOLVED" | "WEBHOOK_REPLAY_PROTECTION_UNAVAILABLE" | "SHUTTING_DOWN" | "FISCAL_PROVIDER_NOT_CONFIGURED" | "PAYMENT_CREDENTIALS_KEY_MISSING" | "MFA_KEY_MISSING" | "PAYMENT_PROVIDER_MISCONFIGURED" | "PAYMENT_RESOLUTION_UNAVAILABLE" | "MENU_OCR_NOT_CONFIGURED" | "MENU_OCR_UNAVAILABLE" | "MENU_OCR_UNREADABLE_RESPONSE" | "ONBOARDING_NOT_CONFIGURED" | "FISCAL_DRAFT_MISSING" | "INTERNAL_ERROR";
+                code: "VALIDATION_FAILED" | "BILL_ID_MISMATCH" | "INVALID_AMOUNT" | "INVALID_MONETARY_VALUE" | "FISCAL_RIF_MALFORMED" | "WEBHOOK_BODY_UNVERIFIABLE" | "MENU_OCR_UNSUPPORTED_MEDIA" | "MENU_OCR_FILE_REQUIRED" | "MENU_OCR_PDF_UNREADABLE" | "MENU_OCR_FILE_TOO_LARGE" | "MENU_PDF_UNSUPPORTED_MEDIA" | "PRODUCT_IMAGE_UNSUPPORTED_MEDIA" | "BRANDING_UNSUPPORTED_MEDIA" | "MENU_PDF_FILE_REQUIRED" | "MENU_PDF_FILE_TOO_LARGE" | "PRODUCT_IMAGE_FILE_TOO_LARGE" | "PRODUCT_IMAGE_FILE_REQUIRED" | "BRANDING_FILE_TOO_LARGE" | "BRANDING_FILE_REQUIRED" | "SPLIT_PARTICIPANTS_INVALID" | "SPLIT_CLAIMS_INCOMPLETE" | "SPLIT_CLAIM_UNKNOWN" | "SPLIT_AMOUNT_MISMATCH" | "AUTH_TOKEN_MISSING" | "AUTH_TOKEN_INVALID" | "BANK_INBOUND_UNAUTHORIZED" | "INVALID_CREDENTIALS" | "MFA_CODE_INVALID" | "GUEST_SESSION_MISSING" | "GUEST_SESSION_INVALID" | "ONBOARDING_TOKEN_INVALID" | "QR_INVALID" | "WEBHOOK_SIGNATURE_MISSING" | "WEBHOOK_SIGNATURE_INVALID" | "WEBHOOK_TIMESTAMP_OUT_OF_TOLERANCE" | "FORBIDDEN_ROLE" | "PLAN_UPGRADE_REQUIRED" | "CROSS_TENANT_DENIED" | "CORS_ORIGIN_NOT_ALLOWED" | "STAFF_OUTRANKED" | "STAFF_ROLE_TOO_HIGH" | "STAFF_SELF_FORBIDDEN" | "SUBSCRIPTION_SUSPENDED" | "NOT_FOUND" | "STAFF_NOT_FOUND" | "STAFF_INVITATION_NOT_FOUND" | "BANK_CONNECTION_NOT_FOUND" | "OPERATOR_NOT_FOUND" | "OPERATOR_SETUP_INVALID" | "OPERATOR_BOOTSTRAP_UNAVAILABLE" | "SUBSCRIPTION_CHARGE_NOT_FOUND" | "SUBSCRIPTION_NOTICE_NOT_FOUND" | "LEAD_NOT_FOUND" | "INVITATION_INVALID" | "BILL_NOT_FOUND" | "BILL_ITEM_NOT_FOUND" | "PAYMENT_NOT_FOUND" | "FISCAL_REQUEST_NOT_FOUND" | "TABLE_NOT_FOUND" | "GUEST_ORDER_NOT_FOUND" | "GUEST_ORDERS_BLOCKED" | "GUEST_ORDER_AWAITING_APPROVAL" | "GUEST_ORDER_ALREADY_DECIDED" | "GUEST_ORDER_NEEDS_APPROVAL" | "PUSH_DISABLED" | "PUSH_NOT_SUBSCRIBED" | "PAYMENT_NOT_RATEABLE" | "RECEIPT_LINK_INVALID" | "PRODUCT_NOT_FOUND" | "CATEGORY_NOT_FOUND" | "MENU_PDF_NOT_FOUND" | "PRODUCT_IMAGE_NOT_FOUND" | "BRANDING_NOT_FOUND" | "RESTAURANT_NOT_FOUND" | "OPEN_BILL_NOT_FOUND" | "PAYMENT_CLAIM_NOT_FOUND" | "SPLIT_NOT_FOUND" | "SPLIT_SHARE_NOT_FOUND" | "WEBHOOK_PROVIDER_UNKNOWN" | "OPEN_BILL_EXISTS" | "STAFF_EMAIL_TAKEN" | "INVITATION_EMAIL_IN_USE" | "BANK_MOVEMENT_ALREADY_USED" | "BANK_CONNECTION_KIND_MISMATCH" | "BANK_CONNECTION_RIF_TAKEN" | "OPERATOR_EMAIL_TAKEN" | "SUBSCRIPTION_CHARGE_EXISTS" | "SUBSCRIPTION_CHARGE_CLOSED" | "SUBSCRIPTION_PRICE_MISSING" | "SUBSCRIPTION_NOTICE_DUPLICATE" | "SUBSCRIPTION_NOTICE_CLOSED" | "ONBOARDING_DISABLED" | "PASSWORD_UNCHANGED" | "PASSWORD_RESET_INVALID" | "STAFF_LAST_OWNER" | "MFA_ALREADY_ENABLED" | "MFA_NOT_ENABLED" | "MFA_NOT_ENROLLED" | "BILL_NOT_OPEN" | "BILL_NOT_ITEMISED" | "TOTAL_BELOW_AMOUNT_PAID" | "PRODUCT_INACTIVE" | "SPLIT_NOT_ITEMISED" | "SPLIT_NOTHING_OUTSTANDING" | "BILL_HAS_PAYMENTS" | "BILL_ALREADY_SERVED" | "PAYMENT_EXCEEDS_BALANCE" | "PAYMENT_HELD" | "PAYMENT_STATE_INVALID" | "IDEMPOTENCY_KEY_REUSED" | "IDEMPOTENCY_IN_FLIGHT" | "TABLE_NAME_TAKEN" | "PRODUCT_NAME_TAKEN" | "PRODUCT_TAX_CONFLICT" | "FISCAL_NOTHING_TO_DECLARE" | "FISCAL_ALREADY_REQUESTED" | "FISCAL_RIF_MISSING" | "FISCAL_SERIES_MISSING" | "FISCAL_RANGE_EXHAUSTED" | "FISCAL_SERIES_LOCKED" | "FISCAL_RIF_LOCKED" | "FISCAL_RIF_TAKEN" | "PLAN_DOWNGRADE_BLOCKED" | "MENU_CURRENCY_MISMATCH" | "CATEGORY_NAME_TAKEN" | "WEBHOOK_ALREADY_PROCESSED" | "EMAIL_ALREADY_REGISTERED" | "RIF_ALREADY_REGISTERED" | "PAYMENT_REFERENCE_ALREADY_USED" | "PAYMENT_CLAIM_NOT_PENDING" | "SPLIT_ALREADY_EXISTS" | "SPLIT_NOT_ACTIVE" | "SPLIT_STALE" | "SPLIT_HAS_PAYMENTS" | "SPLIT_SHARE_OVERPAID" | "PAYMENT_CREDENTIALS_UNREADABLE" | "MFA_SECRET_UNREADABLE" | "PAYMENT_PROVIDER_UNKNOWN" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "FX_UNAVAILABLE" | "WEBHOOK_PAYMENT_UNRESOLVED" | "WEBHOOK_REPLAY_PROTECTION_UNAVAILABLE" | "SHUTTING_DOWN" | "FISCAL_PROVIDER_NOT_CONFIGURED" | "PAYMENT_CREDENTIALS_KEY_MISSING" | "MFA_KEY_MISSING" | "PAYMENT_PROVIDER_MISCONFIGURED" | "PAYMENT_RESOLUTION_UNAVAILABLE" | "MENU_OCR_NOT_CONFIGURED" | "MENU_OCR_UNAVAILABLE" | "MENU_OCR_UNREADABLE_RESPONSE" | "ONBOARDING_NOT_CONFIGURED" | "FISCAL_DRAFT_MISSING" | "INTERNAL_ERROR";
                 /** @description Human-readable and subject to change without notice. Never parse it. 5xx messages are always the literal string "Internal Server Error". */
                 message: string;
                 /** @description Structured context for this code, always present and possibly empty. See x-error-details for what each code carries. */
@@ -6448,6 +6590,11 @@ export interface components {
              * @description Where a customer's reply to their invoice goes: it is the Reply-To of every invoice email, which is otherwise sent from a no-reply address. Null means no Reply-To, and the email says to ask the restaurant instead. Deliberately not the owner's login email, which would otherwise be handed to every customer.
              */
             contactEmail?: string | null;
+            /**
+             * Format: uri
+             * @description Where diners are invited to leave a Google review after rating their meal (R20). Offered to everyone who rates, whatever the stars. Null when not set.
+             */
+            googleReviewUrl?: string | null;
             /** @enum {string} */
             menuCurrency?: "VES" | "USD" | "EUR";
             vatBps?: number;
@@ -7192,6 +7339,17 @@ export interface components {
             clave: string;
             /** @description Used when the Idempotency-Key header is absent. Mandatory here: it is what makes a lost connection safe to retry. */
             idempotencyKey: string;
+            /**
+             * @description VES céntimos of tip, charged on top of `amountVes` in the same debit. The diner's bank pulls `amountVes + tipVes`; the bill is credited only `amountVes`, so a tip can never push a payment past the balance. The clave must be requested for that combined figure when the bank binds claves to an amount.
+             * @default 0
+             * @example 756710
+             */
+            tipVes: string;
+            /**
+             * Format: uuid
+             * @description Optional. The split share this charge pays; it is credited to that share when the charge settles.
+             */
+            splitParticipantId?: string;
         };
         /**
          * @description The outcome of a C2P charge. **All four statuses must be handled**, and the difference
@@ -7648,6 +7806,11 @@ export interface components {
              * @example facturas@casa72.com
              */
             contactEmail?: string;
+            /**
+             * @description The restaurant's Google review page. Only https Google addresses are accepted (g.page, maps.app.goo.gl, google.com, search.google.com, maps.google.com): it is a link a diner's phone opens. The same three states as `fiscalAddress`.
+             * @example https://g.page/r/CasaSetentaYDos/review
+             */
+            googleReviewUrl?: string;
         };
         FiscalRifRequest: {
             /**
@@ -10796,6 +10959,46 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    adminClientErrors: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Errors. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: {
+                            fingerprint?: string;
+                            message?: string;
+                            path?: string | null;
+                            surface?: string | null;
+                            occurrences?: number;
+                            release?: string | null;
+                            /** Format: date-time */
+                            firstSeenAt?: string;
+                            /** Format: date-time */
+                            lastSeenAt?: string;
+                        }[];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     adminListPrices: {
         parameters: {
             query?: never;
@@ -12197,6 +12400,200 @@ export interface operations {
                         devices: number;
                     };
                 };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    rateGuestPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    rating: number;
+                    comment?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Stored. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * Format: uri
+                         * @description Where to leave a Google review, if the restaurant has set one.
+                         */
+                        googleReviewUrl: string | null;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    createGuestReceiptLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link token. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        token: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    getSharedReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The receipt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuestReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    getFeedback: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The summary. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        days: number;
+                        count: number;
+                        /** @description One decimal; null with no ratings. */
+                        average: number | null;
+                        distribution: {
+                            1?: number;
+                            2?: number;
+                            3?: number;
+                            4?: number;
+                            5?: number;
+                        };
+                        recent: {
+                            /** Format: uuid */
+                            id: string;
+                            rating: number;
+                            comment: string | null;
+                            tableName: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    reportClientEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/plain": string;
+                "application/json": {
+                    /** @enum {string} */
+                    kind: "error" | "vital";
+                    path?: string;
+                    /** @enum {string} */
+                    surface?: "guest" | "staff" | "public" | "admin";
+                    release?: string;
+                    /** @description error only */
+                    message?: string;
+                    /** @description error only */
+                    stack?: string;
+                    /**
+                     * @description vital only
+                     * @enum {string}
+                     */
+                    name?: "LCP" | "INP" | "CLS" | "FCP" | "TTFB";
+                    /** @description vital only: ms, or the unitless CLS score */
+                    value?: number;
+                    /** @enum {string} */
+                    rating?: "good" | "needs-improvement" | "poor";
+                    /** @description navigator.connection.effectiveType */
+                    connection?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Recorded. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];

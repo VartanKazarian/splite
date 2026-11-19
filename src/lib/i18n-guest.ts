@@ -134,7 +134,8 @@ export const guestStrings = defineStrings({
       "El personal no aceptó un pedido de este teléfono. Pregunta a tu mesero o escanea otra vez el QR.",
     guestOrderFailed: "No se pudo enviar. Vuelve a intentarlo.",
     guestOrderMaybeSent:
-      "La conexión tardó demasiado y no sabemos si tu pedido llegó. Mira la cuenta antes de repetirlo: si ya aparece, está pedido.",
+      "La conexión tardó demasiado y no sabemos si tu pedido llegó. Puedes volver a enviarlo: si el primero llegó, no se pedirá dos veces.",
+    guestOrderInFlight: "Tu pedido se está enviando. Espera unos segundos y vuelve a intentarlo.",
     offlineRetry: "Sin conexión. Revisa tu señal e inténtalo de nuevo.",
     claimMaybeSent:
       "La conexión tardó demasiado y no sabemos si tu aviso llegó. Si al repetirlo dice que la referencia ya se usó, es que el primero sí llegó.",
@@ -512,7 +513,8 @@ export const guestStrings = defineStrings({
       "The staff declined an order from this phone. Ask your waiter or scan the QR again.",
     guestOrderFailed: "It could not be sent. Try again.",
     guestOrderMaybeSent:
-      "The connection took too long and we don't know if your order arrived. Check the bill before ordering again: if it's there, it's ordered.",
+      "The connection took too long and we don't know if your order arrived. You can send it again: if the first one arrived, it won't be ordered twice.",
+    guestOrderInFlight: "Your order is being sent. Wait a few seconds and try again.",
     offlineRetry: "No connection. Check your signal and try again.",
     claimMaybeSent:
       "The connection took too long and we don't know if your notice arrived. If sending it again says the reference was already used, the first one did arrive.",

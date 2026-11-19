@@ -49,10 +49,6 @@ type KNOWN = {
     | "openMinutes";
   BillItem: "taxCategory" | "createdAt" | "updatedAt" | "vatBps";
   BillSplit: "updatedAt" | "claims";
-  /** El backend acepta `tipVes` (schemas.js) y no lo documenta. */
-  C2PChargeRequest: "tipVes";
-  /** El backend manda `safeToRetry` y no lo documenta. */
-  C2PChargeResult: "safeToRetry";
   MenuSettings: "coverUrl" | "logoUrl" | "openBillsUnaffected" | "vatBps" | "serviceChargeBps";
   /** Un tipo aquí para varias respuestas de cobro del contrato. */
   PaymentResult:

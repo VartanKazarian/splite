@@ -1,0 +1,21 @@
+{
+  "name": "Splite",
+  "short_name": "Splite",
+  "description": "El panel de Splite: mesas, pedidos y pagos por verificar.",
+  "lang": "es",
+  "start_url": "/login",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fdfaf4",
+  "theme_color": "#1f7e59",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

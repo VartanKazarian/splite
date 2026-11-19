@@ -20,6 +20,7 @@ import {
 import { ErrorBox } from "@/routes/dashboard";
 import { StaffManager } from "@/components/StaffManager";
 import { ChangePassword } from "@/components/ChangePassword";
+import { PushSettings } from "@/components/PushSettings";
 import { DisplayNameField } from "@/components/DisplayNameField";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { MfaPanel } from "@/components/MfaPanel";
@@ -549,6 +550,7 @@ function SettingsPage() {
             porque se usan una vez, no porque importen menos. */}
         <Group id="cuenta" title={t("settingsGroupAccount")} active={current === "cuenta"}>
           <DisplayNameField />
+          <PushSettings />
           <ChangePassword />
           <MfaPanel />
         </Group>

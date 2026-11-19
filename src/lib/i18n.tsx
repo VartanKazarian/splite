@@ -278,6 +278,27 @@ const dict = {
     allocated: "Ya repartido",
     claimItems: "Asigna cada producto",
     selectYourItems: "Selecciona los productos que vas a pagar",
+    pushTitle: "Avisos en este teléfono",
+    pushWhatCashier: "Te llega cada pago por verificar, aunque tengas el teléfono bloqueado.",
+    pushWhatWaiter:
+      "Te llegan los pedidos nuevos de las mesas y los que esperan tu aprobación, aunque tengas el teléfono bloqueado.",
+    pushWhatManager:
+      "Te llegan los pagos por verificar y los pedidos nuevos de las mesas, aunque tengas el teléfono bloqueado.",
+    pushTurnOn: "Activar avisos",
+    pushTurnOff: "Desactivar",
+    pushSendTest: "Enviar uno de prueba",
+    pushIsOn: "Activados en este teléfono.",
+    pushOnToast: "Avisos activados. Así te llegarán aunque cierres el panel.",
+    pushTestSent: "Enviado. Debería llegarte en unos segundos.",
+    pushTestNotSubscribed: "Este teléfono no tiene los avisos activados.",
+    pushFailed: "No se pudieron activar los avisos. Inténtalo de nuevo.",
+    pushUnsupported:
+      "Este navegador no puede recibir avisos con la pantalla bloqueada. Prueba con Chrome en Android o con Safari en iPhone.",
+    pushIosInstall:
+      "En iPhone, los avisos sólo llegan si Splite está en tu pantalla de inicio: toca Compartir, luego «Añadir a pantalla de inicio», y entra al panel desde ese icono. Aquí aparecerá el botón para activarlos.",
+    pushDenied:
+      "Los avisos de esta web están bloqueados en este navegador. Permítelos en los ajustes del navegador (el candado junto a la dirección) y vuelve aquí.",
+    pushServerOff: "Los avisos no están disponibles en este momento.",
     howManyDiners: "¿Entre cuántos se divide?",
     dinersFewer: "Una persona menos",
     dinersMore: "Una persona más",
@@ -1658,6 +1679,27 @@ const dict = {
     allocated: "Already split",
     claimItems: "Claim every item",
     selectYourItems: "Select the items you are paying for",
+    pushTitle: "Notifications on this phone",
+    pushWhatCashier: "Every payment to verify reaches you, even with your phone locked.",
+    pushWhatWaiter:
+      "New orders from the tables, and those waiting for your approval, reach you even with your phone locked.",
+    pushWhatManager:
+      "Payments to verify and new orders from the tables reach you, even with your phone locked.",
+    pushTurnOn: "Turn on notifications",
+    pushTurnOff: "Turn off",
+    pushSendTest: "Send a test",
+    pushIsOn: "On for this phone.",
+    pushOnToast: "Notifications on. They will reach you even with the panel closed.",
+    pushTestSent: "Sent. It should arrive in a few seconds.",
+    pushTestNotSubscribed: "Notifications are not on for this phone.",
+    pushFailed: "Notifications could not be turned on. Try again.",
+    pushUnsupported:
+      "This browser cannot show notifications on a locked phone. Try Chrome on Android or Safari on iPhone.",
+    pushIosInstall:
+      "On iPhone, notifications only arrive if Splite is on your home screen: tap Share, then “Add to Home Screen”, and open the panel from that icon. The button to turn them on will appear here.",
+    pushDenied:
+      "Notifications from this site are blocked in this browser. Allow them in the browser settings (the lock next to the address) and come back here.",
+    pushServerOff: "Notifications are not available right now.",
     howManyDiners: "How many are splitting?",
     dinersFewer: "One person fewer",
     dinersMore: "One person more",

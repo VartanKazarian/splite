@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   BadgeCheck,
   Bell,
@@ -17,6 +17,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { account, auth, payments } from "@/lib/api";
 import { navFor } from "@/lib/roles";
+import { disablePush, resumePush } from "@/lib/push";
 import { LangToggle } from "@/components/LangToggle";
 import { PlanBanner } from "@/components/PlanBanner";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
@@ -68,6 +69,13 @@ export function PanelHeader({
   const queryClient = useQueryClient();
 
   const me = useQuery({ queryKey: ["me"], queryFn: () => auth.me(), retry: false });
+
+  // Los avisos de este teléfono, si estaban encendidos (R19). Una vez por
+  // persona que entra: el servidor pudo olvidarlos al cerrarle las sesiones.
+  const userId = me.data?.user.id;
+  useEffect(() => {
+    if (userId) void resumePush();
+  }, [userId]);
 
   // El nombre del restaurante, de la misma consulta que ya usan Configuración
   // y la lista de comprobación: una clave compartida, no una llamada más.
@@ -245,6 +253,9 @@ export function PanelHeader({
                 <DropdownMenuItem
                   className="cursor-pointer"
                   onSelect={async () => {
+                    // Antes de salir, mientras la sesión vale: un teléfono que
+                    // usa otro después no le sigue dando los avisos de éste.
+                    await disablePush().catch(() => undefined);
                     await auth.logout();
                     queryClient.clear();
                     navigate({ to: "/" });

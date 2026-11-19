@@ -116,6 +116,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Instrument+Sans:wght@400..700&family=Instrument+Serif&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      // Para añadir el panel a la pantalla de inicio. En el iPhone es lo que
+      // hace falta para recibir avisos con el teléfono bloqueado (R19).
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,

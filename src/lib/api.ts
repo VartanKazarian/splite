@@ -2469,6 +2469,34 @@ export const bills = {
  * pantallas y la lista sólo en una: traerse las comandas enteras para dibujar
  * un contador es lo que ya se evitó con los avisos de pago.
  */
+/* ----------------------------------------------------------------- push */
+
+/** Avisos en el teléfono del personal (R19). Ver `lib/push.ts`. */
+export const push = {
+  config: () =>
+    apiRequest<{ enabled: boolean; publicKey: string | null }>("/api/v1/push/config", {
+      auth: "staff",
+    }),
+  /** El cuerpo es `PushSubscription.toJSON()`. */
+  subscribe: (subscription: PushSubscriptionJSON) =>
+    apiRequest<void>("/api/v1/push/subscriptions", {
+      method: "POST",
+      auth: "staff",
+      body: subscription,
+    }),
+  unsubscribe: (endpoint: string) =>
+    apiRequest<void>("/api/v1/push/subscriptions", {
+      method: "DELETE",
+      auth: "staff",
+      body: { endpoint },
+    }),
+  test: () =>
+    apiRequest<{ sent: number; devices: number }>("/api/v1/push/test", {
+      method: "POST",
+      auth: "staff",
+    }),
+};
+
 export const orders = {
   list: () =>
     apiRequest<{ data: GuestOrder[] }>("/api/v1/orders", { auth: "staff" }).then((r) => r.data),

@@ -46,22 +46,13 @@ export function TableDetailSheet({
   const [qrOpen, setQrOpen] = useState(false);
 
   // La misma píldora que la fila de la lista, palabra por palabra: quien abre
-  // una mesa acaba de leer "1 sin verificar" y tiene que encontrarse eso mismo
+  // una mesa acaba de leer "1 por verificar" y tiene que encontrarse eso mismo
   // dentro, no un "Atención" que ya no dice cuál de los dos motivos era.
   const badge = useTableBadge(table);
 
   if (!table) return null;
-  const pill = {
-    tone:
-      badge.tone === "free"
-        ? ("neutral" as const)
-        : (table.openBill?.pendingClaims ?? 0) > 0
-          ? ("urgent" as const)
-          : badge.tone === "attention"
-            ? ("attention" as const)
-            : ("good" as const),
-    text: badge.text,
-  };
+  // Texto y color de `useTableBadge`, los mismos que la fila (R12).
+  const pill = { tone: badge.pill, text: badge.text };
 
   return (
     <>

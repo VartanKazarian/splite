@@ -1,6 +1,6 @@
 import { useI18n } from "@/lib/i18n";
 import type { FloorTable } from "@/lib/api";
-import { toneOf } from "./tableStatus";
+import { isFree, toneOf } from "./tableStatus";
 
 export type FloorFilter = "ALL" | "BUSY" | "FREE" | "ALERT";
 
@@ -16,7 +16,7 @@ export type FloorFilter = "ALL" | "BUSY" | "FREE" | "ALERT";
 export function matchesFilter(table: FloorTable, filter: FloorFilter): boolean {
   if (filter === "ALL") return true;
   if (filter === "BUSY") return Boolean(table.openBill);
-  if (filter === "FREE") return !table.openBill;
+  if (filter === "FREE") return isFree(table);
   return toneOf(table) === "attention";
 }
 
@@ -55,10 +55,10 @@ export function FloorFilters({
   const chips: { value: FloorFilter; label: string; count: number; alert?: boolean }[] = [
     { value: "ALL", label: t("seeAll"), count: tables.length },
     { value: "BUSY", label: t("tableOpenShort"), count: busy },
-    { value: "FREE", label: t("tableFreeShort"), count: tables.length - busy },
+    { value: "FREE", label: t("tableFreeShort"), count: tables.filter(isFree).length },
   ];
   if (alerts > 0) {
-    chips.push({ value: "ALERT", label: t("kpiAlerts"), count: alerts, alert: true });
+    chips.push({ value: "ALERT", label: t("floorNeedsAttention"), count: alerts, alert: true });
   }
 
   return (

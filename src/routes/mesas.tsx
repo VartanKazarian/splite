@@ -12,7 +12,7 @@ import { TableRow } from "@/components/panel/TableRow";
 import { SwipeRow } from "@/components/panel/SwipeRow";
 import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
 import { FloorFilters, matchesFilter, type FloorFilter } from "@/components/panel/FloorFilters";
-import { toneOf } from "@/components/panel/tableStatus";
+import { isFree, toneOf } from "@/components/panel/tableStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -107,7 +107,8 @@ function Mesas() {
   }, [openBillsQuery.data]);
 
   const tableList = useMemo(() => tablesQuery.data ?? [], [tablesQuery.data]);
-  const busyCount = tableList.filter((tb) => tb.openBill).length;
+  // Ocupada = no libre: con cuenta, o con alguien esperando a que le aprueben el pedido.
+  const busyCount = tableList.filter((tb) => !isFree(tb)).length;
 
   // El filtro con el que se entra manda sólo al entrar: a partir de ahí las
   // fichas son las que mandan, y una `key` en la URL que volviera a imponerse

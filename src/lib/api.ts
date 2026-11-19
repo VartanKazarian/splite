@@ -1159,6 +1159,8 @@ export type Bill = {
   openMinutes?: number | null;
   /** Avisos de pago de esta mesa que esperan a que alguien los verifique. */
   pendingClaims?: number;
+  /** Comensales de esta mesa en su banco ahora mismo (reservas vivas). Sólo en `/tables/floor`. */
+  payingNow?: number;
   /** Propinas ya liquidadas en esta cuenta. */
   tipVes?: Money;
   createdAt?: string;
@@ -1812,7 +1814,15 @@ export type MenuSettings = {
   openBillsUnaffected?: number;
 };
 
-export type FloorTable = Table & { openBill: Bill | null };
+export type FloorTable = Table & {
+  openBill: Bill | null;
+  /**
+   * Primeros pedidos de teléfonos nuevos esperando aprobación en esta mesa.
+   * En la mesa y no en la cuenta: uno retenido no abre cuenta, así que una
+   * mesa sin cuenta puede tener a alguien esperando. Ausente en una API anterior.
+   */
+  heldOrders?: number;
+};
 
 /** El backend limita cualquier listado a 100 por página. Nunca pedir más. */
 export const PAGE_LIMIT = 100;

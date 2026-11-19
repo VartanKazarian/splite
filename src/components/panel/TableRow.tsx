@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { formatDecimalMoney, formatMoney, type FloorTable } from "@/lib/api";
+import { StatusPill } from "@/components/shell/StatusPill";
 import { badgeOf, formatAge, openMinutesOf, paidPercent, useTableBadge } from "./tableStatus";
 
 /**
@@ -31,24 +32,10 @@ export function TableRow({
   // únicas cosas que la encienden -- un pago sin verificar y una cuenta que
   // lleva demasiado abierta -- y esas dos piden reacciones distintas. Ver
   // `badgeOf`.
+  // El texto y el color de la píldora vienen de `useTableBadge`, los mismos
+  // que en la hoja de la mesa (R12): quien toca una fila lee lo mismo dentro.
   const badge = badgeOf(table, fallbackOpenedAt);
-  const { text: pillText } = useTableBadge(table, fallbackOpenedAt);
-  // Las dos razones de «atención» ya no comparten color. Un pago sin verificar
-  // es dinero de alguien esperando a que lo miren, y va relleno; una cuenta
-  // que lleva horas abierta es un recordatorio, y va suave. Con el mismo
-  // naranja claro, «1 sin verificar» se perdía entre cuarenta «24 h abierta».
-  const pill = {
-    text: pillText,
-    className:
-      badge.kind === "free"
-        ? "bg-secondary text-muted-foreground"
-        : badge.kind === "claims"
-          ? "bg-amber-400 font-medium text-amber-950"
-          : badge.tone === "attention"
-            ? "bg-amber-500/15 text-amber-800"
-            : "bg-primary/15 text-primary-ink",
-  };
-
+  const { text: pillText, pill: pillTone } = useTableBadge(table, fallbackOpenedAt);
   if (!bill) {
     return (
       <button
@@ -61,11 +48,7 @@ export function TableRow({
         }`}
       >
         <span className="min-w-0 break-words text-base font-medium tabular-nums">{table.name}</span>
-        <span
-          className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] ${pill.className}`}
-        >
-          {pill.text}
-        </span>
+        <StatusPill tone={pillTone}>{pillText}</StatusPill>
         <ChevronRight aria-hidden className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
       </button>
     );
@@ -93,11 +76,7 @@ export function TableRow({
     >
       <div className="flex items-baseline gap-2">
         <span className="min-w-0 break-words text-base font-medium tabular-nums">{table.name}</span>
-        <span
-          className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] ${pill.className}`}
-        >
-          {pill.text}
-        </span>
+        <StatusPill tone={pillTone}>{pillText}</StatusPill>
         <span className="money-md ml-auto shrink-0 whitespace-nowrap">
           {formatMoney(bill.remainingVes, "VES")}
         </span>
@@ -158,7 +137,7 @@ export function TableRow({
           </>
         )}
         {/* Los avisos por verificar no se repiten aquí. La píldora de arriba
-            ya dice "1 sin verificar" -- y lo dice siempre, porque en `badgeOf`
+            ya dice "1 por verificar" -- y lo dice siempre, porque en `badgeOf`
             los avisos ganan a cualquier otro estado --, así que esta línea
             escribía en rojo, dos centímetros más abajo, exactamente lo mismo
             que se acababa de leer. Ver `badgeOf`. */}

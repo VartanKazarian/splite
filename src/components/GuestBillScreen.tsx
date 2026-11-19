@@ -1,89 +1,46 @@
-import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
-import { applyRate, parseRate } from "@/lib/fiscal";
 import {
   ApiError,
-  formatBps,
-  formatFxRate,
-  formatMoney,
   guest,
   guestSession,
   parseMinorInput,
   scannedQr,
   type Bill,
   type BillSplit,
-  type MenuCurrency,
   type SplitMode,
   type SplitPreview,
-  type SplitPreviewRequest,
 } from "@/lib/api";
 
-import { GuestError } from "@/components/GuestError";
 import { GuestPaymentPanel } from "@/components/GuestPaymentPanel";
-import { GuestItemSelector } from "@/components/GuestItemSelector";
-import { GuestSplitModeSelector } from "@/components/GuestSplitModeSelector";
 import { GuestSplitProgress } from "@/components/GuestSplitProgress";
 import { GuestStepIndicator } from "@/components/GuestStepIndicator";
-import { recallPayment } from "@/lib/guest-payment";
+import {
+  AfterPaying,
+  BillLoadError,
+  BillLoading,
+  NoBill,
+  SessionProblem,
+} from "@/components/guest-bill/BillStates";
+import { BillSummary, NothingToPay } from "@/components/guest-bill/BillSummary";
+import { buildSplitBody, myShare, scrollFrameTo } from "@/components/guest-bill/helpers";
+import { useBillAutoplay, useGuestBillSession, usePayStep } from "@/components/guest-bill/hooks";
+import { PayDock } from "@/components/guest-bill/PayDock";
+import { SplitPanel } from "@/components/guest-bill/SplitPanel";
 import { demoBill, demoSplit } from "@/lib/demo-bill";
 import "@/lib/i18n-guest";
 
-/*
- * Lo que sólo aparece después de pagar -- la factura, la opinión, el recibo --
- * se carga aparte y después: no hace falta para ver la cuenta, que es lo
- * primero que espera quien escanea el QR.
- */
-const GuestInvoiceOffer = lazy(() =>
-  import("@/components/GuestInvoiceOffer").then((m) => ({ default: m.GuestInvoiceOffer })),
-);
-const GuestRateMeal = lazy(() =>
-  import("@/components/GuestRateMeal").then((m) => ({ default: m.GuestRateMeal })),
-);
-const GuestReceipt = lazy(() =>
-  import("@/components/GuestReceipt").then((m) => ({ default: m.GuestReceipt })),
-);
-
-/** Referencia visual en Bs de un importe cotizado, a la tasa congelada de la cuenta. */
-function toVes(minor: string, rate: string | null): string {
-  if (!rate) return "0";
-  try {
-    return applyRate(BigInt(minor), parseRate(rate)).toString();
-  } catch {
-    return "0";
-  }
-}
-
-/** Lo que le toca a este comensal según el modo elegido. */
 /**
- * Bajar el marco de la demo, y sólo el marco.
+ * La cuenta del comensal, de escanear a pagar.
  *
- * A mano y no con `scrollIntoView`, que además del contenedor arrastra la
- * página: una landing que se desplaza sola mientras alguien está leyendo otra
- * cosa es peor que una demo que no se mueve.
+ * Aquí vive el estado -- la sesión, la cuenta, el reparto, la propina, el paso
+ * -- y cómo se reparte entre las piezas de `components/guest-bill/`, que sólo
+ * pintan: el resumen de la cuenta, el panel del reparto, la barra de abajo y
+ * las pantallas sin cuenta. El pago es `GuestPaymentPanel`.
  */
-function scrollBoxOf(el: HTMLElement | null): HTMLElement | null {
-  let box: HTMLElement | null = el?.parentElement ?? null;
-  while (box && box.scrollHeight <= box.clientHeight) box = box.parentElement;
-  return box;
-}
-
-function scrollFrameTo(el: HTMLElement | null) {
-  const box = scrollBoxOf(el);
-  if (!el || !box) return;
-  const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 12;
-  box.scrollTo({ top, behavior: "smooth" });
-}
-
-function myShare(preview: SplitPreview, mode: SplitMode): string {
-  if (mode === "EQUAL") return preview.allocations[0]?.amountVes ?? "0";
-  const mineAlloc = preview.allocations.find((a) => a.participantId === "me");
-  return mineAlloc?.amountVes ?? preview.allocations[0]?.amountVes ?? "0";
-}
-
 export function GuestBillScreen({
   qr,
   demo = false,
@@ -124,45 +81,10 @@ export function GuestBillScreen({
   onBack?: () => void;
 }) {
   const { t } = useI18n();
-  const [sessionReady, setSessionReady] = useState(false);
-  const [sessionError, setSessionError] = useState<unknown>(null);
+  const { sessionReady, sessionError } = useGuestBillSession({ qr, demo });
   // Con el aviso enviado no queda paso al que volver: «Volver a la propina»
   // debajo de «Aviso enviado» invitaba a cambiar una propina ya declarada.
   const [claimSent, setClaimSent] = useState(false);
-
-  // El QR trae un token firmado: se canjea una sola vez por sesión de invitado.
-  useEffect(() => {
-    if (demo) {
-      setSessionReady(true);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const clean = () => {
-        if (!qr || typeof window === "undefined") return;
-        // El token no debe quedar en la barra de direcciones ni en capturas.
-        const url = new URL(window.location.href);
-        url.searchParams.delete("qr");
-        window.history.replaceState({}, "", url.pathname + url.search + url.hash);
-      };
-      try {
-        // Cualquier móvil, sin login: el token del QR siempre abre sesión nueva
-        // (una sesión vieja en sessionStorage podría ser de otra mesa o estar caducada).
-        if (qr) {
-          guestSession.set(null);
-          await guest.openSession(qr);
-        }
-        clean();
-        if (!cancelled) setSessionReady(Boolean(guestSession.get()));
-      } catch (error) {
-        clean();
-        if (!cancelled) setSessionError(error);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [qr, demo]);
 
   /*
    * Por qué no hay cuenta, cuando no la hay. La sesión es de una cuenta, no de
@@ -252,87 +174,14 @@ export function GuestBillScreen({
   /** Si el comensal ha abierto las formas de dividir. Cerrado = pagarlo todo. */
   const [splitOpen, setSplitOpen] = useState(false);
 
-  /*
-   * El pago, en tres actos.
-   *
-   * Todo esto vivía en un solo scroll: la cuenta, el reparto, la propina y el
-   * formulario del banco, siempre dibujados. El comensal que bajaba a mirar su
-   * cuenta se encontraba un selector de banco y una casilla de clave **antes de
-   * haber decidido qué le tocaba pagar**, y la propina se pedía a media
-   * pantalla, antes de que nadie se hubiera comprometido a nada.
-   *
-   * Ahora cada decisión tiene su pantalla y la cifra viaja abajo, anclada:
-   *
-   *   1. qué pagas   2. propina   3. cómo pagas
-   *
-   * Se guarda en `sessionStorage` a propósito. La clave de C2P se pide al banco
-   * por SMS: el comensal sale del navegador, abre los mensajes y vuelve -- y si
-   * al volver la pestaña se ha recargado, sin esto aparecería en el paso 1 con
-   * la clave ya caducada en la mano.
-   */
-  const [step, setStep] = useState<1 | 2 | 3>(() => {
-    if (demo) return 1;
-    try {
-      const saved = Number(sessionStorage.getItem("splite:paystep"));
-      return saved === 2 || saved === 3 ? saved : 1;
-    } catch {
-      return 1;
-    }
-  });
-  useEffect(() => {
-    if (demo) return;
-    try {
-      sessionStorage.setItem("splite:paystep", String(step));
-    } catch {
-      /* Modo privado o almacenamiento bloqueado: el paso simplemente no
-         sobrevive a una recarga, que es como estaba antes. */
-    }
-  }, [step, demo]);
+  const [step, setStep] = usePayStep(demo);
 
   const demoBillData = useMemo(() => (demo ? demoBill() : null), [demo]);
   const bill = demo ? demoBillData : (billQuery.data ?? null);
   const rateStr = bill?.fxRateVesPerUnit ?? bill?.fxRate ?? null;
   const showVes = Boolean(bill && bill.currency !== "VES" && rateStr);
 
-  /** El cuerpo del reparto: idéntico para la previsualización y para acordarlo. */
-  const buildSplitBody = (): SplitPreviewRequest => {
-    const remaining = BigInt(bill?.remainingVes ?? bill?.totalDueVes ?? "0");
-    const me = { id: "me", ...(myName.trim() ? { name: myName.trim() } : {}) };
-    if (mode === "FULL") return { mode, participants: [me] };
-    if (mode === "EQUAL") {
-      return {
-        mode,
-        // A partes iguales, sólo se conoce el nombre de quien está mirando:
-        // los demás siguen siendo «Comensal N» hasta que cada uno escanee.
-        participants: Array.from({ length: Math.max(2, diners) }, (_, i) =>
-          i === 0 ? { ...me, id: "p1" } : { id: `p${i + 1}` },
-        ),
-      };
-    }
-    if (mode === "ITEMS") {
-      return {
-        mode,
-        participants: [me, { id: "others" }],
-        claims: (bill?.items ?? []).flatMap((item) => {
-          const qty = mine[item.id] ?? 0;
-          const rest = Math.max(0, (item.quantity ?? 1) - qty);
-          return [
-            ...(qty > 0 ? [{ itemId: item.id, quantity: qty, participantIds: ["me"] }] : []),
-            ...(rest > 0 ? [{ itemId: item.id, quantity: rest, participantIds: ["others"] }] : []),
-          ];
-        }),
-      };
-    }
-    const cents = BigInt(parseMinorInput(amount) || "0");
-    const rest = remaining > cents ? remaining - cents : 0n;
-    return {
-      mode,
-      participants: [
-        { ...me, amountVes: cents.toString() },
-        { id: "others", amountVes: rest.toString() },
-      ],
-    };
-  };
+  const splitBody = () => buildSplitBody({ bill, mode, diners, myName, mine, amount });
 
   const splitMutation = useMutation({
     mutationFn: async () => {
@@ -344,7 +193,7 @@ export function GuestBillScreen({
         });
       }
       // El reparto lo calcula el servidor: nunca se divide en el cliente.
-      return guest.splitPreview<SplitPreview>(buildSplitBody());
+      return guest.splitPreview<SplitPreview>(splitBody());
     },
     onSuccess: setPreview,
     onError: () => setPreview(null),
@@ -374,7 +223,7 @@ export function GuestBillScreen({
   const myParticipant = activeSplit?.participants.find((p) => p.ref === myParticipantRef) ?? null;
 
   const confirmSplit = useMutation({
-    mutationFn: () => guest.createSplit(buildSplitBody()),
+    mutationFn: () => guest.createSplit(splitBody()),
     onSuccess: (split) => {
       setMyParticipantRef(myRef);
       activeSplitQuery.refetch();
@@ -401,215 +250,47 @@ export function GuestBillScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canSplit, mode, diners, JSON.stringify(mine), amount, bill?.totalDue, bill?.remainingVes]);
 
-  /**
-   * El guion de la demo automática.
-   *
-   * Mueve el estado de esta pantalla, no clics simulados sobre sus botones:
-   * disparar eventos del DOM desde fuera ata la demo a los textos y a la
-   * disposición de los controles, y se rompe en silencio la primera vez que
-   * alguien renombra un botón. Aquí, si un paso deja de existir, no compila.
-   *
-   * Las líneas salen de `bill.items` y no de ids escritos a mano, por lo mismo:
-   * la cuenta de ejemplo puede cambiar y esto sigue señalando a dos platos.
-   *
-   * El reparto no hay que pedirlo: el efecto de arriba recalcula la parte sola
-   * en cuanto cambian `mode` o `mine`. El guion sólo toca lo que tocaría un
-   * dedo.
-   */
-  const autoplayRef = useRef<HTMLDivElement>(null);
-  const splitPanelRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!autoplay || !demo || !bill) return;
-    const items = bill.items ?? [];
-    // Un plato de varias unidades y otro también, para que se vea que se
-    // reparten unidades y no líneas enteras.
-    const first = items.find((i) => i.quantity >= 2);
-    const second = items.find((i) => i !== first && i.quantity >= 2);
-    if (!first || !second) return;
-    const mineFinal = { [first.id]: 1, [second.id]: 2 };
+  const { autoplayRef, splitPanelRef } = useBillAutoplay({
+    autoplay,
+    demo,
+    bill,
+    setSplitOpen,
+    setMode,
+    setMine,
+    setStep,
+    setTipPct,
+  });
 
-    // Quien pidió que nada se mueva recibe el final, no el recorrido.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setSplitOpen(true);
-      setMode("ITEMS");
-      setMine(mineFinal);
-      return;
-    }
-    // El guion también avanza de paso: desde que la propina vive en el paso 2,
-    // ponerla sin cambiar de pantalla dejaba el último tiempo de la demo
-    // ocurriendo donde nadie lo ve.
-
-    const steps: [number, () => void][] = [
-      [
-        700,
-        () => {
-          setSplitOpen(true);
-          setMode("ITEMS");
-        },
-      ],
-      // Bajar el marco hasta donde está pasando la cosa. Sin esto el reparto
-      // ocurre por debajo del borde y la demo parece que no hace nada.
-      [900, () => scrollFrameTo(splitPanelRef.current)],
-      [2500, () => setMine({ [first.id]: 1 })],
-      [3400, () => setMine(mineFinal)],
-      [4600, () => setStep(2)],
-      [5300, () => setTipPct(15)],
-    ];
-    const timers = steps.map(([at, run]) => setTimeout(run, at));
-
-    /*
-     * Cualquier gesto lo detiene donde esté.
-     *
-     * Es la diferencia con un vídeo, y no puede quedar a medias: si el guion
-     * siguiera corriendo bajo el dedo, cambiaría la selección que la persona
-     * acaba de hacer y parecería que la pantalla va por su cuenta.
-     */
-    const stop = () => timers.forEach(clearTimeout);
-    /*
-     * Los oyentes van en el marco, no en esta pantalla.
-     *
-     * Los eventos suben, no bajan: colgados aquí dentro, un toque en el borde
-     * del marco no los alcanzaba. Y sobre todo **la rueda tampoco**, así que
-     * quien desplazase el marco a mano se encontraba al guion desplazándolo de
-     * vuelta -- medido: el recorrido llegaba hasta el final peleando con el
-     * ratón. `wheel` y `touchmove` son gestos de una persona; `scroll` no vale,
-     * porque lo dispara el propio guion al bajar el marco y se cancelaría solo.
-     */
-    const el = scrollBoxOf(autoplayRef.current) ?? autoplayRef.current;
-    const events = ["pointerdown", "keydown", "wheel", "touchmove"] as const;
-    events.forEach((e) => el?.addEventListener(e, stop, { passive: true }));
-    return () => {
-      timers.forEach(clearTimeout);
-      events.forEach((e) => el?.removeEventListener(e, stop));
-    };
-  }, [autoplay, demo, bill]);
-
-  const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : undefined);
+  const back = onBack ? { onBack } : {};
 
   if (!demo && (sessionError || (!sessionReady && !qr))) {
-    const code = codeOf(sessionError);
-    return (
-      <Shell {...(onBack ? { onBack } : {})}>
-        <h1 className="text-3xl">{t("yourBill")}</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          {code === "QR_INVALID" || code === "QR_TOKEN_INVALID"
-            ? t("qrInvalid")
-            : code === "GUEST_SESSION_INVALID"
-              ? t("sessionExpired")
-              : t("scanNeeded")}
-        </p>
-        {sessionError && !code ? <GuestError error={sessionError} /> : null}
-      </Shell>
-    );
+    return <SessionProblem error={sessionError} {...back} />;
   }
 
   if (!demo && (!sessionReady || billQuery.isLoading)) {
-    return (
-      <Shell {...(onBack ? { onBack } : {})}>
-        <p className="text-sm text-muted-foreground">{t("loading")}</p>
-      </Shell>
-    );
+    return <BillLoading {...back} />;
   }
 
   if (!demo && billQuery.isError) {
-    const code = codeOf(billQuery.error);
-    if (code === "GUEST_SESSION_INVALID") {
+    if (billQuery.error instanceof ApiError && billQuery.error.code === "GUEST_SESSION_INVALID") {
       guestSession.set(null);
-      return (
-        <Shell {...(onBack ? { onBack } : {})}>
-          <h1 className="text-3xl">{t("yourBill")}</h1>
-          <p className="mt-3 text-sm text-muted-foreground">{t("sessionExpired")}</p>
-        </Shell>
-      );
     }
     return (
-      <Shell {...(onBack ? { onBack } : {})}>
-        <h1 className="text-3xl">
-          {billQuery.error instanceof ApiError ? t("errorTitle") : t("errorOfflineTitle")}
-        </h1>
-        <GuestError error={billQuery.error} onRetry={() => void billQuery.refetch()} />
-      </Shell>
+      <BillLoadError error={billQuery.error} onRetry={() => void billQuery.refetch()} {...back} />
     );
   }
 
   if (!bill) {
-    /*
-     * Dos situaciones muy distintas caen aquí, y decirles lo mismo era
-     * desconcertante.
-     *
-     * Quien escanea una mesa sin cuenta necesita saber precisamente eso. Pero
-     * quien **acaba de pagar** también acaba aquí -- confirmar el cobro cierra
-     * la cuenta -- y leer «Sin cuenta abierta» después de pagar parece que algo
-     * salió mal. Si este teléfono declaró un pago, es la segunda.
-     */
-    const justPaid = !demo && recallPayment() !== null;
-    const ended = !demo && !justPaid && sessionEnded;
     return (
-      <Shell {...(onBack ? { onBack } : {})}>
-        <h1 className="text-3xl">
-          {justPaid ? t("paidThanks") : ended ? t("sessionBillEndedTitle") : t("noOpenBill")}
-        </h1>
-        {ended && (
-          <>
-            <p data-testid="guest-session-ended" className="mt-3 text-sm text-muted-foreground">
-              {t(
-                noBillReason === "SESSION_PREDATES_BILL"
-                  ? "sessionPredatesBillBody"
-                  : "sessionBillEndedBody",
-              )}
-            </p>
-            <button
-              type="button"
-              data-testid="guest-rejoin-table"
-              onClick={() => void rejoinTable()}
-              disabled={rejoining}
-              className="btn-primary mt-5 w-full"
-            >
-              {rejoining ? t("loading") : t("sessionRejoin")}
-            </button>
-            {rejoinFailed && (
-              <p className="mt-3 text-sm text-muted-foreground">{t("sessionRejoinScan")}</p>
-            )}
-          </>
-        )}
-        {/* Qué pasa ahora, no cuál es la regla.
-            Debajo de «Sin cuenta abierta» ponía «Una sola cuenta abierta por
-            mesa», que es cierto y no le sirve de nada a quien acaba de escanear
-            y no ve su cuenta: enuncia una restricción del sistema en vez de
-            decir quién abre la cuenta y qué puede hacer mientras. Esa frase
-            sigue donde sí ayuda -- en el panel, cuando alguien del local
-            intenta abrir una segunda. */}
-        {!ended && (
-          <p className="mt-3 text-sm text-muted-foreground">
-            {justPaid ? t("paidThanksBody") : t("noOpenBillBody")}
-          </p>
-        )}
-        {/*
-          Aquí cae justamente quien acaba de que le confirmen el pago: confirmar
-          cierra la cuenta, y sin cuenta abierta esta pantalla es lo único que
-          queda. Si la factura no se ofreciera aquí, la promesa de pedirla
-          «cuando el restaurante confirme» no tendría dónde cumplirse.
-        */}
-        {!demo && (
-          <Suspense fallback={null}>
-            <GuestInvoiceOffer />
-          </Suspense>
-        )}
-        {/* «¿Qué tal todo?» (R20): entre la factura, que caduca, y el recibo,
-            que es el registro. */}
-        {!demo && (
-          <Suspense fallback={null}>
-            <GuestRateMeal />
-          </Suspense>
-        )}
-        {/* Debajo de la oferta: primero la acción que caduca -- pedir factura --
-            y después el recibo, que es el registro y no se va a ninguna parte. */}
-        {!demo && (
-          <Suspense fallback={null}>
-            <GuestReceipt />
-          </Suspense>
-        )}
-      </Shell>
+      <NoBill
+        demo={demo}
+        sessionEnded={sessionEnded}
+        noBillReason={noBillReason}
+        rejoining={rejoining}
+        rejoinFailed={rejoinFailed}
+        onRejoin={() => void rejoinTable()}
+        {...back}
+      />
     );
   }
 
@@ -711,433 +392,59 @@ export function GuestBillScreen({
         </div>
       )}
 
-      <div className={`surface p-6 ${step === 1 || nothingToPay ? "" : "hidden"}`}>
-        <h1 className="text-3xl">{t("yourBill")}</h1>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {t("quotedIn")} {t(`currency${bill.currency}` as never)}
-        </p>
+      <BillSummary
+        bill={bill}
+        hidden={!(step === 1 || nothingToPay)}
+        showVes={showVes}
+        rateStr={rateStr}
+        billIsEmpty={billIsEmpty}
+        partlyPaid={partlyPaid}
+        paidSoFar={paidSoFar}
+      />
 
-        {/* La lista trae su propia línea superior y su relleno, así que sin
-            productos quedaban dos separadores seguidos con un hueco en medio y
-            nada dentro. Una cuenta sin líneas no dibuja la lista. */}
-        {(bill.items ?? []).length > 0 && (
-          <ul className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
-            {(bill.items ?? []).map((item) => (
-              <li key={item.id} className="flex justify-between gap-3">
-                <span>
-                  {item.quantity} × {item.name}
-                </span>
-                {/* El bolívar debajo del dólar y no al lado. Al lado tenía un
-                    ancho fijo de 96 px, que un importe de siete dígitos
-                    desborda, y era el único número de la fila que no llevaba
-                    la cara de cifras -- salía en DM Sans, sin tabular. */}
-                <span className="flex shrink-0 flex-col items-end">
-                  <span className="money-md">{formatMoney(item.subtotalMinor, bill.currency)}</span>
-                  {showVes && (
-                    <span className="money-sm text-muted-foreground">
-                      {formatMoney(toVes(item.subtotalMinor, rateStr), "VES")}
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* Sin nada en la cuenta, cuatro filas de ceros no informan de nada:
-            el mensaje de abajo ya dice lo que pasa. */}
-        <div
-          className={`mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground ${
-            billIsEmpty ? "hidden" : ""
-          }`}
-        >
-          <MoneyRow label={t("subtotal")} amount={bill.subtotalMinor} currency={bill.currency} />
-          <MoneyRow
-            label={`${t("iva")} ${formatBps(bill.vatBps)}`}
-            amount={bill.vatMinor}
-            currency={bill.currency}
-          />
-          <MoneyRow
-            label={`${t("service")} ${formatBps(bill.serviceChargeBps)}`}
-            amount={bill.serviceChargeMinor}
-            currency={bill.currency}
-          />
-        </div>
-
-        {/* Un total, no dos, y la cifra grande es la que se paga ahora.
-            Había dos: "Total" en la moneda de la carta a 36 px y, debajo,
-            "Total a pagar" en bolívares a 30. El mismo importe dos veces,
-            compitiendo -- y el grande era el que nadie paga. Quien mira esto
-            va a transferir bolívares desde su banco.
-            Con cobros parciales, lo que se paga ya no es el total sino lo que
-            queda, así que la cifra grande es esa y el total baja a fila de
-            apoyo. Una sola de 32 px por tarjeta: si el total y el pendiente
-            fueran los dos grandes, volveríamos a tener dos importes
-            disputándose la mirada.
-            El rótulo va encima y no al lado, así el importe dispone de los
-            305 px de la tarjeta enteros y no se parte. Con la carta en
-            bolívares no hay conversión: ni subtítulo ni tasa -- enseñaba una
-            tasa de 1, que no significa nada. */}
-        <div
-          className={`mt-4 flex flex-col gap-0.5 border-t border-border pt-4 ${
-            billIsEmpty ? "hidden" : ""
-          }`}
-        >
-          <span className="eyebrow">{partlyPaid ? t("outstanding") : t("totalPayable")}</span>
-          <span className="money-xl">
-            {formatMoney(partlyPaid ? bill.remainingVes : bill.totalDueVes, "VES")}
-          </span>
-
-          {/* Con cobros hechos, quien llega el tercero necesita dos cifras: lo
-              que queda, para saber cuánto puede pagar, y lo que era la cuenta,
-              para entender por qué no coincide con lo que vio en la mesa. La
-              original va tachada -- tachado es lo ya cobrado -- y en pequeño,
-              porque no es la que se paga. */}
-          {partlyPaid && (
-            <>
-              <span className="mt-1 text-[12px] text-muted-foreground">
-                {t("billWas").replace("{amount}", formatMoney(bill.totalDueVes ?? "0", "VES"))}
-              </span>
-              <div aria-hidden className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
-                <div
-                  className="h-full rounded-full bg-primary"
-                  style={{
-                    width: `${
-                      (Number(paidSoFar) / Math.max(1, Number(BigInt(bill.totalDueVes ?? "0")))) *
-                      100
-                    }%`,
-                  }}
-                />
-              </div>
-            </>
-          )}
-
-          {/* El equivalente en la moneda de la carta acompaña al total, no al
-              pendiente: convertir un saldo parcial a dólares es un número que
-              no aparece en ninguna parte y que nadie va a comprobar. */}
-          {bill.currency !== "VES" && !partlyPaid && (
-            <span className="money-md text-muted-foreground">
-              {formatMoney(bill.totalDue, bill.currency)}
-            </span>
-          )}
-          {bill.currency !== "VES" && (bill.fxRateVesPerUnit ?? bill.fxRate) && (
-            <span className="money-sm mt-1 text-muted-foreground">
-              {t("bcvRate")} {formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Una cuenta recién abierta no tiene nada, y es justo cuando más gente
-          escanea: te sientas, ves el código y lo pruebas antes de que el
-          mesero haya metido nada. Ofrecer "Pagar todo" y las tres formas de
-          dividir sobre cero terminaba en un aviso rojo con un código de la API
-          -- SPLIT_NOTHING_OUTSTANDING -- que además decía que la cuenta ya
-          estaba pagada. No lo estaba: estaba vacía. */}
       {nothingToPay ? (
-        <div className="surface mt-4 p-6">
-          {/* Pagada, vacía, o con productos que no suman nada. Las tres se
-              quedan sin división y sin cobro, y las tres decían lo mismo. */}
-          <h2 className="text-xl">
-            {settled ? t("billSettledTitle") : billIsEmpty ? t("billEmptyTitle") : t("nothingDue")}
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {settled
-              ? `${t("billSettledBody")} ${formatMoney(bill.amountPaidVes ?? "0", "VES")}.`
-              : billIsEmpty
-                ? t("billEmptyBody")
-                : t("nothingDueBody")}
-          </p>
-          {/* "Mientras tanto, mira la carta" sólo tiene sentido mientras se
-              espera algo. Para una cuenta pagada no hay mientras tanto. */}
-          {onBack && (
-            <button onClick={onBack} className="mt-4 text-sm underline underline-offset-2">
-              {billIsEmpty ? t("billEmptyMenu") : t("theMenu")}
-            </button>
-          )}
-        </div>
+        <NothingToPay bill={bill} settled={settled} billIsEmpty={billIsEmpty} {...back} />
       ) : (
         /* En el paso 1, antes de abrir el reparto, esta tarjeta ya no tiene
            contenido: lo único que llevaba era "Tu parte", que repetía el total
            que la tarjeta de arriba y el botón de pagar ya dicen. Sin eso,
            dibujarla sería dejar un recuadro vacío en medio de la pantalla. */
-        <div
-          ref={splitPanelRef}
-          className={`surface mt-4 p-6 ${step === 3 || (step === 1 && !splitOpen) ? "hidden" : ""}`}
-        >
-          {/* Las cuatro formas de repartir, sólo una vez que se ha elegido
-              dividir. Antes vivía aquí también el botón que abre esto; se
-              mudó a la barra de abajo, a la misma altura que pagar, porque
-              dividir es la otra mitad de para qué se abre esta pantalla y no
-              una opción escondida dentro de la tarjeta. */}
-          {step !== 1 || !splitOpen ? null : (
-            <GuestSplitModeSelector
-              // Al abrir el reparto se entra en «Lo mío» (R13); FULL aquí
-              // sólo puede ser un instante antes de que eso se aplique.
-              selected={mode === "FULL" ? "ITEMS" : mode}
-              onSelect={(next) => {
-                setMode(next);
-                setPreview(null);
-              }}
-              // "Pagar toda la cuenta" no es una forma de dividir: es decir
-              // que no se divide. Cierra el panel y devuelve la pareja de
-              // botones, en vez de dejar abierto un reparto de uno.
-              onPayWhole={() => {
-                setMode("FULL");
-                setPreview(null);
-                setSplitOpen(false);
-              }}
-            />
-          )}
-
-          {step === 1 && mode === "EQUAL" && (
-            <div className="mt-5">
-              <p className="field-label">{t("howManyDiners")}</p>
-              {/* Con nombre y con tope: eran «−» y «+» a secas, que un lector
-                  de pantalla lee como «menos» sin decir de qué, y en el mínimo
-                  el «−» seguía pareciendo que hacía algo. */}
-              <div className="mt-3 flex items-center gap-4">
-                <button
-                  type="button"
-                  aria-label={t("dinersFewer")}
-                  disabled={diners <= 2}
-                  onClick={() => setDiners((n) => Math.max(2, n - 1))}
-                  className="h-11 w-11 rounded-full border-[1.5px] border-border-strong bg-card text-lg text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
-                >
-                  −
-                </button>
-                <span aria-live="polite" className="figure min-w-8 text-center text-xl">
-                  {diners}
-                </span>
-                <button
-                  type="button"
-                  aria-label={t("dinersMore")}
-                  disabled={diners >= 50}
-                  onClick={() => setDiners((n) => Math.min(50, n + 1))}
-                  className="h-11 w-11 rounded-full border-[1.5px] border-border-strong bg-card text-lg text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 1 && mode === "ITEMS" && (
-            <GuestItemSelector
-              items={bill.items ?? []}
-              mine={mine}
-              currency={bill.currency}
-              onChange={setMineQty}
-            />
-          )}
-
-          {step === 1 && mode === "CUSTOM" && (
-            <div className="mt-5">
-              <p className="field-label">{t("yourAmount")}</p>
-              <input
-                inputMode="decimal"
-                placeholder="0,00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="mt-3 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base outline-none focus:border-ring"
-              />
-            </div>
-          )}
-
-          {splitMutation.isPending && <p className="hint mt-5">{t("calculating")}</p>}
-
-          {splitMutation.isError && <GuestError error={splitMutation.error} />}
-
-          {/* Sólo cuando hay un reparto de verdad. Pagando la cuenta entera,
-              "Tu parte" era el total dicho por tercera vez en la misma
-              pantalla, y presentado como una decisión ya tomada: o divides, o
-              pagas todo, y eso se elige abajo. */}
-          {/* En el paso 2 esto es lo primero de la tarjeta -- el selector y
-              sus paneles son del paso 1 -- y su margen y su línea de arriba
-              dejaban una franja blanca vacía de cien píxeles encima de «Tu
-              parte», que parecía una tarjeta a medio cargar. */}
-          {preview && !splitMutation.isPending && !(step === 1 && mode === "FULL") && (
-            <div className="mt-5 border-t border-border pt-4 first:mt-0 first:border-t-0 first:pt-0">
-              {/* Una cifra grande por tarjeta, y es la que se puede pagar
-                  desde ella. Sin propina puesta, eso es tu parte; en cuanto
-                  hay propina, el importe con propina toma el sitio y esto baja
-                  a fila normal. Había tres cifras de 30, 30 y 24 px, y la
-                  pequeña era la única que se transfiere de verdad. */}
-              {tipMinor === "0" ? (
-                <div className="flex flex-col gap-0.5">
-                  <span className="eyebrow">
-                    {mode === "EQUAL"
-                      ? t("perPerson")
-                      : mode === "FULL"
-                        ? t("theWholeBill")
-                        : t("yourShare")}
-                  </span>
-                  <span className="money-xl">{formatMoney(myShare(preview, mode), "VES")}</span>
-                </div>
-              ) : (
-                <div className="flex justify-between gap-3">
-                  <span className="text-sm text-muted-foreground">
-                    {mode === "EQUAL"
-                      ? t("perPerson")
-                      : mode === "FULL"
-                        ? t("theWholeBill")
-                        : t("yourShare")}
-                  </span>
-                  <span className="money-md">{formatMoney(myShare(preview, mode), "VES")}</span>
-                </div>
-              )}
-              {/* Las dos filas de apoyo sólo dicen algo cuando el reparto es de
-                  verdad. Pagando la cuenta entera valen lo mismo que el titular,
-                  y la tarjeta enseñaba el mismo importe tres veces seguidas -- en
-                  serif arriba y en la fuente del texto justo debajo, que parecía
-                  un fallo de composición más que una jerarquía. */}
-              {(preview.outstandingVes !== myShare(preview, mode) ||
-                preview.totalAllocatedVes !== myShare(preview, mode)) && (
-                <>
-                  <div className="mt-3 flex justify-between gap-3 text-xs text-muted-foreground">
-                    <span>{t("outstanding")}</span>
-                    <span className="money-sm">{formatMoney(preview.outstandingVes, "VES")}</span>
-                  </div>
-                  <div className="flex justify-between gap-3 text-xs text-muted-foreground">
-                    <span>{t("allocated")}</span>
-                    <span className="money-sm">
-                      {formatMoney(preview.totalAllocatedVes, "VES")}
-                    </span>
-                  </div>
-                </>
-              )}
-              {/* La propina se pregunta cuando ya hay una cifra, no a media
-                  pantalla y antes de que nadie se haya comprometido a pagar. */}
-              <div className={`mt-5 border-t border-border pt-4 ${step === 2 ? "" : "hidden"}`}>
-                <p className="field-label">{t("tipTitle")}</p>
-                <p className="hint mt-1">{t("tipHint")}</p>
-                {/* Seis columnas y la primera ocupa dos: con cinco iguales,
-                    "Sin propina" era la única etiqueta de dos palabras y se
-                    partía en dos líneas, así que la fila de propina salía más
-                    alta por su lado izquierdo. Los porcentajes siguen midiendo
-                    lo mismo entre ellos.
-                    Y 44 px de alto: medían 34 y son lo que toca un comensal de
-                    pie, con el teléfono en una mano, para decidir cuánto deja.
-                    Es la pantalla que usa quien paga; no es donde se ahorra
-                    altura. */}
-                <div className="mt-3 grid grid-cols-6 gap-2">
-                  {[0, 10, 15, 20].map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => {
-                        setTipPct(p);
-                        setTipCustom("");
-                      }}
-                      className={`min-h-11 rounded-lg border-[1.5px] px-2 text-sm font-medium text-foreground transition-colors ${
-                        p === 0 ? "col-span-2" : ""
-                      } ${
-                        tipPct === p
-                          ? "border-primary bg-primary/10"
-                          : "border-border-strong bg-card hover:bg-secondary"
-                      }`}
-                    >
-                      {p === 0 ? t("tipNone") : `${p}%`}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setTipPct(null)}
-                    className={`min-h-11 rounded-lg border-[1.5px] px-2 text-sm font-medium text-foreground transition-colors ${
-                      tipPct === null
-                        ? "border-primary bg-primary/10"
-                        : "border-border-strong bg-card hover:bg-secondary"
-                    }`}
-                  >
-                    {t("tipOther")}
-                  </button>
-                </div>
-                {tipPct === null && (
-                  <input
-                    inputMode="decimal"
-                    placeholder="0,00"
-                    value={tipCustom}
-                    onChange={(e) => setTipCustom(e.target.value)}
-                    className="mt-3 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base outline-none focus:border-ring"
-                  />
-                )}
-                <div className="mt-3 flex justify-between gap-3 text-sm text-muted-foreground">
-                  <span>{t("tipAmount")}</span>
-                  <span className="money-md">{formatMoney(tipMinor, "VES")}</span>
-                </div>
-                {tipMinor !== "0" && (
-                  <div className="mt-3 flex flex-col gap-0.5 border-t border-border pt-3 text-foreground">
-                    <span className="eyebrow">{t("yourTotalWithTip")}</span>
-                    <span className="money-xl">
-                      {formatMoney(
-                        (BigInt(myShare(preview, mode)) + BigInt(tipMinor)).toString(),
-                        "VES",
-                      )}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Sólo cuando de verdad se está dividiendo. Con "Pagar todo"
-                  -- que ahora es el camino por defecto y no una opción que se
-                  elige -- un botón llamado "Confirmar división" aparecía sin
-                  que nadie hubiera dividido nada. Pagar la cuenta entera no
-                  necesita guardar ningún reparto: lo hace el panel de pago. */}
-              {step === 1 && !demo && mode !== "FULL" && (
-                <div className="mt-4 border-t border-border pt-4">
-                  {/*
-                    El nombre va aquí y no en un paso propio: es una línea
-                    opcional justo antes de acordar el reparto, que es el
-                    momento en que empieza a servir para algo. Sin él la lista
-                    dice «Comensal 2» y funciona igual -- el valor es para los
-                    demás, que ven quién ha pagado sin preguntarlo en voz alta.
-                  */}
-                  {/* Con un reparto ya acordado el nombre se pide abajo, sobre
-                      la parte que el comensal acaba de tomar. Pedirlo aquí
-                      también ponía dos campos «Tu nombre» en la misma pantalla,
-                      preguntando lo mismo dos veces. El botón de acordar o
-                      reemplazar se queda: ésa es otra decisión. */}
-                  {!activeSplit && (
-                    <>
-                      <label className="field-label block">
-                        {t("yourNameOptional")}
-                        <input
-                          data-testid="guest-my-name"
-                          value={myName}
-                          onChange={(e) => setMyName(e.target.value)}
-                          maxLength={80}
-                          autoComplete="given-name"
-                          placeholder={t("yourNamePlaceholder")}
-                          className="mt-1.5 min-h-11 w-full rounded-lg border border-border-strong bg-card px-3 text-base font-normal outline-none focus:border-ring"
-                        />
-                      </label>
-                      <p className="hint mb-4 mt-1.5">{t("yourNameWhy")}</p>
-                    </>
-                  )}
-                  <button
-                    data-testid="guest-split-confirm"
-                    disabled={confirmSplit.isPending}
-                    onClick={() => confirmSplit.mutate()}
-                    className="btn-choice w-full"
-                  >
-                    {confirmSplit.isPending
-                      ? t("loading")
-                      : activeSplit
-                        ? t("splitReplace")
-                        : t("splitConfirm")}
-                  </button>
-                  {/* Con un reparto ya acordado, el botón reemplaza en vez de
-                      crear, y hay que decirlo antes de pulsarlo: por detrás el
-                      anterior se anula. El servidor sólo lo permite mientras
-                      nadie haya pagado -- en cuanto hay dinero contra una
-                      parte, responde y el reparto viejo se queda. */}
-                  <p className="hint mt-2">
-                    {activeSplit ? t("splitReplaceNote") : t("splitConfirmNote")}
-                  </p>
-                  {confirmSplit.isError && <GuestError error={confirmSplit.error} />}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <SplitPanel
+          panelRef={splitPanelRef}
+          hidden={step === 3 || (step === 1 && !splitOpen)}
+          step={step}
+          splitOpen={splitOpen}
+          demo={demo}
+          bill={bill}
+          mode={mode}
+          onSelectMode={(next) => {
+            setMode(next);
+            setPreview(null);
+          }}
+          onPayWhole={() => {
+            setMode("FULL");
+            setPreview(null);
+            setSplitOpen(false);
+          }}
+          diners={diners}
+          setDiners={setDiners}
+          mine={mine}
+          setMineQty={setMineQty}
+          amount={amount}
+          setAmount={setAmount}
+          calculating={splitMutation.isPending}
+          splitError={splitMutation.isError ? splitMutation.error : null}
+          preview={preview}
+          tip={{ tipPct, setTipPct, tipCustom, setTipCustom, tipMinor }}
+          confirm={{
+            activeSplit,
+            myName,
+            setMyName,
+            pending: confirmSplit.isPending,
+            error: confirmSplit.isError ? confirmSplit.error : null,
+            onConfirm: () => confirmSplit.mutate(),
+          }}
+        />
       )}
 
       {activeSplit && (
@@ -1195,199 +502,37 @@ export function GuestBillScreen({
           pantallas hacia abajo justo cuando el comensal esperaba verlo: lo que
           quedaba a la vista era un recibo, que parece que todo terminó, en vez
           de «por verificar». El propio recibo dice que va debajo de todo. */}
-      {!demo && (
-        <Suspense fallback={null}>
-          <GuestInvoiceOffer />
-          <GuestRateMeal />
-          <GuestReceipt />
-        </Suspense>
-      )}
+      {!demo && <AfterPaying />}
 
-      {/* ---------------------------------------------------------------
-          La barra flotante.
-          `sticky` y no `fixed`: esta misma pantalla vive dentro del marco de
-          teléfono de la landing, y un elemento fijo ahí dentro se ancla a la
-          ventana del navegador y se escapa del marco. Pegada al fondo del
-          contenedor que hace scroll, funciona en los dos sitios.
-          --------------------------------------------------------------- */}
       {!nothingToPay && (
-        <div className="sticky bottom-0 z-10 -mx-5 mt-4 bg-gradient-to-t from-background from-65% to-transparent px-5 pb-4 pt-6">
-          {/* Dividir y pagar, lado a lado y con el mismo peso: son las dos
-              cosas que se puede querer hacer aquí, y antes una era un botón
-              lleno y la otra un enlace dentro de la tarjeta.
-
-              Ninguno de los dos va en verde. El verde es el color de nuestra
-              llamada a la acción, y aquí no hay una: hay una bifurcación que
-              decide el comensal. Pintar de verde «Pagar la cuenta» era empujar
-              hacia el lado que le cuesta la cuenta entera; vuelve en el paso
-              siguiente, cuando ya ha elegido y sólo queda confirmar.
-
-              Sin color, la visibilidad la da el trazo: 1,5 px a
-              `--border-strong`, que contrasta 3,2:1 contra la crema del fondo
-              -- el listón de 3:1 que piden las WCAG para el contorno de un
-              control -- frente al 1,23:1 del borde normal, que sobre este
-              fondo no se veía. La segunda línea, apilada porque a media
-              pantalla no cabe al lado, es lo que distingue una de otra: el
-              importe de la cuenta entera, o sólo lo tuyo. */}
-          {step === 1 && !splitOpen && (
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                data-testid="guest-split-open"
-                onClick={() => {
-                  setSplitOpen(true);
-                  // Directo a marcar lo suyo, que es lo que hace casi todo el
-                  // mundo; las otras formas quedan a un toque (R13).
-                  setMode("ITEMS");
-                  setPreview(null);
-                  // Una fila por opción lee mejor que la rejilla de antes, pero
-                  // ocupa más alto: medido a 390 px, la cuarta quedaba debajo
-                  // de la barra. Llevar la vista al panel las pone las cuatro
-                  // a la vista en vez de dejarlas a que alguien intuya que hay
-                  // que bajar. El desplazamiento suave lo desactiva el sistema
-                  // de quien pide menos movimiento.
-                  requestAnimationFrame(() => scrollFrameTo(splitPanelRef.current));
-                }}
-                className="flex min-h-16 flex-col items-center justify-center rounded-full border-[1.5px] border-border-strong bg-card px-4 text-center transition-colors hover:bg-secondary active:bg-secondary"
-              >
-                <span className="text-[15px] font-medium leading-tight">{t("splitTheBill")}</span>
-                <span className="text-[12px] leading-tight text-muted-foreground">
-                  {t("splitTheBillHint")}
-                </span>
-              </button>
-              <button
-                type="button"
-                data-testid="guest-pay-full"
-                onClick={() => setStep(2)}
-                className="flex min-h-16 flex-col items-center justify-center rounded-full border-[1.5px] border-border-strong bg-card px-4 text-center transition-colors hover:bg-secondary active:bg-secondary"
-              >
-                <span className="text-[15px] font-medium leading-tight">{t("payTheBill")}</span>
-                <span className="money-sm leading-tight text-muted-foreground">
-                  {formatMoney(dockTotal.toString(), "VES")}
-                </span>
-              </button>
-            </div>
-          )}
-
-          {/* Dividiendo, pagar la cuenta entera deja de ofrecerse: se acaba de
-              decir que no. Mientras no se elija cómo repartir no hay importe
-              que confirmar, así que tampoco hay botón -- la decisión está
-              arriba, en las cuatro opciones. */}
-          {/* Dividiendo por productos o por importe, hasta que no hay algo
-              elegido no hay parte. La barra caía entonces en lo que queda de
-              la cuenta -- que es lo correcto para «Pagar toda la cuenta» y
-              falso para todo lo demás -- y ofrecía «Pagar mi parte · 69.812,94
-              Bs» con nada marcado: la mesa entera con la etiqueta de tu parte,
-              y el botón se podía pulsar. Ahora, sin parte, el botón dice qué
-              falta y no hace nada; y no va en verde, porque todavía no hay
-              nada que confirmar. */}
-          {step === 1 && splitOpen && mode !== "FULL" && !preview && (
-            <button
-              type="button"
-              data-testid="guest-continue-pending"
-              disabled
-              className="flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-full border-[1.5px] border-dashed border-border-strong px-6 text-[15px] text-muted-foreground"
-            >
-              {canSplit || splitMutation.isPending
-                ? t("calculating")
-                : mode === "ITEMS"
-                  ? t("dockPickItems")
-                  : t("dockEnterAmount")}
-            </button>
-          )}
-          {step < 3 &&
-            !(step === 1 && !splitOpen) &&
-            !(step === 1 && mode === "FULL") &&
-            !(step === 1 && !preview) && (
-              <button
-                type="button"
-                data-testid="guest-continue"
-                onClick={() => setStep(step === 1 ? 2 : 3)}
-                className="btn-primary w-full"
-              >
-                <span>
-                  {step === 1
-                    ? mode === "FULL"
-                      ? t("payTheBill")
-                      : t("payMyShare")
-                    : t("stepContinue")}
-                </span>
-                <span aria-hidden className="opacity-50">
-                  ·
-                </span>
-                <span className="money-md">{formatMoney(dockTotal.toString(), "VES")}</span>
-              </button>
-            )}
-          {step > 1 && !claimSent && (
-            <button
-              type="button"
-              data-testid="guest-step-back"
-              onClick={() => setStep(step === 2 ? 1 : 2)}
-              // Texto y no caja. Con borde pesaba lo mismo que «Continuar»
-              // encima, y su borde de 1,23:1 lo hacía parecer desactivado.
-              // Sigue midiendo 44 px de alto para el dedo.
-              className={`min-h-11 w-full text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline ${
-                step < 3 ? "mt-1" : ""
-              }`}
-            >
-              {step === 2 ? t("backToBill") : t("backToTip")}
-            </button>
-          )}
-          {/* Sólo cuando hay algo que decir que la pantalla no enseñe ya: qué
-              falta por elegir, o que se está pagando sobre un saldo parcial.
-              «Nadie más queda comprometido» se cayó por lo contrario -- era
-              tranquilizar por escrito algo que el importe y los dos botones ya
-              dicen. */}
-          {step === 1 && (splitOpen ? mode === "FULL" : partlyPaid) && (
-            <p className="hint mt-2 text-center">
-              {splitOpen
-                ? t("chooseHowToSplit")
-                : t("overRemaining").replace(
-                    "{amount}",
-                    formatMoney(bill.remainingVes ?? "0", "VES"),
-                  )}
-            </p>
-          )}
-        </div>
+        <PayDock
+          step={step}
+          setStep={setStep}
+          splitOpen={splitOpen}
+          mode={mode}
+          hasPreview={Boolean(preview)}
+          canSplit={canSplit}
+          calculating={splitMutation.isPending}
+          claimSent={claimSent}
+          partlyPaid={partlyPaid}
+          remainingVes={bill.remainingVes ?? "0"}
+          dockTotal={dockTotal}
+          onOpenSplit={() => {
+            setSplitOpen(true);
+            // Directo a marcar lo suyo, que es lo que hace casi todo el
+            // mundo; las otras formas quedan a un toque (R13).
+            setMode("ITEMS");
+            setPreview(null);
+            // Una fila por opción lee mejor que la rejilla de antes, pero
+            // ocupa más alto: medido a 390 px, la cuarta quedaba debajo
+            // de la barra. Llevar la vista al panel las pone las cuatro
+            // a la vista en vez de dejarlas a que alguien intuya que hay
+            // que bajar. El desplazamiento suave lo desactiva el sistema
+            // de quien pide menos movimiento.
+            requestAnimationFrame(() => scrollFrameTo(splitPanelRef.current));
+          }}
+        />
       )}
-    </div>
-  );
-}
-
-function MoneyRow({
-  label,
-  amount,
-  currency,
-  highlight,
-}: {
-  label: string;
-  amount: string;
-  currency: MenuCurrency;
-  highlight?: boolean;
-}) {
-  return (
-    <div className={`flex justify-between gap-3 ${highlight ? "text-foreground" : ""}`}>
-      <span>{label}</span>
-      <span className="money-md">{formatMoney(amount, currency)}</span>
-    </div>
-  );
-}
-
-function Shell({ children, onBack }: { children: React.ReactNode; onBack?: () => void }) {
-  const { t } = useI18n();
-  return (
-    <div className="mx-auto min-h-screen w-full max-w-md px-5">
-      <header className="flex items-center justify-between py-5">
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> {t("backToTable")}
-          </button>
-        )}
-      </header>
-      <div className="surface p-6">{children}</div>
     </div>
   );
 }

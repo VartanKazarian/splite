@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { cookieSite, refreshViaCookie } from "../src/lib/api";
+import { withoutWindow } from "./components/setup";
 
 /**
  * El modo cookie sólo se enciende cuando la página y la API son el mismo
@@ -33,6 +34,8 @@ describe("cookieSite", () => {
   });
 
   test("never during server rendering", () => {
-    expect(refreshViaCookie()).toBe(false);
+    // Sin `window`, como en el servidor: las pruebas de componentes ponen un
+    // DOM para todo el proceso, y en él la página está en splite.lat.
+    expect(withoutWindow(() => refreshViaCookie())).toBe(false);
   });
 });

@@ -2,12 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { TableLanding } from "@/components/TableLanding";
 import { isGuestView, type GuestView } from "@/lib/guest-view";
 
-type Search = { qr?: string; demo?: string; view?: GuestView };
+type Search = { qr?: string; demo?: 1; view?: GuestView };
 
 export const Route = createFileRoute("/t/")({
   validateSearch: (search: Record<string, unknown>): Search => ({
     ...(typeof search["qr"] === "string" ? { qr: search["qr"] } : {}),
-    ...(search["demo"] ? { demo: String(search["demo"]) } : {}),
+    // Un número y no un texto: el enrutador escribe los textos de la dirección
+    // entre comillas, y al primer toque `?demo=1` se volvía `?demo=%221%22`.
+    // Los enlaces viejos con comillas también entran aquí y salen limpios.
+    ...(search["demo"] ? { demo: 1 as const } : {}),
     // Qué pantalla de la mesa se está mirando. En la URL y no en un estado
     // interno para que el botón "atrás" del teléfono vaya de la cuenta a la
     // carta, y de la carta a la mesa, en vez de salirse del sitio.

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, isMfaChallenge, staffSession } from "@/lib/api";
+import { homeFor } from "@/lib/roles";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -44,7 +45,8 @@ function Login() {
   );
 
   useEffect(() => {
-    if (staffSession.get()) navigate({ to: "/dashboard" });
+    const existing = staffSession.get();
+    if (existing) navigate({ to: homeFor(existing.user.role) });
   }, [navigate]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -69,7 +71,8 @@ function Login() {
         setCode("");
         return;
       }
-      navigate({ to: "/dashboard" });
+      // Cada rol empieza en su pantalla del turno (R11).
+      navigate({ to: homeFor(staffSession.get()?.user.role) });
     } catch (err) {
       if (err instanceof ApiError) {
         setError({ code: err.code, message: err.message, requestId: err.requestId });
@@ -88,7 +91,8 @@ function Login() {
     setError(null);
     try {
       await auth.completeMfaLogin(challenge, code.trim());
-      navigate({ to: "/dashboard" });
+      // Cada rol empieza en su pantalla del turno (R11).
+      navigate({ to: homeFor(staffSession.get()?.user.role) });
     } catch (err) {
       if (err instanceof ApiError) {
         // El servidor responde lo mismo a un código malo, a un reto caducado y

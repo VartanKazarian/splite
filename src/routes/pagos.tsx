@@ -5,6 +5,7 @@ import { Check, FileUp, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
+import { canVerifyPayments } from "@/lib/roles";
 import {
   account,
   ApiError,
@@ -179,7 +180,7 @@ function PaymentsPage() {
   // Las conexiones con el banco, para ofrecer subir el estado de cuenta junto
   // a los avisos que va a comprobar. Caja también lo sube; el mesero no.
   const role = me.data?.user.role;
-  const canVerifyWithBank = role === "OWNER" || role === "MANAGER" || role === "CASHIER";
+  const canVerifyWithBank = canVerifyPayments(role);
   const bankQuery = useQuery({
     queryKey: ["bank-connections"],
     queryFn: () => bankConnections.list(),
@@ -492,7 +493,14 @@ function PaymentsPage() {
                       </div>
                     </dl>
 
-                    {rejecting === claim.id ? (
+                    {/* El mesero ve el aviso, no los botones: el servidor sólo deja
+                        confirmar o rechazar a caja, encargado y dueño (R11). Mientras
+                        no se sabe el rol se enseñan, como antes. */}
+                    {me.data && !canVerifyPayments(role) ? (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        {t("payConfirmedByCashier")}
+                      </p>
+                    ) : rejecting === claim.id ? (
                       <div className="mt-3">
                         <input
                           autoFocus

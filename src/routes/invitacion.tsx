@@ -2,7 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { useI18n } from "@/lib/i18n";
-import { ApiError, auth, type InvitationPreview } from "@/lib/api";
+import { ApiError, auth, staffSession, type InvitationPreview } from "@/lib/api";
+import { homeFor } from "@/lib/roles";
 
 export const Route = createFileRoute("/invitacion")({
   head: () => ({
@@ -66,7 +67,8 @@ function AcceptInvitation() {
     setError(null);
     try {
       await auth.acceptInvitation({ token, password, displayName: name.trim() || null });
-      navigate({ to: "/dashboard" });
+      // Cada rol empieza en su pantalla del turno (R11).
+      navigate({ to: homeFor(staffSession.get()?.user.role) });
     } catch (e) {
       if (e instanceof ApiError && e.code === "INVITATION_EMAIL_IN_USE") {
         setError(t("inviteAcceptEmailInUse"));

@@ -1,6 +1,7 @@
 import { useI18n } from "@/lib/i18n";
 import type { FloorTable } from "@/lib/api";
 import { isFree, toneOf, type FloorFilter } from "./tableStatus";
+import "@/lib/i18n-staff";
 
 /**
  * Las fichas que filtran el plano.

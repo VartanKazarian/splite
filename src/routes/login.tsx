@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, isMfaChallenge, staffSession } from "@/lib/api";
 import { homeFor } from "@/lib/roles";
+import "@/lib/i18n-public";
 
 export const Route = createFileRoute("/login")({
   head: () => ({

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { ApiError, formatMinor, menu, parseMinorInput, type MenuOcrDraft } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import "@/lib/i18n-staff";
 
 type Row = {
   name: string;

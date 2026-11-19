@@ -7,6 +7,7 @@ import { API_BASE_URL, ApiError, menu, type MenuDocument } from "@/lib/api";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "../lib/dates";
+import "@/lib/i18n-staff";
 
 /** "394" -> "394 B", "2100000" -> "2,1 MB". Sólo para enseñar un tamaño. */
 function humanSize(bytes: number): string {

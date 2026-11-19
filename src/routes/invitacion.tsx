@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, staffSession, type InvitationPreview } from "@/lib/api";
 import { homeFor } from "@/lib/roles";
+import "@/lib/i18n-staff";
 
 export const Route = createFileRoute("/invitacion")({
   head: () => ({

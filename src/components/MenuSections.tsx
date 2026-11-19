@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ApiError, menu, type MenuCategory } from "@/lib/api";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useI18n } from "@/lib/i18n";
+import "@/lib/i18n-staff";
 
 /**
  * Las secciones del menú, mantenidas a mano.

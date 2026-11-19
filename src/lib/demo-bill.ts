@@ -1,5 +1,6 @@
 import { BCV_RATES, applyBps, applyRate, parseRate } from "./fiscal";
 import type { Bill, BillItem, SplitMode, SplitPreview } from "./api";
+import "@/lib/i18n-guest";
 
 /** Cuenta ficticia para que cualquiera pruebe el flujo de invitado sin QR ni backend. */
 const VAT_BPS = 1600;

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { API_BASE_URL, ApiError, menu, type Product } from "@/lib/api";
+import "@/lib/i18n-staff";
 
 /** Lo que acepta el backend, y el tope que aplica antes de subir nada. */
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];

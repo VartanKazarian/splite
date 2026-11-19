@@ -1,5 +1,6 @@
 import { formatMoney, type BillItem, type MenuCurrency } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import "@/lib/i18n-guest";
 
 /**
  * Qué se llevó el comensal de la mesa.

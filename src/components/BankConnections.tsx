@@ -8,6 +8,7 @@ import { ConfirmButton } from "@/components/ConfirmButton";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/dates";
 import { formatRif, normaliseRif } from "@/lib/rif";
+import "@/lib/i18n-staff";
 
 const MERCANTIL_PATH = "/api/v1/bank-inbound/mercantil";
 

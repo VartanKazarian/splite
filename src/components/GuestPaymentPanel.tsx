@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Clock, Copy, X } from "lucide-react";
 
-import { GuestC2PForm } from "@/components/GuestC2PForm";
 import { useI18n } from "@/lib/i18n";
 import { rememberPayment, rememberPayerEmail } from "@/lib/guest-payment";
 import { apportionTransfer } from "@/lib/transfer";
@@ -20,6 +19,12 @@ import {
   type PaymentClaim,
   type Payee,
 } from "@/lib/api";
+import "@/lib/i18n-guest";
+
+/** El cobro C2P se carga al elegirlo: la mayoría paga por Pago Móvil. */
+const GuestC2PForm = lazy(() =>
+  import("@/components/GuestC2PForm").then((m) => ({ default: m.GuestC2PForm })),
+);
 
 /** 04121234567 -> 0412-123.45.67 (sólo para leer; se copia en crudo). */
 function formatPhone(raw: string): string {
@@ -628,7 +633,9 @@ export function GuestPaymentPanel({
           pedirle la clave a su banco; el reparto en dos lo hace él antes de
           llamar a la API.
         */
-        <GuestC2PForm maxVes={ledgerShareVes} tipVes={tipVes} demo={demo} />
+        <Suspense fallback={null}>
+          <GuestC2PForm maxVes={ledgerShareVes} tipVes={tipVes} demo={demo} />
+        </Suspense>
       )}
 
       {tab === "claim" && (

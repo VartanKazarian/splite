@@ -1,16 +1,28 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { ArrowLeft, BookOpen, Receipt } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, guest, guestSession, menu, scannedQr, type GuestOrderStatus } from "@/lib/api";
 import { GuestError } from "@/components/GuestError";
 import { GuestBillScreen } from "@/components/GuestBillScreen";
-import { GuestMenuView } from "@/components/GuestMenuView";
-import { FixedBottomBar, GuestOrderBar, GuestOrderSent } from "@/components/GuestOrderBar";
 import { RestaurantHero } from "@/components/RestaurantHero";
 import type { GuestView } from "@/lib/guest-view";
+import "@/lib/i18n-guest";
+
+/*
+ * Pedir desde la carta se carga al abrir la carta: quien escanea para pagar,
+ * que es casi todo el mundo, no descarga el carrito, la hoja deslizante ni sus
+ * librerías.
+ */
+const GuestMenuView = lazy(() =>
+  import("@/components/GuestMenuView").then((m) => ({ default: m.GuestMenuView })),
+);
+const orderBar = () => import("@/components/GuestOrderBar");
+const GuestOrderBar = lazy(() => orderBar().then((m) => ({ default: m.GuestOrderBar })));
+const GuestOrderSent = lazy(() => orderBar().then((m) => ({ default: m.GuestOrderSent })));
+const FixedBottomBar = lazy(() => orderBar().then((m) => ({ default: m.FixedBottomBar })));
 
 type View = GuestView | "landing";
 
@@ -260,7 +272,7 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
 
   if (view === "menu") {
     return (
-      <>
+      <Suspense fallback={null}>
         <GuestMenuView
           restaurantId={context.restaurant.id}
           branding={context.restaurant}
@@ -304,7 +316,7 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
             }}
           />
         )}
-      </>
+      </Suspense>
     );
   }
 

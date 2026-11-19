@@ -1,5 +1,6 @@
 import { useI18n } from "@/lib/i18n";
 import { ApiError } from "@/lib/api";
+import "@/lib/i18n-guest";
 
 /**
  * Lo que ve un comensal cuando algo sale mal.

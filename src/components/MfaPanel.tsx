@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ApiError, auth } from "@/lib/api";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useI18n } from "@/lib/i18n";
+import "@/lib/i18n-staff";
 
 /**
  * El segundo factor de quien está mirando, y de nadie más.

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth } from "@/lib/api";
+import "@/lib/i18n-staff";
 
 /**
  * Cómo quiere que le llamen quien está mirando.

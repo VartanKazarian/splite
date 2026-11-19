@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { API_BASE_URL, formatMoney, menu, type PublicMenu, type PublicProduct } from "@/lib/api";
 import { formatRate, formatValueDate, vesEquivalent } from "@/lib/menu-price";
 import { GuestError } from "@/components/GuestError";
+import "@/lib/i18n-guest";
 
 /**
  * La carta, tal y como la lee un comensal sentado en la mesa.

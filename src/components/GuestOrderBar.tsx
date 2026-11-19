@@ -21,6 +21,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import "@/lib/i18n-guest";
 
 /**
  * Una barra pegada abajo, y el hueco que se reserva para ella.

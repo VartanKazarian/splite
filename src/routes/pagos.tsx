@@ -31,6 +31,7 @@ import { PanelHeader } from "@/components/PanelHeader";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { StatementImport } from "@/components/panel/StatementImport";
 import { formatDateTime } from "../lib/dates";
+import "@/lib/i18n-staff";
 
 export const Route = createFileRoute("/pagos")({
   head: () => ({

@@ -3,6 +3,7 @@ import { HandCoins } from "lucide-react";
 
 import { formatBps, formatMoney, payments } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import "@/lib/i18n-staff";
 
 /**
  * Lo que ha ganado en propinas quien está mirando.

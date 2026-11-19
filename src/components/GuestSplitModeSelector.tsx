@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { useI18n } from "@/lib/i18n";
 import type { SplitMode } from "@/lib/api";
+import "@/lib/i18n-guest";
 
 /**
  * Cómo paga el comensal su parte, una vez que dijo «Dividir la cuenta».

@@ -12,6 +12,7 @@ import {
   type SubscriptionView,
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import "@/lib/i18n-staff";
 
 const field =
   "min-h-11 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring";

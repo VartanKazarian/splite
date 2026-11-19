@@ -25,6 +25,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, bills, staffSession, tables as tablesApi } from "@/lib/api";
 import { canManageTables } from "@/lib/roles";
+import "@/lib/i18n-staff";
 
 type Search = { filtro?: FloorFilter };
 

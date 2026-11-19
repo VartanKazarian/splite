@@ -14,6 +14,7 @@ import {
 import { detectDelimiter, guessColumns, parseStatement, type Delimiter } from "@/lib/statement";
 import { useI18n } from "@/lib/i18n";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import "@/lib/i18n-staff";
 
 /** Filas por llamada: lo que acepta el servidor. */
 const BATCH = 500;

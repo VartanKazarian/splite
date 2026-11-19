@@ -6,6 +6,7 @@ import { guest } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { useRememberedPayment } from "@/lib/guest-payment";
 import { recallRating, rememberRating, type Rated } from "@/lib/feedback";
+import "@/lib/i18n-guest";
 
 /**
  * «¿Qué tal todo?», después de pagar (R20).

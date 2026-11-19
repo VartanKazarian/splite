@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { guest, ApiError } from "@/lib/api";
 import { useI18n, type Key } from "@/lib/i18n";
 import { recallPayerEmail, useRememberedPayment } from "@/lib/guest-payment";
+import "@/lib/i18n-guest";
 
 /**
  * «¿Necesitas factura?», al final y junto al recibo.

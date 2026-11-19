@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, orders } from "@/lib/api";
 import { Switch } from "@/components/ui/switch";
+import "@/lib/i18n-staff";
 
 /**
  * Si el primer pedido de cada teléfono nuevo espera a que la sala lo apruebe.

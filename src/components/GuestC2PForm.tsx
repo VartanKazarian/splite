@@ -14,6 +14,7 @@ import {
 } from "@/lib/api";
 import { demoBanks } from "@/lib/demo-banks";
 import { useI18n } from "@/lib/i18n";
+import "@/lib/i18n-guest";
 
 const ID_TYPES = ["V", "E", "J", "G", "P", "C"] as const;
 

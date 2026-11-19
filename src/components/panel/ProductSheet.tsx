@@ -28,6 +28,7 @@ import {
 } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { vesEquivalent } from "@/lib/menu-price";
+import "@/lib/i18n-staff";
 
 const TAX_CATEGORIES: ProductTaxCategory[] = ["TAXABLE", "EXEMPT", "EXONERATED", "NON_TAXABLE"];
 

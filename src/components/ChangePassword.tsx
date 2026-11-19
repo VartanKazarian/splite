@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, errorFields } from "@/lib/api";
+import "@/lib/i18n-staff";
 
 /** El mínimo del servidor. Decirlo antes ahorra un viaje y un 400. */
 const MIN_PASSWORD = 12;

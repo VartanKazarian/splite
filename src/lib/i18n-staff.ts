@@ -530,7 +530,6 @@ export const staffStrings = defineStrings({
     ratesSaved: "Guardado",
     openBillsUnaffected:
       "Guardado. {n} cuenta(s) abierta(s) mantienen las tarifas anteriores. Ciérralas para aplicar las nuevas.",
-    ratesRange: "Escribe un porcentaje entre 0 y 100",
     deactivateOthers: "Desactivarlos",
     deleteOthersPermanently: "Eliminar definitivamente",
     permanentDeleteConfirm:
@@ -1225,7 +1224,6 @@ export const staffStrings = defineStrings({
     ratesSaved: "Saved",
     openBillsUnaffected:
       "Saved. {n} open bill(s) keep the previous rates. Close them to apply the new ones.",
-    ratesRange: "Enter a percentage between 0 and 100",
     deactivateOthers: "Deactivate them",
     deleteOthersPermanently: "Delete permanently",
     permanentDeleteConfirm:

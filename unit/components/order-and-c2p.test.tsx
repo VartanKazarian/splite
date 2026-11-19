@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import { GuestC2PForm } from "../../src/components/GuestC2PForm";
 import { GuestOrderBar } from "../../src/components/GuestOrderBar";
+import { GuestSplitProgress } from "../../src/components/GuestSplitProgress";
 import type { PublicProduct } from "../../src/lib/api";
 import { renderGuest } from "./render";
 import { signInGuest, stubApi } from "./api-stub";
@@ -237,5 +238,49 @@ describe("pagar con C2P", () => {
       .to("POST", C2P)
       .map((c) => (c.body as { idempotencyKey: string }).idempotencyKey);
     expect(second).not.toBe(first);
+  });
+});
+
+describe("ponerle nombre a tu parte", () => {
+  const share = (ref: string) => ({
+    id: `id-${ref}`,
+    ref,
+    name: null,
+    amountVes: "500000",
+    amountPaidVes: "0",
+    remainingVes: "500000",
+    settled: false,
+    usdReference: null,
+  });
+  const split = {
+    id: "s1",
+    billId: "b1",
+    mode: "EQUAL" as const,
+    status: "ACTIVE" as const,
+    currency: "VES" as const,
+    basisVes: "1000000",
+    createdByType: "GUEST" as const,
+    participants: [share("p1"), share("p2")],
+  };
+
+  test("si no se guarda, lo dice en vez de quedarse callado", async () => {
+    globalThis.fetch = (() =>
+      Promise.reject(new TypeError("Failed to fetch"))) as unknown as typeof fetch;
+    const changed: number[] = [];
+    renderGuest(
+      <GuestSplitProgress
+        split={split}
+        mineRef="p1"
+        onPick={() => {}}
+        onChanged={() => changed.push(1)}
+      />,
+    );
+    const user = userEvent.setup();
+
+    await user.type(screen.getByTestId("guest-share-name"), "Ana");
+    await user.click(screen.getByTestId("guest-share-name-save"));
+
+    expect(await screen.findByText(/No hemos podido conectar/)).toBeTruthy();
+    expect(changed).toEqual([]);
   });
 });

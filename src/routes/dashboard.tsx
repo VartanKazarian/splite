@@ -26,6 +26,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useI18n } from "@/lib/i18n";
+import { canReadFeedback as canReadFeedbackFor } from "@/lib/roles";
+import { FeedbackCard } from "@/components/FeedbackCard";
 import {
   ApiError,
   auth,
@@ -89,6 +91,7 @@ function Dashboard() {
     enabled: ready,
     retry: false,
   });
+  const canReadFeedback = canReadFeedbackFor(me.data?.user.role);
 
   useEffect(() => {
     // Sólo si la sesión ya se acabó de verdad: `apiRequest` la borra cuando el
@@ -510,6 +513,10 @@ function Dashboard() {
             {/* Encima de las mesas: es lo que acaba de pasar, y lo de abajo es
                 el estado. Desaparece sola cuando no hay nada. */}
             <OrderTray onOpenTable={(tableId) => setSelectedId(tableId)} />
+
+            {/* Lo que dicen los comensales (R20). Sólo dueño y encargado:
+                es lo que el servidor les deja leer. */}
+            {canReadFeedback && <FeedbackCard />}
           </aside>
 
           <section aria-labelledby="live-tables-heading" className="min-w-0 lg:col-start-1">

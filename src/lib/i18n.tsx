@@ -299,6 +299,29 @@ const dict = {
     pushDenied:
       "Los avisos de esta web están bloqueados en este navegador. Permítelos en los ajustes del navegador (el candado junto a la dirección) y vuelve aquí.",
     pushServerOff: "Los avisos no están disponibles en este momento.",
+    rateTitle: "¿Qué tal todo?",
+    rateHint: "Tu opinión le llega al restaurante. Sólo la ven ellos.",
+    rateStars: "{n} de 5",
+    rateCommentLabel: "¿Algo que contarles? (opcional)",
+    rateSend: "Enviar",
+    rateFailed: "No se pudo enviar. Inténtalo de nuevo.",
+    rateThanks: "¡Gracias por contarnos!",
+    rateGoogleAsk: "¿Nos ayudas contándolo también en Google?",
+    rateGoogleButton: "Dejar una reseña en Google",
+    receiptShareWhatsApp: "Enviar el recibo a mi WhatsApp",
+    receiptShareFailed: "No se pudo preparar el enlace. Inténtalo de nuevo.",
+    receiptShareText: "Recibo de {restaurant} · {date} · {amount}\n{url}",
+    sharedReceiptInvalidTitle: "Este enlace no sirve",
+    sharedReceiptInvalidBody:
+      "Puede que haya caducado (duran seis meses) o que se haya copiado mal. Pídele el recibo al restaurante.",
+    googleReviewUrl: "Enlace de reseñas de Google",
+    googleReviewUrlHint:
+      "Después de pagar, se le ofrece a cada comensal que valora, sea cual sea su nota. Cópialo de tu ficha de Google Business: «Pedir reseñas».",
+    googleReviewUrlInvalid:
+      "Tiene que ser un enlace de Google (g.page, maps.app.goo.gl, google.com…).",
+    feedbackTitle: "Opiniones · 30 días",
+    feedbackEmpty: "Todavía no hay. Los comensales valoran al terminar de pagar desde el QR.",
+    feedbackCount: "de {n} opiniones",
     howManyDiners: "¿Entre cuántos se divide?",
     dinersFewer: "Una persona menos",
     dinersMore: "Una persona más",
@@ -1015,6 +1038,8 @@ const dict = {
     receiptReference: "Referencia",
     receiptNotFiscal:
       "Este recibo deja constancia de tu pago. No es una factura fiscal: no lleva número de control, no lo emite una imprenta autorizada y no sirve para desgravar. Si necesitas factura, pídela arriba.",
+    receiptNotFiscalShared:
+      "Este recibo deja constancia de un pago. No es una factura fiscal: no lleva número de control, no lo emite una imprenta autorizada y no sirve para desgravar. La factura se le pide al restaurante.",
     invoiceAskTitle: "¿Necesitas factura?",
     invoiceAskBody: "La mayoría no la necesita. Si es tu caso, no hace falta que hagas nada.",
     invoiceFinalConsumer: "Pedir factura",
@@ -1700,6 +1725,28 @@ const dict = {
     pushDenied:
       "Notifications from this site are blocked in this browser. Allow them in the browser settings (the lock next to the address) and come back here.",
     pushServerOff: "Notifications are not available right now.",
+    rateTitle: "How was everything?",
+    rateHint: "Your feedback goes to the restaurant. Only they see it.",
+    rateStars: "{n} of 5",
+    rateCommentLabel: "Anything to tell them? (optional)",
+    rateSend: "Send",
+    rateFailed: "It could not be sent. Try again.",
+    rateThanks: "Thanks for telling us!",
+    rateGoogleAsk: "Would you help by sharing it on Google too?",
+    rateGoogleButton: "Leave a Google review",
+    receiptShareWhatsApp: "Send the receipt to my WhatsApp",
+    receiptShareFailed: "The link could not be prepared. Try again.",
+    receiptShareText: "Receipt from {restaurant} · {date} · {amount}\n{url}",
+    sharedReceiptInvalidTitle: "This link does not work",
+    sharedReceiptInvalidBody:
+      "It may have expired (they last six months) or been copied wrong. Ask the restaurant for the receipt.",
+    googleReviewUrl: "Google review link",
+    googleReviewUrlHint:
+      "After paying, it is offered to every diner who rates, whatever their score. Copy it from your Google Business profile: “Ask for reviews”.",
+    googleReviewUrlInvalid: "It must be a Google link (g.page, maps.app.goo.gl, google.com…).",
+    feedbackTitle: "Feedback · 30 days",
+    feedbackEmpty: "None yet. Diners rate when they finish paying from the QR.",
+    feedbackCount: "from {n} ratings",
     howManyDiners: "How many are splitting?",
     dinersFewer: "One person fewer",
     dinersMore: "One person more",
@@ -2406,6 +2453,8 @@ const dict = {
     receiptReference: "Reference",
     receiptNotFiscal:
       "This receipt records your payment. It is not a fiscal invoice: no control number, not issued by an authorised printer, and no use for deducting tax. If you need an invoice, ask for one above.",
+    receiptNotFiscalShared:
+      "This receipt records a payment. It is not a fiscal invoice: no control number, not issued by an authorised printer, and no use for deducting tax. Invoices are requested from the restaurant.",
     invoiceAskTitle: "Need an invoice?",
     invoiceAskBody: "Most people do not. If that is you, there is nothing to do.",
     invoiceFinalConsumer: "Request invoice",

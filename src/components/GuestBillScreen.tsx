@@ -30,6 +30,7 @@ import { GuestSplitModeSelector } from "@/components/GuestSplitModeSelector";
 import { GuestSplitProgress } from "@/components/GuestSplitProgress";
 import { GuestStepIndicator } from "@/components/GuestStepIndicator";
 import { GuestReceipt } from "@/components/GuestReceipt";
+import { GuestRateMeal } from "@/components/GuestRateMeal";
 import { recallPayment } from "@/lib/guest-payment";
 import { demoBill, demoSplit } from "@/lib/demo-bill";
 
@@ -577,6 +578,9 @@ export function GuestBillScreen({
           «cuando el restaurante confirme» no tendría dónde cumplirse.
         */}
         {!demo && <GuestInvoiceOffer />}
+        {/* «¿Qué tal todo?» (R20): entre la factura, que caduca, y el recibo,
+            que es el registro. */}
+        {!demo && <GuestRateMeal />}
         {/* Debajo de la oferta: primero la acción que caduca -- pedir factura --
             y después el recibo, que es el registro y no se va a ninguna parte. */}
         {!demo && <GuestReceipt />}
@@ -1167,6 +1171,7 @@ export function GuestBillScreen({
           quedaba a la vista era un recibo, que parece que todo terminó, en vez
           de «por verificar». El propio recibo dice que va debajo de todo. */}
       {!demo && <GuestInvoiceOffer />}
+      {!demo && <GuestRateMeal />}
       {!demo && <GuestReceipt />}
 
       {/* ---------------------------------------------------------------

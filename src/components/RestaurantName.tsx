@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, account, type Account } from "@/lib/api";
+import { isGoogleReviewUrl } from "@/lib/feedback";
 
 /**
  * El nombre del restaurante.
@@ -21,6 +22,7 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [review, setReview] = useState("");
 
   const accountQuery = useQuery({
     queryKey: ["account"],
@@ -34,10 +36,12 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
     if (!accountQuery.data) return;
     setName(accountQuery.data.name ?? "");
     setAddress(accountQuery.data.fiscalAddress ?? "");
+    setReview(accountQuery.data.googleReviewUrl ?? "");
   }, [accountQuery.data]);
 
   const savedName = accountQuery.data?.name ?? "";
   const savedAddress = accountQuery.data?.fiscalAddress ?? "";
+  const savedReview = accountQuery.data?.googleReviewUrl ?? "";
 
   const save = useMutation({
     // Sólo lo que cambió. Mandar los dos campos siempre es como se renombra un
@@ -46,6 +50,7 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
       account.updateProfile({
         ...(name.trim() !== savedName ? { name: name.trim() } : {}),
         ...(address.trim() !== savedAddress ? { fiscalAddress: address.trim() } : {}),
+        ...(review.trim() !== savedReview ? { googleReviewUrl: review.trim() } : {}),
       }),
     onSuccess: (data: Account) => {
       queryClient.setQueryData(["account"], data);
@@ -65,7 +70,13 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
   // nombre no es una pantalla que se pueda enseñar. La dirección sí: vaciarla
   // es la forma de quitar una mal escrita.
   const nameOk = trimmed.length > 0;
-  const dirty = nameOk && (trimmed !== savedName || address.trim() !== savedAddress);
+  // El enlace de Google sólo si es de Google (lo mismo que exige el servidor);
+  // vacío vale, que es como se quita.
+  const reviewOk = review.trim() === "" || isGoogleReviewUrl(review.trim());
+  const dirty =
+    nameOk &&
+    reviewOk &&
+    (trimmed !== savedName || address.trim() !== savedAddress || review.trim() !== savedReview);
 
   return (
     <section className="surface mt-6 p-6">
@@ -108,6 +119,28 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
           className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring disabled:opacity-50"
         />
         <p className="text-xs text-muted-foreground">{t("restaurantAddressHint")}</p>
+        {/* R20: adónde se invita a dejar una reseña después de pagar. Va aquí
+            porque es lo mismo -- lo que el cliente ve de este local -- y el
+            mismo endpoint. */}
+        <label htmlFor="restaurant-google-review" className="field-label mt-2">
+          {t("googleReviewUrl")}
+        </label>
+        <input
+          id="restaurant-google-review"
+          type="url"
+          inputMode="url"
+          value={review}
+          maxLength={500}
+          disabled={!canEdit || accountQuery.isLoading}
+          onChange={(e) => setReview(e.target.value)}
+          placeholder="https://g.page/r/…/review"
+          aria-invalid={!reviewOk}
+          aria-describedby="restaurant-google-review-hint"
+          className="w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring disabled:opacity-50 aria-[invalid=true]:border-destructive"
+        />
+        <p id="restaurant-google-review-hint" className="text-xs text-muted-foreground">
+          {reviewOk ? t("googleReviewUrlHint") : t("googleReviewUrlInvalid")}
+        </p>
         <button
           disabled={!canEdit || !dirty || save.isPending}
           onClick={() => save.mutate()}

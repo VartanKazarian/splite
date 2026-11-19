@@ -2,6 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { ApiError, onboarding } from "@/lib/api";
+import { LangToggle } from "@/components/LangToggle";
+import { useI18n, type Key } from "@/lib/i18n";
+import { publicStrings } from "@/lib/i18n-public";
 
 type Search = { token?: string };
 
@@ -47,6 +50,7 @@ export const Route = createFileRoute("/registro_/verificar")({
 const MIN_PASSWORD = 12;
 
 function Verificar() {
+  const { t } = useI18n(publicStrings);
   const { token } = Route.useSearch();
   const navigate = useNavigate();
 
@@ -69,20 +73,14 @@ function Verificar() {
   if (!token) {
     return (
       <Shell>
-        <h1 className="text-3xl">Falta el enlace</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Esta página se abre desde el enlace que te enviamos por correo. Ábrelo desde ahí —
-          copiarlo a mano suele cortar el final.
-        </p>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Si no encuentras el correo, escríbenos respondiendo al que recibiste cuando enviaste la
-          solicitud y te mandamos otro.
-        </p>
+        <h1 className="text-3xl">{t("verifyMissingTitle")}</h1>
+        <p className="mt-3 text-sm text-muted-foreground">{t("verifyMissingBody")}</p>
+        <p className="mt-3 text-sm text-muted-foreground">{t("verifyMissingHelp")}</p>
         <Link
           to="/"
           className="mt-6 inline-flex rounded-full border border-border px-5 py-3 text-sm"
         >
-          Volver al inicio
+          {t("verifyBackHome")}
         </Link>
       </Shell>
     );
@@ -100,10 +98,13 @@ function Verificar() {
       navigate({ to: "/dashboard" });
     } catch (err) {
       if (!(err instanceof ApiError)) {
-        setError({ text: "No pudimos contactar con el servidor. Intenta de nuevo." });
+        setError({ text: t("verifyErrNetwork") });
         return;
       }
-      setError({ ...messageFor(err), ...(err.requestId ? { requestId: err.requestId } : {}) });
+      setError({
+        text: t(messageKey(err)).replace("{min}", String(MIN_PASSWORD)),
+        ...(err.requestId ? { requestId: err.requestId } : {}),
+      });
     } finally {
       setPending(false);
     }
@@ -111,17 +112,15 @@ function Verificar() {
 
   return (
     <Shell>
-      <h1 className="text-3xl">Activa tu cuenta</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Elige una contraseña y entras directo al panel.
-      </p>
+      <h1 className="text-3xl">{t("verifyTitle")}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">{t("verifySub")}</p>
 
       <form method="post" onSubmit={submit} className="mt-6">
         <label
           htmlFor="verify-password"
           className="block text-xs uppercase tracking-widest text-muted-foreground"
         >
-          Contraseña
+          {t("password")}
         </label>
         <input
           id="verify-password"
@@ -139,15 +138,15 @@ function Verificar() {
         />
         <p id="verify-password-hint" className="mt-2 text-xs text-muted-foreground">
           {tooShort
-            ? `Faltan ${MIN_PASSWORD - password.length} caracteres.`
-            : `Mínimo ${MIN_PASSWORD} caracteres.`}
+            ? t("verifyPasswordShort").replace("{n}", String(MIN_PASSWORD - password.length))
+            : t("verifyPasswordMin").replace("{min}", String(MIN_PASSWORD))}
         </p>
 
         <label
           htmlFor="verify-confirm"
           className="mt-4 block text-xs uppercase tracking-widest text-muted-foreground"
         >
-          Repite la contraseña
+          {t("verifyConfirm")}
         </label>
         <input
           id="verify-confirm"
@@ -170,7 +169,7 @@ function Verificar() {
         */}
         {mismatch && (
           <p id="verify-confirm-error" className="mt-2 text-xs text-destructive">
-            Las dos contraseñas no coinciden.
+            {t("verifyMismatch")}
           </p>
         )}
 
@@ -179,7 +178,7 @@ function Verificar() {
             <p className="text-muted-foreground">{error.text}</p>
             {error.requestId && (
               <p className="mt-1 break-all text-[11px] text-muted-foreground">
-                Referencia: {error.requestId}
+                {t("verifyReference")}: {error.requestId}
               </p>
             )}
           </div>
@@ -190,7 +189,7 @@ function Verificar() {
           disabled={!canSubmit}
           className="mt-6 w-full rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {pending ? "Activando…" : "Activar cuenta"}
+          {pending ? t("verifySubmitting") : t("verifySubmit")}
         </button>
       </form>
     </Shell>
@@ -200,40 +199,30 @@ function Verificar() {
 /**
  * Qué decirle a un restaurante por cada código del servidor.
  *
- * En castellano y sin el código, al revés que la pantalla de entrar: allí quien
+ * Sin el código, al revés que la pantalla de entrar: allí quien
  * mira es del equipo y el código ayuda; aquí es alguien que abrió un correo y
  * para quien `ONBOARDING_TOKEN_INVALID` no significa nada. El requestId sí se
  * enseña, porque es lo único que sirve si acaba escribiéndonos.
  */
-function messageFor(err: ApiError): { text: string } {
+function messageKey(err: ApiError): Key {
   switch (err.code) {
     case "ONBOARDING_TOKEN_INVALID":
-      return {
-        text:
-          "Este enlace ya no sirve: caduca a las pocas horas y sólo se puede usar una vez. " +
-          "Si ya activaste la cuenta, entra con tu contraseña. Si no, escríbenos y te mandamos otro.",
-      };
+      return "verifyErrTokenInvalid";
     case "VALIDATION_FAILED":
-      return { text: `La contraseña no cumple el mínimo de ${MIN_PASSWORD} caracteres.` };
+      return "verifyErrPassword";
     case "RATE_LIMITED":
-      return { text: "Demasiados intentos. Espera unos minutos y vuelve a probar." };
+      return "verifyErrRateLimited";
     case "RATE_LIMITER_UNAVAILABLE":
-      return {
-        text: "No podemos procesar la activación ahora mismo. Intenta de nuevo en unos minutos.",
-      };
+      return "verifyErrUnavailable";
     case "ONBOARDING_NOT_CONFIGURED":
-      return {
-        text: "El registro no está habilitado en este momento. Escríbenos y lo resolvemos.",
-      };
+      return "verifyErrNotConfigured";
     // Sólo pueden aparecer si alguien se registró entre la invitación y este
     // envío: inviteLead ya los comprueba, y esto es la carrera intermedia.
     case "EMAIL_ALREADY_REGISTERED":
     case "RIF_ALREADY_REGISTERED":
-      return {
-        text: "Ya existe una cuenta con estos datos. Entra con tu contraseña, o escríbenos si no la reconoces.",
-      };
+      return "verifyErrExists";
     default:
-      return { text: "Algo salió mal de nuestro lado. Intenta de nuevo." };
+      return "verifyErrGeneric";
   }
 }
 
@@ -244,6 +233,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <Link to="/" className="font-display text-2xl">
           Splite
         </Link>
+        <LangToggle />
       </header>
       <main className="flex flex-1 items-center justify-center px-5 pb-20">
         <div className="surface w-full max-w-sm p-8 shadow-[var(--shadow-glow)]">{children}</div>

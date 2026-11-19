@@ -84,7 +84,11 @@ export function GuestSplitModeSelector({ selected, onSelect, onPayWhole }: Props
               data-testid={`guest-split-mode-${option.id}`}
               aria-pressed={isSelected}
               onClick={() => onSelect(option.id)}
-              className={`flex min-h-11 items-center justify-center gap-1.5 rounded-full px-2 text-center text-[14px] font-medium leading-tight transition-colors ${
+              // Una línea siempre que quepa: en un Android normal (412 px)
+              // «Partes iguales» se partía en dos con el icono al lado. El
+              // icono sólo aparece con sitio de sobra, y el texto baja a 13 px
+              // antes de partirse; en los teléfonos más estrechos se parte.
+              className={`flex min-h-11 items-center justify-center gap-1.5 rounded-full px-1 text-center text-[13px] font-medium leading-tight transition-colors min-[380px]:whitespace-nowrap min-[480px]:px-2 min-[480px]:text-[14px] ${
                 isSelected
                   ? "bg-primary text-primary-foreground"
                   : "text-foreground hover:bg-secondary"
@@ -98,7 +102,7 @@ export function GuestSplitModeSelector({ selected, onSelect, onPayWhole }: Props
                 strokeWidth={1.6}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="hidden h-4 w-4 shrink-0 min-[400px]:block"
+                className="hidden h-4 w-4 shrink-0 min-[520px]:block"
               >
                 {ICONS[option.id]}
               </svg>

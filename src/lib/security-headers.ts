@@ -19,13 +19,25 @@
  *   `<img>` o un formulario.
  *
  * `frame-ancestors` evita que otra web meta el panel en un marco invisible para
- * que alguien pulse «Confirmar: el dinero llegó» sin saberlo. Se deja a
- * Lovable, cuyo editor enseña la vista previa en un marco.
+ * que alguien pulse «Confirmar: el dinero llegó» sin saberlo. Lovable, cuyo
+ * editor enseña la vista previa en un marco, sólo puede en sus propias
+ * direcciones: en splite.lat, la web de verdad, nadie más que ella misma.
  *
  * Sólo en producción: en desarrollo Vite recarga por WebSocket y mete estilos
  * y scripts propios, y una política que los bloquee sólo estorba.
  */
-export function securityHeaders(apiBaseUrl: string, nonce?: string): Record<string, string> {
+/** La web publicada en su dominio, donde ningún editor necesita enmarcarla. */
+function isProductionHost(host: string | undefined): boolean {
+  if (!host) return false;
+  const name = host.split(":")[0]?.toLowerCase() ?? "";
+  return name === "splite.lat" || name.endsWith(".splite.lat");
+}
+
+export function securityHeaders(
+  apiBaseUrl: string,
+  nonce?: string,
+  host?: string,
+): Record<string, string> {
   let api = "";
   try {
     api = new URL(apiBaseUrl).origin;
@@ -46,7 +58,9 @@ export function securityHeaders(apiBaseUrl: string, nonce?: string): Record<stri
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'self' https://lovable.dev https://*.lovable.dev https://*.lovable.app",
+    isProductionHost(host)
+      ? "frame-ancestors 'self'"
+      : "frame-ancestors 'self' https://lovable.dev https://*.lovable.dev https://*.lovable.app",
   ].join("; ");
   return {
     "Content-Security-Policy": csp,
@@ -66,11 +80,12 @@ export function withSecurityHeaders(
   response: Response,
   apiBaseUrl: string,
   nonce?: string,
+  host?: string,
 ): Response {
   const type = response.headers.get("content-type") ?? "";
   if (!type.includes("text/html")) return response;
   const headers = new Headers(response.headers);
-  for (const [name, value] of Object.entries(securityHeaders(apiBaseUrl, nonce))) {
+  for (const [name, value] of Object.entries(securityHeaders(apiBaseUrl, nonce, host))) {
     if (!headers.has(name)) headers.set(name, value);
   }
   return new Response(response.body, {

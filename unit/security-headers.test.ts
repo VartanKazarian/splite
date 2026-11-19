@@ -35,6 +35,20 @@ describe("securityHeaders", () => {
     expect(directive(csp, "object-src")).toEqual(["'none'"]);
   });
 
+  test("en splite.lat, ni el editor de Lovable puede enmarcar las páginas de pago", () => {
+    for (const host of ["splite.lat", "www.splite.lat", "splite.lat:443"]) {
+      const prod = securityHeaders(API, "n0nce", host)["Content-Security-Policy"] ?? "";
+      expect(directive(prod, "frame-ancestors")).toEqual(["'self'"]);
+    }
+    const preview =
+      securityHeaders(API, "n0nce", "splite.lovable.app")["Content-Security-Policy"] ?? "";
+    expect(directive(preview, "frame-ancestors")).toContain("https://*.lovable.app");
+    // Un nombre que sólo termina igual no cuenta como la web de verdad.
+    const lookalike =
+      securityHeaders(API, "n0nce", "evilsplite.lat")["Content-Security-Policy"] ?? "";
+    expect(directive(lookalike, "frame-ancestors")).toContain("https://lovable.dev");
+  });
+
   test("una API mal escrita no abre la puerta a cualquier origen", () => {
     const broken = securityHeaders("no es una url")["Content-Security-Policy"] ?? "";
     expect(directive(broken, "connect-src")).toEqual(["'self'"]);

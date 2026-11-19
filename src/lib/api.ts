@@ -310,9 +310,23 @@ export type QrContext = {
 const STAFF_KEY = "splite.staff.session";
 const GUEST_KEY = "splite.guest.session";
 
+/**
+ * La sesión del personal, guardada en este navegador.
+ *
+ * Con un respaldo en memoria: `localStorage` lanza cuando el navegador tiene
+ * los datos bloqueados, y eso tumbaba el panel entero. Así se puede entrar y
+ * trabajar; la sesión sólo no sobrevive a recargar la página.
+ */
+const memoryStore = new Map<string, string>();
+
 function readStore<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
-  const raw = window.localStorage.getItem(key);
+  let raw: string | null;
+  try {
+    raw = window.localStorage.getItem(key);
+  } catch {
+    raw = memoryStore.get(key) ?? null;
+  }
   if (!raw) return null;
   try {
     return JSON.parse(raw) as T;
@@ -323,8 +337,13 @@ function readStore<T>(key: string): T | null {
 
 function writeStore(key: string, value: unknown | null) {
   if (typeof window === "undefined") return;
-  if (value === null) window.localStorage.removeItem(key);
-  else window.localStorage.setItem(key, JSON.stringify(value));
+  try {
+    if (value === null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    if (value === null) memoryStore.delete(key);
+    else memoryStore.set(key, JSON.stringify(value));
+  }
 }
 
 export const staffSession = {
@@ -346,22 +365,47 @@ const QR_KEY = "splite.guest.qr";
  * pestaña, no se comparte entre ellas, y no sobrevive a devolver el móvil. No es
  * un secreto -- está impreso en la mesa -- pero tampoco tiene por qué quedarse.
  */
+/**
+ * `sessionStorage` sin romper. Igual que la sesión del personal: un navegador
+ * con los datos bloqueados lanza al leer, y aquí eso dejaba a un comensal sin
+ * poder abrir su cuenta. Con el respaldo en memoria funciona; sólo no
+ * sobrevive a recargar.
+ */
+const tabMemory = new Map<string, string>();
+const tabStore = {
+  get(key: string): string | null {
+    try {
+      return window.sessionStorage.getItem(key);
+    } catch {
+      return tabMemory.get(key) ?? null;
+    }
+  },
+  set(key: string, value: string | null) {
+    try {
+      if (value === null) window.sessionStorage.removeItem(key);
+      else window.sessionStorage.setItem(key, value);
+    } catch {
+      if (value === null) tabMemory.delete(key);
+      else tabMemory.set(key, value);
+    }
+  },
+};
+
 export const scannedQr = {
   get: (): string | null => {
     if (typeof window === "undefined") return null;
-    return window.sessionStorage.getItem(QR_KEY);
+    return tabStore.get(QR_KEY);
   },
   set: (token: string | null) => {
     if (typeof window === "undefined") return;
-    if (token === null) window.sessionStorage.removeItem(QR_KEY);
-    else window.sessionStorage.setItem(QR_KEY, token);
+    tabStore.set(QR_KEY, token);
   },
 };
 
 export const guestSession = {
   get: (): GuestSession | null => {
     if (typeof window === "undefined") return null;
-    const raw = window.sessionStorage.getItem(GUEST_KEY);
+    const raw = tabStore.get(GUEST_KEY);
     if (!raw) return null;
     try {
       return JSON.parse(raw) as GuestSession;
@@ -371,8 +415,7 @@ export const guestSession = {
   },
   set: (s: GuestSession | null) => {
     if (typeof window === "undefined") return;
-    if (s === null) window.sessionStorage.removeItem(GUEST_KEY);
-    else window.sessionStorage.setItem(GUEST_KEY, JSON.stringify(s));
+    tabStore.set(GUEST_KEY, s === null ? null : JSON.stringify(s));
   },
 };
 

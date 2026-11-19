@@ -8,33 +8,80 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
+import { SITE_URL } from "@/lib/site";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { I18nProvider } from "@/lib/i18n";
+import { storedLang } from "@/lib/stored-lang";
 import { Toaster } from "@/components/ui/sonner";
 import { installTelemetry, reportError } from "@/lib/telemetry";
 
+/**
+ * Lo que dicen las pantallas de «no existe» y «algo falló», en los dos idiomas.
+ *
+ * Estaban en inglés -- «Page not found», «This page didn't load» -- en un
+ * producto en español, y la de error se pinta fuera del proveedor de idioma
+ * (sustituye a todo el árbol), así que no puede usar el diccionario. Lleva su
+ * propio par de frases y lee el idioma guardado directamente.
+ */
+const FALLBACK_COPY = {
+  es: {
+    notFoundTitle: "Esta página no existe",
+    notFoundBody: "Puede que el enlace esté mal copiado o que la página se haya movido.",
+    errorTitle: "Esta página no cargó",
+    errorBody:
+      "Algo falló de nuestro lado. Prueba otra vez; si estabas pagando, tu pago no se ha perdido.",
+    retry: "Probar otra vez",
+    back: "Volver",
+    home: "Ir al inicio",
+  },
+  en: {
+    notFoundTitle: "This page does not exist",
+    notFoundBody: "The link may have been copied wrong, or the page has moved.",
+    errorTitle: "This page didn't load",
+    errorBody:
+      "Something went wrong on our side. Try again; if you were paying, your payment is not lost.",
+    retry: "Try again",
+    back: "Go back",
+    home: "Go home",
+  },
+} as const;
+
+/** En español al pintar en el servidor; el guardado, después: sin desajuste al hidratar. */
+function useFallbackCopy() {
+  const [lang, setLang] = useState<"es" | "en">("es");
+  useEffect(() => {
+    const stored = storedLang();
+    if (stored) setLang(stored);
+  }, []);
+  return FALLBACK_COPY[lang];
+}
+
+const primaryButton =
+  "inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90";
+const secondaryButton =
+  "inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-background px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary";
+
 function NotFoundComponent() {
+  const copy = useFallbackCopy();
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
+        <p className="font-display text-6xl text-muted-foreground">404</p>
+        <h1 className="mt-4 text-xl font-semibold text-foreground">{copy.notFoundTitle}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{copy.notFoundBody}</p>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <button type="button" onClick={() => window.history.back()} className={secondaryButton}>
+            {copy.back}
+          </button>
+          <Link to="/" className={primaryButton}>
+            {copy.home}
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -44,39 +91,34 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
+  const copy = useFallbackCopy();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
     reportError(error);
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">{copy.errorTitle}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{copy.errorBody}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
+            type="button"
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className={primaryButton}
           >
-            Try again
+            {copy.retry}
           </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
+          <a href="/" className={secondaryButton}>
+            {copy.home}
           </a>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -105,8 +147,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Con un QR por mesa, cada comensal ve la cuenta, elige lo que consumió y paga su parte desde su banco. Tu equipo deja de dividir cuentas.",
       },
-      { property: "og:image", content: "https://splite.lovable.app/og-image.jpg" },
-      { name: "twitter:image", content: "https://splite.lovable.app/og-image.jpg" },
+      { property: "og:image", content: `${SITE_URL}/og-image.jpg` },
+      { name: "twitter:image", content: `${SITE_URL}/og-image.jpg` },
       { name: "google-site-verification", content: "xcKZYGfBHKsmRvI-POFUilb7g1rWM8oe8-WafMDgmT4" },
     ],
     links: [

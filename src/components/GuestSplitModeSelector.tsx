@@ -4,52 +4,33 @@ import { useI18n } from "@/lib/i18n";
 import type { SplitMode } from "@/lib/api";
 
 /**
- * Cómo quiere pagar el comensal, dicho en su idioma.
+ * Cómo paga el comensal su parte, una vez que dijo «Dividir la cuenta».
  *
- * Las cuatro opciones existían como una rejilla de dos por dos con las
- * etiquetas del modelo -- «Elegir productos», «Monto personalizado» --, que son
- * nombres de implementación: describen lo que hace el servidor, no lo que va a
- * hacer quien lee. Aquí se llaman «Solo lo que consumí» y «Elegir cuánto pago»,
- * que es lo que diría alguien en una mesa.
+ * Antes era una lista de cuatro filas, y la primera era «Pagar toda la
+ * cuenta»: la misma opción que el botón grande de al lado de «Dividir», que el
+ * comensal acababa de pasar de largo. Para marcar lo suyo hacían falta tres
+ * toques -- dividir, «Solo lo que consumí», el primer plato --, con el total de
+ * la cuenta ocupando la pantalla entre medias (R13).
  *
- * Una fila por opción y no una rejilla: a media pantalla los textos largos se
- * parten en dos líneas y las cuatro celdas dejan de medir igual, que es
- * exactamente la sensación de formulario que esto viene a quitar.
- *
- * Sin subtítulo bajo cada título. Los tenía, y repetían el título con otras
- * palabras -- «Pagar toda la cuenta / Cubres el saldo completo» --; lo que la
- * pantalla no puede enseñar es el importe de cada opción, y ése no se sabe sin
- * pedirle al servidor una previsualización por modo. Así que el icono y el
- * título, y nada más.
+ * Ahora, al dividir se entra ya en «Lo mío» con los platos para marcar, que es
+ * lo que hace casi todo el mundo en una mesa. Las otras dos formas quedan a un
+ * toque en un selector de tres, y volver a pagar la cuenta entera es un enlace
+ * debajo: es deshacer «Dividir», no una forma de dividir.
  *
  * `aria-pressed` y no un `role` inventado: son botones de verdad, con foco y
- * con el estado dicho en voz alta por el lector de pantalla. El color no es lo
- * único que marca el seleccionado -- también el borde y el fondo -- porque el
- * color solo no llega a quien no lo distingue.
+ * con el estado dicho en voz alta. El seleccionado se distingue por el relleno
+ * y no sólo por el color.
  */
 
 type Props = {
-  /**
-   * La opción marcada, o `null` si todavía no se ha elegido ninguna.
-   *
-   * Nula y no «la que haya»: el estado del reparto arranca en FULL porque
-   * alguien tiene que ser el valor por defecto, y pintar «Pagar toda la
-   * cuenta» como activa justo después de pulsar «Dividir la cuenta» hace
-   * creer que no se registró lo que se pidió. Quién es «ninguna» lo decide
-   * quien llama, que es quien sabe si ya hubo elección.
-   */
-  selected: SplitMode | null;
-  onSelect: (mode: SplitMode) => void;
+  /** La forma elegida. Nunca FULL: pagar la cuenta entera es `onPayWhole`. */
+  selected: Exclude<SplitMode, "FULL">;
+  onSelect: (mode: Exclude<SplitMode, "FULL">) => void;
+  /** Deshacer «Dividir»: volver a pagar la cuenta entera. */
+  onPayWhole: () => void;
 };
 
-const ICONS: Record<SplitMode, ReactNode> = {
-  FULL: (
-    <>
-      <path d="M3 9h18" />
-      <rect x="3" y="5" width="18" height="14" rx="2.5" />
-      <path d="M7 15h4" />
-    </>
-  ),
+const ICONS: Record<Exclude<SplitMode, "FULL">, ReactNode> = {
   ITEMS: (
     <>
       <path d="M7 3v8a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3" />
@@ -74,54 +55,66 @@ const ICONS: Record<SplitMode, ReactNode> = {
   ),
 };
 
-export function GuestSplitModeSelector({ selected, onSelect }: Props) {
+export function GuestSplitModeSelector({ selected, onSelect, onPayWhole }: Props) {
   const { t } = useI18n();
 
-  const options: { id: SplitMode; label: string }[] = [
-    { id: "FULL", label: t("payAll") },
-    { id: "ITEMS", label: t("splitItems") },
-    { id: "EQUAL", label: t("splitEven") },
-    { id: "CUSTOM", label: t("custom") },
+  const options: { id: Exclude<SplitMode, "FULL">; label: string }[] = [
+    { id: "ITEMS", label: t("splitTabItems") },
+    { id: "EQUAL", label: t("splitTabEven") },
+    { id: "CUSTOM", label: t("splitTabCustom") },
   ];
 
   return (
-    <div className="flex flex-col gap-2">
-      {options.map((option) => {
-        const isSelected = selected === option.id;
-        return (
-          <button
-            key={option.id}
-            type="button"
-            data-testid={`guest-split-mode-${option.id}`}
-            aria-pressed={isSelected}
-            onClick={() => onSelect(option.id)}
-            /* El trazo, a `--border-strong` como la pareja de la barra: son
-               cuatro opciones entre iguales y el borde es lo único que las
-               dibuja. Con el borde normal contrastaban 1,23:1 contra la crema
-               -- por debajo del 3:1 que piden las WCAG para el contorno de un
-               control -- y sobre esta pantalla se leían como texto suelto. */
-            className={`flex min-h-[56px] w-full items-center gap-3.5 rounded-2xl border-[1.5px] px-4 py-3 text-left transition-colors ${
-              isSelected
-                ? "border-primary bg-primary/10 text-foreground"
-                : "border-border-strong bg-card text-foreground hover:bg-secondary"
-            }`}
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.6}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={`h-[22px] w-[22px] shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground"}`}
+    <div>
+      <p className="field-label">{t("splitHowYouPay")}</p>
+      <div
+        role="group"
+        aria-label={t("splitHowYouPay")}
+        /* El trazo a `--border-strong`, como el resto de controles de esta
+           pantalla: con el borde normal el contorno no llega al 3:1 de las
+           WCAG contra la crema. */
+        className="mt-2 grid grid-cols-3 gap-1 rounded-full border-[1.5px] border-border-strong bg-card p-1"
+      >
+        {options.map((option) => {
+          const isSelected = selected === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              data-testid={`guest-split-mode-${option.id}`}
+              aria-pressed={isSelected}
+              onClick={() => onSelect(option.id)}
+              className={`flex min-h-11 items-center justify-center gap-1.5 rounded-full px-2 text-center text-[14px] font-medium leading-tight transition-colors ${
+                isSelected
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-secondary"
+              }`}
             >
-              {ICONS[option.id]}
-            </svg>
-            <span className="text-[15px] font-medium">{option.label}</span>
-          </button>
-        );
-      })}
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="hidden h-4 w-4 shrink-0 min-[400px]:block"
+              >
+                {ICONS[option.id]}
+              </svg>
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        data-testid="guest-split-cancel"
+        onClick={onPayWhole}
+        className="mt-3 w-full text-center text-xs text-muted-foreground underline-offset-2 hover:underline"
+      >
+        {t("splitPayWholeInstead")}
+      </button>
     </div>
   );
 }

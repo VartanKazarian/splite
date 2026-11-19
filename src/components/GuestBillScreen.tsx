@@ -426,11 +426,16 @@ export function GuestBillScreen({
     // ocurriendo donde nadie lo ve.
 
     const steps: [number, () => void][] = [
-      [700, () => setSplitOpen(true)],
+      [
+        700,
+        () => {
+          setSplitOpen(true);
+          setMode("ITEMS");
+        },
+      ],
       // Bajar el marco hasta donde está pasando la cosa. Sin esto el reparto
       // ocurre por debajo del borde y la demo parece que no hace nada.
       [900, () => scrollFrameTo(splitPanelRef.current)],
-      [1600, () => setMode("ITEMS")],
       [2500, () => setMine({ [first.id]: 1 })],
       [3400, () => setMine(mineFinal)],
       [4600, () => setStep(2)],
@@ -838,16 +843,20 @@ export function GuestBillScreen({
               una opción escondida dentro de la tarjeta. */}
           {step !== 1 || !splitOpen ? null : (
             <GuestSplitModeSelector
-              // Mientras el modo siga en FULL nadie ha elegido cómo repartir:
-              // es el valor por defecto del estado, no una decisión.
-              selected={mode === "FULL" ? null : mode}
+              // Al abrir el reparto se entra en «Lo mío» (R13); FULL aquí
+              // sólo puede ser un instante antes de que eso se aplique.
+              selected={mode === "FULL" ? "ITEMS" : mode}
               onSelect={(next) => {
                 setMode(next);
                 setPreview(null);
-                // "Pagar toda la cuenta" no es una forma de dividir: es decir
-                // que no se divide. Así que cierra el panel y devuelve la
-                // pareja de botones, en vez de dejar abierto un reparto de uno.
-                if (next === "FULL") setSplitOpen(false);
+              }}
+              // "Pagar toda la cuenta" no es una forma de dividir: es decir
+              // que no se divide. Cierra el panel y devuelve la pareja de
+              // botones, en vez de dejar abierto un reparto de uno.
+              onPayWhole={() => {
+                setMode("FULL");
+                setPreview(null);
+                setSplitOpen(false);
               }}
             />
           )}
@@ -1182,6 +1191,10 @@ export function GuestBillScreen({
                 data-testid="guest-split-open"
                 onClick={() => {
                   setSplitOpen(true);
+                  // Directo a marcar lo suyo, que es lo que hace casi todo el
+                  // mundo; las otras formas quedan a un toque (R13).
+                  setMode("ITEMS");
+                  setPreview(null);
                   // Una fila por opción lee mejor que la rejilla de antes, pero
                   // ocupa más alto: medido a 390 px, la cuarta quedaba debajo
                   // de la barra. Llevar la vista al panel las pone las cuatro

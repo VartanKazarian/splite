@@ -27,6 +27,7 @@ import "@/lib/i18n-guest";
  * aparte y la emite una imprenta autorizada.
  */
 export function GuestReceipt() {
+  const { t } = useI18n();
   const paymentId = useRememberedPayment();
 
   const query = useQuery({
@@ -36,17 +37,65 @@ export function GuestReceipt() {
     retry: false,
   });
 
+  /*
+   * El mismo estado que mira la oferta de factura de encima, con la misma
+   * clave: una sola petición para los dos, y se repite sola mientras el cobro
+   * esté por verificar. El recibo se pide una vez; sin esto se quedaba en
+   * «pendiente» aunque el restaurante confirmara con el comensal delante.
+   */
+  const status = useQuery({
+    queryKey: ["guest-payment", paymentId],
+    queryFn: () => guest.paymentStatus(paymentId as string),
+    enabled: Boolean(paymentId),
+    refetchInterval: (q) => (q.state.data && q.state.data.status !== "PENDING" ? false : 8000),
+    retry: false,
+  });
+
   // Sin pago recordado no hay recibo que enseñar, y mientras no se sepa qué
   // dice no se enseña un esqueleto: esto va debajo de todo y no bloquea nada.
   if (!paymentId || query.isPending || query.isError || !query.data) return null;
 
+  const receipt: Receipt = status.data
+    ? { ...query.data, payment: { ...query.data.payment, status: status.data.status } }
+    : query.data;
+  const confirmed = receipt.payment.status === "SUCCEEDED";
+  // «Pídela arriba» sólo si arriba hay dónde: la oferta no sale cuando el
+  // restaurante no factura o la factura ya está pedida.
+  const invoiceAbove =
+    Boolean(status.data) &&
+    status.data?.canRequestInvoice !== false &&
+    status.data?.invoiced !== true;
+
   return (
     <ReceiptView
-      receipt={query.data}
-      footer={<ShareReceiptOnWhatsApp paymentId={paymentId} receipt={query.data} />}
+      receipt={receipt}
+      invoiceAbove={invoiceAbove}
+      footer={
+        // Un recibo que se manda al grupo de la cena se lee como «pagado». Hasta
+        // que el restaurante lo confirme no lo es, así que no se comparte.
+        confirmed ? (
+          <ShareReceiptOnWhatsApp paymentId={paymentId} receipt={receipt} />
+        ) : (
+          <p className="hint">{t("receiptShareAfterConfirm")}</p>
+        )
+      }
     />
   );
 }
+
+/** Lo que el comensal necesita saber del estado, en tres casos y no en seis. */
+function statusOf(status: Receipt["payment"]["status"]) {
+  if (status === "SUCCEEDED") return { key: "receiptStatusSucceeded", tone: "ok" } as const;
+  if (status === "FAILED" || status === "CANCELLED")
+    return { key: "receiptStatusFailed", tone: "bad" } as const;
+  return { key: "receiptStatusPending", tone: "wait" } as const;
+}
+
+const TONE = {
+  ok: "text-success",
+  bad: "text-destructive",
+  wait: "text-foreground",
+} as const;
 
 /**
  * El recibo pintado, venga de donde venga: del teléfono que pagó o del enlace
@@ -56,9 +105,12 @@ export function ReceiptView({
   receipt,
   footer,
   shared = false,
+  invoiceAbove = false,
 }: {
   receipt: Receipt;
   footer?: ReactNode;
+  /** Encima está la oferta de factura: el pie puede remitir a ella. */
+  invoiceAbove?: boolean;
   /** Abierto desde el enlace: no hay «arriba» donde pedir la factura. */
   shared?: boolean;
 }) {
@@ -66,6 +118,7 @@ export function ReceiptView({
   const { bill, payment, restaurant, table } = receipt;
   const currency = bill.currency;
   const money = (minor: string) => formatMoney(minor, currency);
+  const state = statusOf(payment.status);
 
   return (
     <section className="surface mt-4 overflow-hidden p-0" aria-label={t("receiptTitle")}>
@@ -83,12 +136,23 @@ export function ReceiptView({
           <dt>{t("receiptTable")}</dt>
           <dd>{table.name}</dd>
           <dt>{t("receiptBillId")}</dt>
-          {/* El identificador completo y no un trozo: es el que se cita para
-              reclamar, y medio UUID no sirve para encontrar nada. */}
-          <dd className="break-all font-mono">{bill.id}</dd>
+          {/* Ocho caracteres y no el UUID entero. Los 36 ocupaban dos líneas
+              de un recibo de teléfono y nadie los dicta; para encontrar la
+              cuenta bastan, junto con la mesa y la fecha de al lado. */}
+          <dd className="font-mono uppercase">{bill.id.replace(/-/g, "").slice(0, 8)}</dd>
           <dt>{t("receiptDate")}</dt>
           <dd>{formatDateTime(payment.declaredAt, lang)}</dd>
         </dl>
+        {/* El estado, arriba y con palabras. Sin él un aviso todavía sin
+            verificar parecía un recibo de pago cobrado. */}
+        <p
+          className={`mt-3 text-sm font-medium ${TONE[state.tone]}`}
+          data-testid="receipt-status"
+          data-status={payment.status}
+        >
+          <span className="sr-only">{t("receiptStatus")}: </span>
+          {t(state.key)}
+        </p>
       </header>
 
       {/* LA CUENTA DE LA MESA. Idéntica en el recibo de cada comensal. */}
@@ -195,6 +259,7 @@ export function ReceiptView({
       */}
       <p className="hint border-t border-border px-5 py-3">
         {t(shared ? "receiptNotFiscalShared" : "receiptNotFiscal")}
+        {!shared && invoiceAbove ? ` ${t("receiptAskInvoiceAbove")}` : ""}
       </p>
       {footer ? <div className="border-t border-border px-5 py-4">{footer}</div> : null}
     </section>

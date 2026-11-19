@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
+import { LangToggle } from "@/components/LangToggle";
 import {
   ApiError,
   guest,
@@ -371,6 +372,9 @@ export function GuestBillScreen({
             <ArrowLeft className="h-4 w-4" /> {t("backToTable")}
           </button>
         )}
+        {/* Sólo en la mesa de verdad: en la demo de la página comercial el
+            idioma lo lleva la página. */}
+        {onBack && <LangToggle />}
       </header>
 
       {demo && (

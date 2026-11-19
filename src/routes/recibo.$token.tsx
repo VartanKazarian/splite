@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import { ApiError, sharedReceipts } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -29,7 +30,9 @@ export const Route = createFileRoute("/recibo/$token")({
 
 function SharedReceiptPage() {
   const { token } = Route.useParams();
-  const { t } = useI18n(guestStrings);
+  const { t, adoptBrowserLang } = useI18n(guestStrings);
+  // Un enlace mandado por WhatsApp lo abre cualquiera del grupo, en su teléfono.
+  useEffect(() => adoptBrowserLang(), []); // eslint-disable-line react-hooks/exhaustive-deps
   const query = useQuery({
     queryKey: ["shared-receipt", token],
     queryFn: () => sharedReceipts.get(token),

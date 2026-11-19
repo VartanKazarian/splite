@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
+import { LangToggle } from "@/components/LangToggle";
 import { ApiError } from "@/lib/api";
 import { GuestError } from "@/components/GuestError";
 import { recallPayment } from "@/lib/guest-payment";
@@ -63,6 +64,9 @@ export function Shell({ children, onBack }: { children: React.ReactNode; onBack?
             <ArrowLeft className="h-4 w-4" /> {t("backToTable")}
           </button>
         )}
+        {/* Sólo en la mesa de verdad: en la demo de la página comercial el
+            idioma lo lleva la página. */}
+        {onBack && <LangToggle />}
       </header>
       <div className="surface p-6">{children}</div>
     </div>

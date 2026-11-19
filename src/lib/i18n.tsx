@@ -1989,7 +1989,8 @@ const dict = {
     noTablesYet: "You have no tables yet.",
     noTablesYetHint: "Create the first one so you can put codes on the floor.",
     noTablesYetHintStaff: "Tables are created by the owner or a manager.",
-    payConfirmedByCashier: "The cashier confirms it against the bank. You will see here when it lands.",
+    payConfirmedByCashier:
+      "The cashier confirms it against the bank. You will see here when it lands.",
     noTablesMatch: "No table matches.",
     createTableTitle: "Create table",
     bulkTitle: "Create several tables",

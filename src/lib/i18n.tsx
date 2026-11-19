@@ -1,3 +1,4 @@
+import { storedLang } from "@/lib/stored-lang";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 export type Lang = "es" | "en";
@@ -278,6 +279,9 @@ const dict = {
     allocated: "Ya repartido",
     claimItems: "Asigna cada producto",
     selectYourItems: "Selecciona los productos que vas a pagar",
+    pricesInCurrencyHint:
+      "Precios en {currency}. Pagas en bolívares, a la tasa BCV del día que se abrió la cuenta.",
+    ofLineTotal: "de {total}",
     pushTitle: "Avisos en este teléfono",
     pushWhatCashier: "Te llega cada pago por verificar, aunque tengas el teléfono bloqueado.",
     pushWhatWaiter:
@@ -1679,6 +1683,9 @@ const dict = {
     allocated: "Already split",
     claimItems: "Claim every item",
     selectYourItems: "Select the items you are paying for",
+    pricesInCurrencyHint:
+      "Prices in {currency}. You pay in bolívares, at the BCV rate of the day the bill was opened.",
+    ofLineTotal: "of {total}",
     pushTitle: "Notifications on this phone",
     pushWhatCashier: "Every payment to verify reaches you, even with your phone locked.",
     pushWhatWaiter:
@@ -2836,12 +2843,21 @@ const Ctx = createContext<{
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>("es");
   useEffect(() => {
-    const stored = window.localStorage.getItem("mesa-lang");
-    if (stored === "en" || stored === "es") setLang(stored);
+    const stored = storedLang();
+    if (stored) setLang(stored);
   }, []);
+  // El idioma del documento sigue al de la pantalla: un lector de pantalla lee
+  // con la voz de `lang`, y con la página en inglés seguía leyendo en español.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
   const update = (l: Lang) => {
     setLang(l);
-    window.localStorage.setItem("mesa-lang", l);
+    try {
+      window.localStorage.setItem("mesa-lang", l);
+    } catch {
+      /* se queda en este idioma hasta recargar; nada más */
+    }
   };
   return (
     <Ctx.Provider

@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "@/lib/api";
@@ -19,7 +20,9 @@ export const Route = createFileRoute("/registro")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { property: "og:url", content: `${SITE_URL}/registro` },
     ],
+    links: [{ rel: "canonical", href: `${SITE_URL}/registro` }],
   }),
   component: Registro,
 });

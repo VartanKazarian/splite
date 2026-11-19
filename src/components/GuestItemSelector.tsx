@@ -61,6 +61,14 @@ export function GuestItemSelector({ items, mine, currency, onChange }: Props) {
   return (
     <div className="mt-5 space-y-2.5">
       <p className="field-label">{t("selectYourItems")}</p>
+      {/* La carta puede estar en dólares o euros y el pago siempre es en
+          bolívares: dicho aquí, donde se ven los precios, y no sólo en el
+          botón de abajo, que ya habla en Bs. */}
+      {currency !== "VES" ? (
+        <p className="hint -mt-1" data-testid="guest-items-currency">
+          {t("pricesInCurrencyHint").replace("{currency}", currency === "EUR" ? "€" : "$")}
+        </p>
+      ) : null}
 
       {items.map((item) => {
         const max = item.quantity ?? 1;
@@ -87,7 +95,7 @@ export function GuestItemSelector({ items, mine, currency, onChange }: Props) {
             >
               <Tick on={on} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[15px]">{item.name}</span>
+                <span className="block break-words text-[15px]">{item.name}</span>
               </span>
               <span className={`money-md shrink-0 ${on ? "" : "text-muted-foreground"}`}>
                 {formatMoney(item.subtotalMinor, currency)}
@@ -107,13 +115,32 @@ export function GuestItemSelector({ items, mine, currency, onChange }: Props) {
             >
               <Tick on={on} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[15px]">{item.name}</span>
+                <span className="block break-words text-[15px]">{item.name}</span>
                 <span className="money-sm block text-muted-foreground">
                   {formatMoney(item.unitPriceMinor, currency)} {t("perUnit")}
                 </span>
               </span>
-              <span className={`money-md shrink-0 ${on ? "" : "text-muted-foreground"}`}>
-                {formatMoney(lineTotal.toString(), currency)}
+              {/* El total de la línea mientras no se ha tocado; lo tuyo, con el
+                  total debajo, en cuanto pides algo. Antes salía «$0,00» al
+                  lado de platos de 8 $, y se leía «gratis». */}
+              <span className="shrink-0 text-right">
+                {on ? (
+                  <>
+                    <span className="money-md block">
+                      {formatMoney(lineTotal.toString(), currency)}
+                    </span>
+                    <span className="money-sm block text-muted-foreground">
+                      {t("ofLineTotal").replace(
+                        "{total}",
+                        formatMoney(item.subtotalMinor, currency),
+                      )}
+                    </span>
+                  </>
+                ) : (
+                  <span className="money-md text-muted-foreground">
+                    {formatMoney(item.subtotalMinor, currency)}
+                  </span>
+                )}
               </span>
             </button>
 

@@ -99,10 +99,7 @@ export function MenuPdfCard() {
         <p className="text-xs text-muted-foreground">{t("menuPdfMeta")}</p>
       </div>
 
-      <p className="mt-2 text-sm text-muted-foreground">
-        Si ya tienes la carta diseñada, súbela y el comensal podrá leerla al escanear la mesa. No
-        sustituye a los productos: la cuenta se sigue armando con los precios de arriba.
-      </p>
+      <p className="mt-2 text-sm text-muted-foreground">{t("menuPdfIntro")}</p>
 
       {doc.isLoading && <p className="mt-4 text-sm text-muted-foreground">{t("loading")}</p>}
 
@@ -171,9 +168,7 @@ export function MenuPdfCard() {
             <Upload className="h-4 w-4" />
             {upload.isPending ? t("pdfUploading") : current ? t("pdfReplace") : t("pdfUpload")}
           </button>
-          <p className="mt-2 text-xs text-muted-foreground">
-            PDF, hasta 20 MB. También puedes arrastrarla aquí.
-          </p>
+          <p className="mt-2 text-xs text-muted-foreground">{t("menuPdfLimits")}</p>
         </div>
       )}
     </section>

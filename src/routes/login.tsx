@@ -125,17 +125,14 @@ function Login() {
             onSubmit={submitCode}
             className="surface w-full max-w-sm p-8 shadow-[var(--shadow-glow)]"
           >
-            <h1 className="text-3xl">Código de verificación</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Abre tu app de autenticación y escribe el código de seis dígitos. También sirve uno de
-              tus códigos de recuperación.
-            </p>
+            <h1 className="text-3xl">{t("mfaLoginTitle")}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{t("mfaLoginBody")}</p>
 
             <label
               htmlFor="login-code"
               className="mt-6 block text-xs uppercase tracking-widest text-muted-foreground"
             >
-              Código
+              {t("mfaLoginCode")}
             </label>
             <input
               id="login-code"
@@ -174,7 +171,7 @@ function Login() {
               }}
               className="mt-3 w-full text-xs text-muted-foreground underline-offset-2 hover:underline"
             >
-              Volver
+              {t("mfaLoginBack")}
             </button>
           </form>
         ) : (

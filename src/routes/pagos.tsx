@@ -659,7 +659,7 @@ function PaymentsPage() {
                 <p className="mt-1 text-xs text-muted-foreground">{t("tipsTodayHint")}</p>
                 <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
                   <div>
-                    <dt className="text-xs text-muted-foreground">Total</dt>
+                    <dt className="text-xs text-muted-foreground">{t("total")}</dt>
                     <dd className="mt-1 figure">
                       {formatMoney(tipsQuery.data.totalTipsVes, "VES")}
                     </dd>

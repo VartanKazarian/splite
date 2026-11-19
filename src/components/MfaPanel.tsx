@@ -78,7 +78,7 @@ export function MfaPanel() {
       // Se enseñan una sola vez: el servidor guarda un hash, así que si se
       // cierra esta pantalla sin copiarlos ya no hay forma de volver a verlos.
       setCodes(r.recoveryCodes);
-      toast.success("Segundo factor activado");
+      toast.success(t("mfaEnabledToast"));
       refresh();
     },
     onError: fail,
@@ -89,7 +89,7 @@ export function MfaPanel() {
     onSuccess: () => {
       setCode("");
       setCodes(null);
-      toast.success("Segundo factor desactivado");
+      toast.success(t("mfaDisabledToast"));
       refresh();
     },
     onError: fail,
@@ -132,31 +132,22 @@ export function MfaPanel() {
     <section className="surface mt-4 p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="inline-flex items-center gap-2 text-xl">
-          <ShieldCheck className="h-5 w-5 text-muted-foreground" /> Verificación en dos pasos
+          <ShieldCheck className="h-5 w-5 text-muted-foreground" /> {t("mfaTitle")}
         </h2>
         {!status.isLoading && !unavailable && (
           <span className="text-xs text-muted-foreground">
-            {enabled ? "Activada" : "Desactivada"}
+            {enabled ? t("mfaOn") : t("mfaOff")}
           </span>
         )}
       </div>
 
       {status.isLoading && <p className="mt-2 text-sm text-muted-foreground">{t("loading")}</p>}
 
-      {unavailable && (
-        <p className="mt-2 text-sm text-muted-foreground">
-          El servidor todavía no tiene configurada la clave con la que se guardan los segundos
-          factores, así que esto no se puede activar. Falta una variable de entorno en el
-          despliegue.
-        </p>
-      )}
+      {unavailable && <p className="mt-2 text-sm text-muted-foreground">{t("mfaUnavailable")}</p>}
 
       {!status.isLoading && !unavailable && (
         <>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Además de la contraseña, un código de tu móvil. Protege tu cuenta aunque alguien
-            averigüe la contraseña. Sólo afecta a la tuya: nadie puede activarla ni quitarla por ti.
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("mfaIntro")}</p>
 
           {/* --- ya activada --- */}
           {enabled && !codes && (
@@ -202,9 +193,7 @@ export function MfaPanel() {
           {/* --- activando: el secreto existe, todavía no vale --- */}
           {!enabled && secret && (
             <div className="mt-4 grid gap-3 rounded-lg border border-border bg-secondary p-4">
-              <p className="text-sm">
-                1. Añádelo a tu app de autenticación (Google Authenticator, 1Password, Aegis…).
-              </p>
+              <p className="text-sm">{t("mfaStep1")}</p>
               <code className="block break-all rounded-lg bg-background px-3 py-2 text-xs">
                 {secret.secret}
               </code>
@@ -213,7 +202,7 @@ export function MfaPanel() {
                 className="text-xs underline underline-offset-2"
                 rel="noreferrer"
               >
-                Abrir en la app
+                {t("mfaOpenInApp")}
               </a>
               <form
                 onSubmit={(e) => {

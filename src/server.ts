@@ -67,7 +67,9 @@ export default {
       const response = await normalizeCatastrophicSsrResponse(
         await handler.fetch(withNonceHeader(request, nonce), env, ctx),
       );
-      return import.meta.env.PROD ? withSecurityHeaders(response, API_BASE_URL, nonce) : response;
+      return import.meta.env.PROD
+        ? withSecurityHeaders(response, API_BASE_URL, nonce, new URL(request.url).host)
+        : response;
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

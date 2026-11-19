@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://splite.lovable.app/sitemap.xml
+Sitemap: https://splite.lat/sitemap.xml

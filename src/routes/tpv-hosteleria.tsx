@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -22,10 +23,10 @@ export const Route = createFileRoute("/tpv-hosteleria")({
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESC },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://splite.lovable.app/tpv-hosteleria" },
+      { property: "og:url", content: `${SITE_URL}/tpv-hosteleria` },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://splite.lovable.app/tpv-hosteleria" }],
+    links: [{ rel: "canonical", href: `${SITE_URL}/tpv-hosteleria` }],
   }),
   component: TpvHosteleria,
 });

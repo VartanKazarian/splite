@@ -32,8 +32,6 @@ import {
   ApiError,
   auth,
   bills,
-  errorFields,
-  errorFieldsText,
   formatMinor,
   parseMinorInput,
   formatMoney,
@@ -48,6 +46,7 @@ import {
   type TillPaymentMethod,
 } from "@/lib/api";
 import { PanelHeader } from "@/components/PanelHeader";
+import { staffErrorText } from "@/lib/staff-errors";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -269,18 +268,14 @@ function Dashboard() {
     },
     onError: (error) => {
       if (error instanceof ApiError) {
-        toast.error(`${error.code} · ${error.message}`);
+        toast.error(staffErrorText(error, t));
       } else {
         toast.error(t("apiDown"));
       }
     },
   });
 
-  const fail = (error: unknown) => {
-    if (!(error instanceof ApiError)) return toast.error(t("apiDown"));
-    const fields = errorFieldsText(error);
-    return toast.error(`${error.code} · ${fields || error.message}`);
-  };
+  const fail = (error: unknown) => toast.error(staffErrorText(error, t));
 
   // Abrir con total 0 es lo que permite luego itemizar la cuenta con el menú.
   const openBill = useMutation({
@@ -621,31 +616,6 @@ function Dashboard() {
           onSubmit={() => payMutation.mutate()}
           pending={payMutation.isPending}
         />
-      )}
-    </div>
-  );
-}
-
-export function ErrorBox({ error, fallback }: { error: unknown; fallback: string }) {
-  const api = error instanceof ApiError ? error : null;
-  const fields = Object.entries(errorFields(error));
-  return (
-    <div className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs">
-      <p className="font-medium text-destructive">{api?.code ?? "NETWORK_ERROR"}</p>
-      <p className="mt-1 text-muted-foreground">{api?.message ?? fallback}</p>
-      {fields.length > 0 && (
-        <ul className="mt-1 space-y-0.5 text-muted-foreground">
-          {fields.map(([field, message]) => (
-            <li key={field}>
-              <span className="text-destructive">{field}</span>: {message}
-            </li>
-          ))}
-        </ul>
-      )}
-      {api?.requestId && (
-        <p className="mt-1 break-all text-[11px] text-muted-foreground">
-          Request ID: {api.requestId}
-        </p>
       )}
     </div>
   );

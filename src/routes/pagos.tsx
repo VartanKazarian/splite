@@ -19,7 +19,7 @@ import {
   type BankMatch,
   type StaffPaymentClaim,
 } from "@/lib/api";
-import { ErrorBox } from "@/routes/dashboard";
+import { ErrorBox } from "@/components/ErrorBox";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MyTipsCard } from "@/components/MyTipsCard";
@@ -32,6 +32,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { StatementImport } from "@/components/panel/StatementImport";
 import { formatDateTime } from "../lib/dates";
 import { staffStrings } from "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 export const Route = createFileRoute("/pagos")({
   head: () => ({
@@ -196,8 +197,7 @@ function PaymentsPage() {
   const refreshTips = () =>
     queryClient.invalidateQueries({ queryKey: ["payment-tips-today", todayFrom] });
 
-  const fail = (error: unknown) =>
-    toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
+  const fail = (error: unknown) => toast.error(staffErrorText(error, t));
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["payment-claims"] });

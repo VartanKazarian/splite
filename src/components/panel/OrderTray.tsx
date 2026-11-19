@@ -13,6 +13,7 @@ import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, bills, formatMoney, orders, type GuestOrder } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { canAssignServer } from "@/lib/roles";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /**
  * Lo que los comensales acaban de pedir desde su mesa.
@@ -70,8 +71,7 @@ export function OrderTray({ onOpenTable }: { onOpenTable?: (tableId: string) => 
     void queryClient.invalidateQueries({ queryKey: ["service-snapshot"] });
   };
 
-  const fail = (error: unknown) =>
-    toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
+  const fail = (error: unknown) => toast.error(staffErrorText(error, t));
 
   // El sonido no está aquí: lo lleva la cabecera del panel, que está en todas
   // las pantallas. Ver `useOrderChime`. Las dos comparten la misma consulta.

@@ -7,6 +7,7 @@ import { ApiError, auth } from "@/lib/api";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useI18n } from "@/lib/i18n";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /**
  * El segundo factor de quien está mirando, y de nadie más.
@@ -57,7 +58,7 @@ export function MfaPanel() {
     if (error.code === "MFA_KEY_MISSING") setKeyMissing(true);
     const known = say[error.code];
     if (known) return toast.error(known);
-    return toast.error(`${error.code} · ${error.message}`);
+    return toast.error(staffErrorText(error, t));
   };
 
   const begin = useMutation({

@@ -9,7 +9,6 @@ import {
   ApiError,
   auth,
   bills,
-  errorFieldsText,
   formatBps,
   currencySymbol,
   formatFxRate,
@@ -46,6 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /**
  * Una mesa abierta por dentro: sus líneas, sus totales y qué se puede hacer.
@@ -155,11 +155,7 @@ export function TableDetail({
     total: bill?.totalDue ?? "0",
   };
 
-  const fail = (error: unknown) => {
-    if (!(error instanceof ApiError)) return toast.error(t("apiDown"));
-    const fields = errorFieldsText(error);
-    return toast.error(`${error.code} · ${fields || error.message}`);
-  };
+  const fail = (error: unknown) => toast.error(staffErrorText(error, t));
 
   const refreshBill = () => {
     queryClient.invalidateQueries({ queryKey: ["floor"] });
@@ -202,7 +198,7 @@ export function TableDetail({
       queryClient.invalidateQueries({ queryKey: ["service-snapshot"] });
     },
     onError: (error) => {
-      if (error instanceof ApiError) toast.error(`${error.code} · ${error.message}`);
+      if (error instanceof ApiError) toast.error(staffErrorText(error, t));
       else toast.error(t("apiDown"));
     },
   });

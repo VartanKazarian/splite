@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, account } from "@/lib/api";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /**
  * El RIF con el que este restaurante declara.
@@ -97,7 +98,7 @@ export function FiscalRif({ canEdit }: { canEdit: boolean }) {
         toast.error(t("fiscalRifTaken"));
         return;
       }
-      if (error instanceof ApiError) toast.error(`${error.code} · ${error.message}`);
+      if (error instanceof ApiError) toast.error(staffErrorText(error, t));
       else toast.error(t("apiDown"));
     },
   });

@@ -26,6 +26,7 @@ import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, bills, staffSession, tables as tablesApi } from "@/lib/api";
 import { canManageTables } from "@/lib/roles";
 import { staffStrings } from "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 type Search = { filtro?: FloorFilter };
 
@@ -141,8 +142,7 @@ function Mesas() {
 
   const selected = tableList.find((tb) => tb.id === selectedId) ?? null;
 
-  const fail = (error: unknown) =>
-    toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
+  const fail = (error: unknown) => toast.error(staffErrorText(error, t));
 
   // Crear mesas es de dueño y encargado (R11). Hasta saber el rol se ofrece,
   // como antes; el servidor es el que dice que no.

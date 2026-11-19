@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { ApiError, orders } from "@/lib/api";
 import { Switch } from "@/components/ui/switch";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /**
  * Si el primer pedido de cada teléfono nuevo espera a que la sala lo apruebe.
@@ -36,8 +37,7 @@ export function OrderApprovalSetting({ canEdit }: { canEdit: boolean }) {
       queryClient.setQueryData(["order-settings"], data);
       toast.success(data.approveNewPhones ? t("orderApprovalOn") : t("orderApprovalOff"));
     },
-    onError: (error) =>
-      toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown")),
+    onError: (error) => toast.error(staffErrorText(error, t)),
   });
 
   // Un backend sin el ajuste todavía: no se enseña un interruptor que no hace nada.

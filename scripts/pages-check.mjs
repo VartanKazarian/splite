@@ -28,7 +28,13 @@ const BASE = `http://127.0.0.1:${PORT}`;
 
 /** Todas las claves del diccionario con alguna mayúscula: las que no son palabras normales. */
 const KEYS = new Set(
-  ["src/lib/i18n.tsx", "src/lib/i18n-guest.ts", "src/lib/i18n-staff.ts", "src/lib/i18n-public.ts"]
+  [
+    "src/lib/i18n.tsx",
+    "src/lib/i18n-guest.ts",
+    "src/lib/i18n-staff.ts",
+    "src/lib/i18n-public.ts",
+    "src/lib/i18n-errors.ts",
+  ]
     .flatMap((file) => [
       ...fs.readFileSync(file, "utf8").matchAll(/^ {4}([A-Za-z][A-Za-z0-9_]*):/gm),
     ])

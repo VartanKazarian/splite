@@ -30,7 +30,7 @@ import {
   type Product,
 } from "@/lib/api";
 import { moveBy, sortLikeMenu, withSectionOrder } from "@/lib/menu-order";
-import { ErrorBox } from "@/routes/dashboard";
+import { ErrorBox } from "@/components/ErrorBox";
 import { PanelHeader } from "@/components/PanelHeader";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { formatDateTime } from "../lib/dates";

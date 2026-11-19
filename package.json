@@ -5,6 +5,7 @@
     "./src/lib/i18n-guest.ts",
     "./src/lib/i18n-staff.ts",
     "./src/lib/i18n-public.ts",
+    "./src/lib/i18n-errors.ts",
     "*.css"
   ],
   "type": "module",

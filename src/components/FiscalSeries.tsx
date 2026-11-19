@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, account, type FiscalSeries as Series } from "@/lib/api";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /**
  * La serie fiscal autorizada.
@@ -83,7 +84,7 @@ export function FiscalSeries({ canEdit }: { canEdit: boolean }) {
         toast.error(t("fiscalSeriesLockedError"));
         return;
       }
-      if (error instanceof ApiError) toast.error(`${error.code} · ${error.message}`);
+      if (error instanceof ApiError) toast.error(staffErrorText(error, t));
       else toast.error(t("apiDown"));
     },
   });

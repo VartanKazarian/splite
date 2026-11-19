@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { ApiError, account, type Account } from "@/lib/api";
 import { isGoogleReviewUrl } from "@/lib/feedback";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /**
  * El nombre del restaurante.
@@ -61,7 +62,7 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
       toast.success(t("saved"));
     },
     onError: (error: unknown) => {
-      if (error instanceof ApiError) toast.error(`${error.code} · ${error.message}`);
+      if (error instanceof ApiError) toast.error(staffErrorText(error, t));
       else toast.error(t("apiDown"));
     },
   });

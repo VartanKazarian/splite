@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, errorFields } from "@/lib/api";
 import "@/lib/i18n-staff";
+import { staffErrorText } from "@/lib/staff-errors";
 
 /** El mínimo del servidor. Decirlo antes ahorra un viaje y un 400. */
 const MIN_PASSWORD = 12;
@@ -60,7 +61,7 @@ export function ChangePassword() {
         setFieldErrors(errorFields(error));
         return toast.error(error.message);
       }
-      return toast.error(`${error.code} · ${error.message}`);
+      return toast.error(staffErrorText(error, t));
     },
   });
 

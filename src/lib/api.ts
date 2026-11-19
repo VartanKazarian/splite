@@ -1688,6 +1688,8 @@ export type C2PChargeRequest = {
    * propina que no llegaba a cobrarse.
    */
   tipVes?: Money;
+  /** La parte de un reparto que paga este cargo. Opcional; GuestC2PForm no lo manda hoy. */
+  splitParticipantId?: string;
 };
 
 export type C2PStatus = "SUCCEEDED" | "FAILED" | "IN_DOUBT" | "AMBIGUOUS";
@@ -1698,7 +1700,6 @@ export type C2PChargeResult = {
   invoiceNumber?: string;
   bankReference?: string | null;
   reason?: string | null;
-  safeToRetry?: boolean;
   settlement?: PaymentResult;
   /** El banco no confirmó ni negó: el cargo queda pendiente de resolver. */
   requiresResolution?: boolean;

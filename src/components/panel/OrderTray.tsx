@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth, bills, formatMoney, orders, type GuestOrder } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { canAssignServer } from "@/components/BillServerPicker";
+import { canAssignServer } from "@/lib/roles";
 
 /**
  * Lo que los comensales acaban de pedir desde su mesa.

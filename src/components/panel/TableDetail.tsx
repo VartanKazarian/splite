@@ -26,7 +26,8 @@ import {
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { paidPercent } from "@/components/panel/tableStatus";
 import { AddProductsSheet } from "@/components/panel/AddProductsSheet";
-import { BillServerPicker, canAssignServer } from "@/components/BillServerPicker";
+import { BillServerPicker } from "@/components/BillServerPicker";
+import { canAssignServer } from "@/lib/roles";
 import { PaymentDrawer } from "@/components/panel/PaymentDrawer";
 import { LoadFailed } from "@/components/shell/LoadFailed";
 import {

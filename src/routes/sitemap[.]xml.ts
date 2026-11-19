@@ -1,23 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { SITE_URL as BASE_URL } from "@/lib/site";
-
-interface SitemapEntry {
-  path: string;
-  changefreq?: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
-  priority?: string;
-}
+import { INDEXABLE_PAGES, SITE_URL as BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
-        const entries: SitemapEntry[] = [
-          { path: "/", changefreq: "weekly", priority: "1.0" },
-          { path: "/registro", changefreq: "monthly", priority: "0.8" },
-          { path: "/tpv-hosteleria", changefreq: "monthly", priority: "0.8" },
-          { path: "/login", changefreq: "yearly", priority: "0.3" },
-        ];
+        const entries = INDEXABLE_PAGES;
 
         const urls = entries.map((e) =>
           [

@@ -18,6 +18,7 @@
     "test": "bun test unit",
     "size": "node scripts/bundle-budget.mjs",
     "i18n:build": "node scripts/i18n-build-check.mjs",
+    "test:pages": "node scripts/pages-check.mjs",
     "api:types": "openapi-typescript contract/openapi.json -o src/lib/api-schema.gen.ts",
     "api:sync": "node scripts/api-sync.mjs",
     "api:check": "node scripts/api-types-check.mjs",

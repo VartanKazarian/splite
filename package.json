@@ -12,6 +12,9 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "bun test unit",
     "size": "node scripts/bundle-budget.mjs",
+    "api:types": "openapi-typescript contract/openapi.json -o src/lib/api-schema.gen.ts",
+    "api:sync": "node scripts/api-sync.mjs",
+    "api:check": "node scripts/api-types-check.mjs",
     "test:smoke": "playwright test",
     "format": "prettier --write ."
   },
@@ -59,6 +62,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "nitro": "3.0.260603-beta",
+    "openapi-typescript": "7.13.0",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",

@@ -44,6 +44,9 @@ describe("el diccionario por partes", () => {
     const missing: string[] = [];
     for (const file of sources(SRC)) {
       if (/lib\/i18n(-[a-z]+)?\.tsx?$/.test(file)) continue;
+      // Sólo tipos del contrato: nombres de campos que a veces coinciden con
+      // una clave («note», «status»), pero ahí nadie traduce nada.
+      if (/lib\/api-(contract|schema\.gen)\.ts$/.test(file)) continue;
       const code = readFileSync(file, "utf8");
       // Sin comentarios: uno que cite una clave entre comillas no la usa.
       const live = code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

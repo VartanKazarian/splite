@@ -1300,6 +1300,10 @@ export type PaymentClaim = {
   declaredReference: string | null;
   createdAt: string;
   updatedAt?: string;
+  /** La propina declarada con el aviso, aparte de lo que va a la cuenta. */
+  tipVes?: string;
+  /** Lo que salió del banco: cuenta + propina. */
+  totalPaidVes?: string;
 };
 
 /** Lo que ve el personal: incluye el detalle corroborante del comensal. */
@@ -1610,6 +1614,7 @@ export type SplitPreview = {
     amountVes: Money;
     usdReference: string | null;
   }[];
+  billId?: string;
 };
 
 /** Una parte persistida del reparto: se paga contra su propio techo. */
@@ -1695,6 +1700,10 @@ export type C2PChargeResult = {
   reason?: string | null;
   safeToRetry?: boolean;
   settlement?: PaymentResult;
+  /** El banco no confirmó ni negó: el cargo queda pendiente de resolver. */
+  requiresResolution?: boolean;
+  /** Cobrado, pero algo no cuadra y lo revisa el personal. */
+  requiresStaffReview?: boolean;
 };
 
 export type C2PUnresolvedCharge = {
@@ -1780,6 +1789,8 @@ export type Account = {
   /** Adónde se invita a dejar una reseña después de pagar (R20). */
   googleReviewUrl?: string | null;
   createdAt?: string;
+  /** Adónde responden los clientes a su factura (Reply-To). */
+  contactEmail?: string | null;
 };
 
 /**
@@ -2433,6 +2444,8 @@ export type MenuOcrImportResult = {
   importedCount?: number;
   items?: Product[];
   errors?: { index?: number; name?: string; code?: string; message?: string }[];
+  /** Secciones creadas al importar. */
+  categoriesCreated?: number;
 };
 
 export const bills = {

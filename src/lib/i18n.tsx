@@ -618,6 +618,14 @@ const dict = {
     orderApprovalOff: "Aprobación desactivada",
     orderApprovalReadOnly: "Sólo el dueño o el encargado pueden cambiarlo.",
     guestOrderFailed: "No se pudo enviar. Vuelve a intentarlo.",
+    guestOrderMaybeSent:
+      "La conexión tardó demasiado y no sabemos si tu pedido llegó. Mira la cuenta antes de repetirlo: si ya aparece, está pedido.",
+    offlineRetry: "Sin conexión. Revisa tu señal e inténtalo de nuevo.",
+    offlineBanner: "Sin conexión a internet. La página se pondrá al día sola cuando vuelva.",
+    claimMaybeSent:
+      "La conexión tardó demasiado y no sabemos si tu aviso llegó. Si al repetirlo dice que la referencia ya se usó, es que el primero sí llegó.",
+    c2pErrTimeout:
+      "El banco está tardando en responder. No vuelvas a autorizar todavía: revisa tu banco en unos minutos o pregunta en caja.",
     guestOrderGone: "Algo de lo que elegiste ya no está en la carta.",
     guestReviewOrder: "Ver pedido",
     guestReviewTitle: "Tu pedido",
@@ -2043,6 +2051,14 @@ const dict = {
     orderApprovalOff: "Approval turned off",
     orderApprovalReadOnly: "Only the owner or a manager can change this.",
     guestOrderFailed: "It could not be sent. Try again.",
+    guestOrderMaybeSent:
+      "The connection took too long and we don't know if your order arrived. Check the bill before ordering again: if it's there, it's ordered.",
+    offlineRetry: "No connection. Check your signal and try again.",
+    offlineBanner: "No internet connection. The page will catch up by itself when it's back.",
+    claimMaybeSent:
+      "The connection took too long and we don't know if your notice arrived. If sending it again says the reference was already used, the first one did arrive.",
+    c2pErrTimeout:
+      "The bank is taking a while. Don't authorise again yet: check your bank in a few minutes or ask at the till.",
     guestOrderGone: "Something you chose is no longer on the menu.",
     guestReviewOrder: "Review order",
     guestReviewTitle: "Your order",

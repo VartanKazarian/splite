@@ -419,7 +419,42 @@ export const guestSession = {
   },
 };
 
+/**
+ * La red, no el servidor: no hubo respuesta.
+ *
+ * `timeout` -- se esperó y no llegó nada; la petición pudo llegar o no. `offline`
+ * -- ni salió (sin señal, DNS, conexión cortada). No es un `ApiError` a
+ * propósito: las pantallas que ya decían «no hay conexión» para lo que no es
+ * un error del servidor siguen funcionando igual, y las que necesitan
+ * distinguir lo miran.
+ */
+export class NetworkError extends Error {
+  constructor(readonly kind: "timeout" | "offline") {
+    super(kind === "timeout" ? "The request timed out" : "The network is unavailable");
+    this.name = "NetworkError";
+  }
+}
+
+/** Cuánto se espera a la API antes de rendirse. */
+const TIMEOUT_READ_MS = 15_000;
+const TIMEOUT_WRITE_MS = 30_000;
+
+/** Una señal que corta a los `ms`, también donde no existe `AbortSignal.timeout`. */
+function timeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal)
+    return AbortSignal.timeout(ms);
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 type RequestOptions = {
+  /**
+   * Cuánto esperar (ms). Por defecto 15 s para leer y 30 s para escribir: con
+   * 3G que se cae, un «Enviando…» que no termina nunca era peor que un error
+   * que se puede reintentar. Un cobro al banco (C2P) espera más.
+   */
+  timeoutMs?: number;
   method?: string;
   body?: unknown;
   headers?: Record<string, string>;
@@ -448,19 +483,36 @@ async function rawRequest<T>(path: string, opts: RequestOptions = {}): Promise<T
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: opts.method ?? "GET",
-    headers,
-    // La cookie sólo viaja -- y sólo se guarda -- con `include`.
-    ...(viaCookie ? { credentials: "include" as const } : {}),
-    ...(opts.body === undefined
-      ? {}
-      : { body: isForm ? (opts.body as FormData) : JSON.stringify(opts.body) }),
-  });
+  const method = opts.method ?? "GET";
+  const signal = timeoutSignal(
+    opts.timeoutMs ?? (method === "GET" ? TIMEOUT_READ_MS : TIMEOUT_WRITE_MS),
+  );
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      signal,
+      // La cookie sólo viaja -- y sólo se guarda -- con `include`.
+      ...(viaCookie ? { credentials: "include" as const } : {}),
+      ...(opts.body === undefined
+        ? {}
+        : { body: isForm ? (opts.body as FormData) : JSON.stringify(opts.body) }),
+    });
+  } catch {
+    throw new NetworkError(signal.aborted ? "timeout" : "offline");
+  }
 
   if (response.status === 204) return undefined as T;
 
-  const payload = (await response.json().catch(() => null)) as { error?: ApiErrorBody } | T | null;
+  // El cuerpo también puede quedarse a medias: la misma señal lo corta.
+  let payload: { error?: ApiErrorBody } | T | null;
+  try {
+    payload = (await response.json()) as { error?: ApiErrorBody } | T | null;
+  } catch {
+    if (signal.aborted) throw new NetworkError("timeout");
+    payload = null;
+  }
 
   if (!response.ok) {
     const body = (payload as { error?: ApiErrorBody } | null)?.error ?? {
@@ -917,6 +969,9 @@ export const guest = {
       body,
       auth: "guest",
       headers: { "Idempotency-Key": body.idempotencyKey },
+      // El banco tarda en contestar, y cortar antes sólo deja al comensal sin
+      // saber si le cobraron. La clave de idempotencia hace seguro repetir.
+      timeoutMs: 90_000,
     }),
 
   /**
@@ -2228,6 +2283,8 @@ export const menu = {
       method: "PUT",
       auth: "staff",
       body: form,
+      // Subir un archivo por 3G, y en la carta por foto leerlo: más que 30 s.
+      timeoutMs: 120_000,
     });
   },
 
@@ -2248,6 +2305,8 @@ export const menu = {
       method: "PUT",
       auth: "staff",
       body: form,
+      // Subir un archivo por 3G, y en la carta por foto leerlo: más que 30 s.
+      timeoutMs: 120_000,
     });
   },
 
@@ -2266,6 +2325,8 @@ export const menu = {
       method: "PUT",
       auth: "staff",
       body: form,
+      // Subir un archivo por 3G, y en la carta por foto leerlo: más que 30 s.
+      timeoutMs: 120_000,
     });
   },
 
@@ -2327,6 +2388,8 @@ export const menu = {
       method: "POST",
       auth: "staff",
       body: form,
+      // Subir un archivo por 3G, y en la carta por foto leerlo: más que 30 s.
+      timeoutMs: 120_000,
     });
   },
   /** Confirma las filas revisadas: se validan como productos escritos a mano. */

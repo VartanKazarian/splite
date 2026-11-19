@@ -5,6 +5,7 @@ import { Check, Clock, Minus, Plus, Send, ShoppingBag, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import {
   ApiError,
+  NetworkError,
   formatMoney,
   guest,
   guestSession,
@@ -276,6 +277,11 @@ export function GuestOrderBar({
 }
 
 function orderErrorMessage(error: unknown, t: ReturnType<typeof useI18n>["t"]): string {
+  // Sin respuesta no es lo mismo que rechazado: un pedido que se cortó pudo
+  // llegar a cocina, y repetirlo a ciegas lo pide dos veces.
+  if (error instanceof NetworkError) {
+    return t(error.kind === "timeout" ? "guestOrderMaybeSent" : "offlineRetry");
+  }
   if (!(error instanceof ApiError)) return t("guestOrderFailed");
   if (error.code === "PRODUCT_INACTIVE") return t("guestOrderGone");
   if (error.code === "GUEST_ORDER_AWAITING_APPROVAL") return t("guestOrderAwaiting");

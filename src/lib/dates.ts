@@ -14,6 +14,17 @@
  */
 
 /** El idioma elegido, como etiqueta de locale. */
+/**
+ * La hora de los restaurantes, no la del teléfono que mira.
+ *
+ * Un recibo mandado por WhatsApp y abierto en Madrid decía que la cena fue a
+ * las 3:14 de la madrugada; un dueño de viaje veía el turno corrido seis horas.
+ * Las horas de algo que pasó en el local se cuentan en la hora del local.
+ * Splite sólo opera en Venezuela; cuando haya restaurantes en otra zona, esto
+ * pasa a venir de la cuenta del restaurante.
+ */
+export const BUSINESS_TIME_ZONE = "America/Caracas";
+
 function locale(lang: string): string {
   return lang === "en" ? "en-GB" : "es-VE";
 }
@@ -43,6 +54,7 @@ export function formatDateTime(value: string | null | undefined, lang: string): 
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: BUSINESS_TIME_ZONE,
   });
 }
 
@@ -50,7 +62,11 @@ export function formatDateTime(value: string | null | undefined, lang: string): 
 export function formatTime(value: string | null | undefined, lang: string): string | null {
   const d = parse(value);
   if (!d) return null;
-  return d.toLocaleTimeString(locale(lang), { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString(locale(lang), {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: BUSINESS_TIME_ZONE,
+  });
 }
 
 /**
@@ -63,10 +79,8 @@ export function formatTime(value: string | null | undefined, lang: string): stri
 export function formatWhen(value: string | null | undefined, lang: string): string | null {
   const d = parse(value);
   if (!d) return null;
-  const now = new Date();
-  const sameDay =
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
+  // «Hoy» en el local, no en el teléfono.
+  const day = (x: Date) => x.toLocaleDateString("en-CA", { timeZone: BUSINESS_TIME_ZONE });
+  const sameDay = day(d) === day(new Date());
   return sameDay ? formatTime(value, lang) : formatDateTime(value, lang);
 }

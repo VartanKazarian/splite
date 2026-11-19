@@ -9,6 +9,7 @@ import {
   formatMoney,
   guest,
   guestSession,
+  newIdempotencyKey,
   type GuestOrderStatus,
   type PublicMenu,
   type PublicProduct,
@@ -123,8 +124,23 @@ export function GuestOrderBar({
   const currency = products[0]?.currency ?? "VES";
   const totalVes = vesEquivalent(total.toString(), rate);
 
+  /*
+   * La clave de idempotencia de este pedido: la misma mientras se reintente lo
+   * mismo, otra en cuanto cambian las líneas o la nota, y otra después de un
+   * pedido que llegó -- pedir otra ronda igual es un pedido nuevo, no un
+   * reintento. Así un corte de conexión ya no puede pedir dos veces.
+   */
+  const signature = JSON.stringify([chosen, note.trim()]);
+  const attempt = useRef<{ signature: string; key: string } | null>(null);
+  const keyFor = (sig: string) => {
+    if (attempt.current?.signature !== sig)
+      attempt.current = { signature: sig, key: newIdempotencyKey() };
+    return attempt.current.key;
+  };
+
   const send = useMutation({
     mutationFn: async () => {
+      const idempotencyKey = keyFor(signature);
       if (!guestSession.get()) {
         if (!qrToken) {
           throw new ApiError(401, {
@@ -139,9 +155,11 @@ export function GuestOrderBar({
       return guest.order(
         chosen.map(([productId, quantity]) => ({ productId, quantity })),
         note,
+        idempotencyKey,
       );
     },
     onSuccess: (result) => {
+      attempt.current = null;
       setOpen(false);
       setNote("");
       onSent({ orderId: result.orderId, status: result.status ?? "PLACED" });
@@ -286,6 +304,7 @@ function orderErrorMessage(error: unknown, t: ReturnType<typeof useI18n>["t"]): 
   if (!(error instanceof ApiError)) return t("guestOrderFailed");
   if (error.code === "PRODUCT_INACTIVE") return t("guestOrderGone");
   if (error.code === "GUEST_ORDER_AWAITING_APPROVAL") return t("guestOrderAwaiting");
+  if (error.code === "IDEMPOTENCY_IN_FLIGHT") return t("guestOrderInFlight");
   if (error.code === "GUEST_ORDERS_BLOCKED") return t("guestOrdersBlocked");
   return t("guestOrderFailed");
 }

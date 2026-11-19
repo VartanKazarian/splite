@@ -64,8 +64,10 @@ describe("table status", () => {
   });
 
   test("an API without the new fields reads as before", () => {
-    const old = { ...table({}, {}), heldOrders: undefined } as FloorTable;
-    expect(badgeOf(old).kind).toBe("open");
+    // Sin el campo, como respondía la API antes de R12.
+    const { heldOrders: _absent, ...old } = table({}, {});
+    expect(_absent).toBe(0);
+    expect(badgeOf(old as FloorTable).kind).toBe("open");
   });
 
   test("a table with an order waiting is not free", () => {

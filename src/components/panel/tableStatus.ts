@@ -60,7 +60,17 @@ export type TableTone = "free" | "open" | "attention";
  * los verifique (`pendingClaims`, que es dinero declarado y sin confirmar), o
  * la cuenta lleva abierta más de lo normal. Sin motivo, verde.
  */
+/**
+ * Libre de verdad: sin cuenta y sin nadie esperando. Una mesa con un pedido
+ * por aprobar no tiene cuenta todavía, pero tiene a alguien sentado.
+ */
+export function isFree(table: FloorTable): boolean {
+  return !table.openBill && (table.heldOrders ?? 0) === 0;
+}
+
 export function toneOf(table: FloorTable): TableTone {
+  // Un pedido esperando aprobación es alguien esperando, haya cuenta o no.
+  if ((table.heldOrders ?? 0) > 0) return "attention";
   const bill = table.openBill;
   if (!bill) return "free";
   if ((bill.pendingClaims ?? 0) > 0) return "attention";
@@ -89,17 +99,32 @@ export function toneOf(table: FloorTable): TableTone {
  */
 export type TableBadge =
   | { kind: "free"; tone: TableTone }
+  | { kind: "approval"; tone: TableTone; count: number }
   | { kind: "claims"; tone: TableTone; count: number }
+  | { kind: "payingNow"; tone: TableTone }
   | { kind: "stale"; tone: TableTone; hours: number }
   | { kind: "partly"; tone: TableTone }
   | { kind: "open"; tone: TableTone };
 
+/**
+ * El orden importa: se dice lo más urgente. Primero lo que tiene a alguien
+ * esperando -- un pedido por aprobar, un pago por verificar --, después lo que
+ * pide no tocar -- alguien pagando ahora mismo --, y por último lo que es sólo
+ * un recordatorio o un estado.
+ */
 export function badgeOf(table: FloorTable, fallbackOpenedAt?: string): TableBadge {
+  const held = table.heldOrders ?? 0;
+  if (held > 0) return { kind: "approval", tone: "attention", count: held };
+
   const bill = table.openBill;
   if (!bill) return { kind: "free", tone: "free" };
 
   const claims = bill.pendingClaims ?? 0;
   if (claims > 0) return { kind: "claims", tone: "attention", count: claims };
+
+  // En su banco ahora mismo: no es dinero todavía ni hay nada que atender,
+  // pero no es el momento de cobrar esa parte en caja ni de cerrar la mesa.
+  if ((bill.payingNow ?? 0) > 0) return { kind: "payingNow", tone: "open" };
 
   const minutes = openMinutesOf(bill, fallbackOpenedAt);
   if (minutes !== null && minutes >= AGE_ATTENTION_MINUTES) {
@@ -125,27 +150,59 @@ export function badgeOf(table: FloorTable, fallbackOpenedAt?: string): TableBadg
  * vive aquí. Escritas por separado, la primera vez que se añada un estado se
  * añadirá en una de las dos.
  */
+export type PillTone = "neutral" | "good" | "attention" | "urgent";
+
+/**
+ * El color de la píldora, decidido aquí y no en cada pantalla (R12).
+ *
+ * Antes la fila de la lista y la cabecera de la hoja traducían el tono cada
+ * una a su manera, con las mismas clases escritas dos veces. Ahora las dos
+ * usan `StatusPill` con este tono:
+ *  - urgent (ámbar relleno): alguien espera -- un pedido por aprobar o un pago
+ *    por verificar.
+ *  - attention (ámbar suave): un recordatorio -- la cuenta lleva horas abierta.
+ *  - good (verde): todo en marcha -- abierta, pago parcial, pagando ahora.
+ *  - neutral (gris): libre.
+ */
+export function pillToneOf(badge: TableBadge): PillTone {
+  switch (badge.kind) {
+    case "free":
+      return "neutral";
+    case "approval":
+    case "claims":
+      return "urgent";
+    case "stale":
+      return "attention";
+    default:
+      return "good";
+  }
+}
+
 export function useTableBadge(
   // Admite `null` para que quien la use pueda llamarla antes de su propio
   // "si no hay mesa, no pinto nada": un hook detrás de un return temprano se
   // salta en algunos renders y React deja de saber en qué orden van.
   table: FloorTable | null,
   fallbackOpenedAt?: string,
-): { text: string; tone: TableTone } {
+): { text: string; tone: TableTone; pill: PillTone } {
   const { t } = useI18n();
-  if (!table) return { text: "", tone: "free" };
+  if (!table) return { text: "", tone: "free", pill: "neutral" };
   const badge = badgeOf(table, fallbackOpenedAt);
   const text =
     badge.kind === "free"
       ? t("tableFreeShort")
-      : badge.kind === "claims"
-        ? `${badge.count} ${t("badgeClaims")}`
-        : badge.kind === "stale"
-          ? t("badgeStale").replace("{n}", String(badge.hours))
-          : badge.kind === "partly"
-            ? t("badgePartly")
-            : t("tableOpenShort");
-  return { text, tone: badge.tone };
+      : badge.kind === "approval"
+        ? t("badgeApproval")
+        : badge.kind === "claims"
+          ? `${badge.count} ${t("badgeClaims")}`
+          : badge.kind === "payingNow"
+            ? t("badgePayingNow")
+            : badge.kind === "stale"
+              ? t("badgeStale").replace("{n}", String(badge.hours))
+              : badge.kind === "partly"
+                ? t("badgePartly")
+                : t("tableOpenShort");
+  return { text, tone: badge.tone, pill: pillToneOf(badge) };
 }
 
 /**

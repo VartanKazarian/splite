@@ -37,7 +37,10 @@ export default tseslint.config(
         // El hook del idioma vive con su proveedor, y las variantes del botón
         // con el botón: separarlos sólo para el recargado en caliente no
         // compensa.
-        { allowConstantExport: true, allowExportNames: ["useI18n", "buttonVariants"] },
+        {
+          allowConstantExport: true,
+          allowExportNames: ["useI18n", "buttonVariants", "defineStrings"],
+        },
       ],
       "@typescript-eslint/no-unused-vars": "off",
     },

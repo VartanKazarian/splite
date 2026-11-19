@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { formatMoney, guest, type BillSplit } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import "@/lib/i18n-guest";
 
 /**
  * Cómo va la cuenta entre los que la comparten.

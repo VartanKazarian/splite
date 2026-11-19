@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, auth } from "@/lib/api";
+import "@/lib/i18n-public";
 
 export const Route = createFileRoute("/olvide")({
   head: () => ({

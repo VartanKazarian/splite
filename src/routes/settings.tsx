@@ -32,6 +32,7 @@ import { FiscalSeries } from "@/components/FiscalSeries";
 import { PanelHeader } from "@/components/PanelHeader";
 import { BankConnections } from "@/components/BankConnections";
 import { SubscriptionPanel } from "@/components/SubscriptionPanel";
+import "@/lib/i18n-staff";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({

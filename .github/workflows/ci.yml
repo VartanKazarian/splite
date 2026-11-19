@@ -46,6 +46,11 @@ jobs:
       - name: Compila
         run: bun run build
 
+      # Lo que descarga cada página antes de pintarse. La del QR la abre un
+      # comensal con 3G: su presupuesto es 180 KB comprimidos.
+      - name: JavaScript budget per page
+        run: bun run size
+
       # Como en el backend: un aviso alto en cualquier dependencia para el CI.
       # Aquí casi todo es de desarrollo, pero es lo que corre en la máquina de
       # quien compila y en la de Lovable.

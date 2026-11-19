@@ -14,6 +14,7 @@ import {
 import { ErrorBox } from "@/routes/dashboard";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { useI18n } from "@/lib/i18n";
+import "@/lib/i18n-staff";
 
 /** Los nombres viven en el diccionario: son los mismos que enseña la cabecera. */
 const ROLE_HINT_KEY: Record<

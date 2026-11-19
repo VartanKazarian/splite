@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, account, type FiscalSeries as Series } from "@/lib/api";
+import "@/lib/i18n-staff";
 
 /**
  * La serie fiscal autorizada.

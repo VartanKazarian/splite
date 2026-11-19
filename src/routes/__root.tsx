@@ -8,14 +8,17 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 
 import { SITE_URL } from "@/lib/site";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { I18nProvider } from "@/lib/i18n";
 import { storedLang } from "@/lib/stored-lang";
-import { Toaster } from "@/components/ui/sonner";
+// Los avisos flotantes los usa el panel, no el comensal: la librería (unos
+// 33 KB) se carga aparte, después, en vez de viajar en el código de todas las
+// páginas.
+const Toaster = lazy(() => import("@/components/ui/sonner").then((m) => ({ default: m.Toaster })));
 import { installTelemetry, reportError } from "@/lib/telemetry";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 
@@ -197,7 +200,9 @@ function RootComponent() {
         <ConnectionBanner />
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
-        <Toaster position="top-center" />
+        <Suspense fallback={null}>
+          <Toaster position="top-center" />
+        </Suspense>
       </I18nProvider>
     </QueryClientProvider>
   );

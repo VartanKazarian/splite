@@ -14,6 +14,7 @@ import {
   type PushStatus,
   type PushSupport,
 } from "@/lib/push";
+import "@/lib/i18n-staff";
 
 /**
  * «Avisos en este teléfono» (R19).

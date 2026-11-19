@@ -1,4 +1,5 @@
 import { useI18n } from "@/lib/i18n";
+import "@/lib/i18n-guest";
 
 /**
  * Dónde está el comensal de los tres pasos.

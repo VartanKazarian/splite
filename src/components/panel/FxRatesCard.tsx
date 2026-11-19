@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { exchangeRate, formatFxRate } from "@/lib/api";
 import { LoadFailed } from "@/components/shell/LoadFailed";
 import { formatDay } from "@/lib/dates";
+import "@/lib/i18n-staff";
 
 /**
  * La tasa del BCV, tal y como está hoy.

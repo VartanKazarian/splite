@@ -34,6 +34,7 @@ import { ErrorBox } from "@/routes/dashboard";
 import { PanelHeader } from "@/components/PanelHeader";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { formatDateTime } from "../lib/dates";
+import "@/lib/i18n-staff";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({

@@ -7,6 +7,7 @@ import { fiscalInvoices, formatMoney, saveBlob, type FiscalRequestRow } from "@/
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/dates";
 import { FiscalInvoiceSheet } from "@/components/panel/FiscalInvoiceSheet";
+import "@/lib/i18n-staff";
 
 /**
  * Facturación, para el restaurante.

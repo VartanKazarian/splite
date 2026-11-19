@@ -6,6 +6,7 @@ import { guest, formatMoney, type GuestReceipt as Receipt } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/dates";
 import { useRememberedPayment } from "@/lib/guest-payment";
+import "@/lib/i18n-guest";
 
 /**
  * El recibo: **la cuenta entera de la mesa, y sólo después «tú pagaste X».**

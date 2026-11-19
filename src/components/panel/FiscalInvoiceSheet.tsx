@@ -12,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import "@/lib/i18n-staff";
 
 /**
  * Una factura emitida, abierta.

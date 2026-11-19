@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n";
 import { ApiError, account } from "@/lib/api";
+import "@/lib/i18n-staff";
 
 /**
  * El RIF con el que este restaurante declara.

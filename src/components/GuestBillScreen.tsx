@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
@@ -24,15 +24,28 @@ import {
 
 import { GuestError } from "@/components/GuestError";
 import { GuestPaymentPanel } from "@/components/GuestPaymentPanel";
-import { GuestInvoiceOffer } from "@/components/GuestInvoiceOffer";
 import { GuestItemSelector } from "@/components/GuestItemSelector";
 import { GuestSplitModeSelector } from "@/components/GuestSplitModeSelector";
 import { GuestSplitProgress } from "@/components/GuestSplitProgress";
 import { GuestStepIndicator } from "@/components/GuestStepIndicator";
-import { GuestReceipt } from "@/components/GuestReceipt";
-import { GuestRateMeal } from "@/components/GuestRateMeal";
 import { recallPayment } from "@/lib/guest-payment";
 import { demoBill, demoSplit } from "@/lib/demo-bill";
+import "@/lib/i18n-guest";
+
+/*
+ * Lo que sólo aparece después de pagar -- la factura, la opinión, el recibo --
+ * se carga aparte y después: no hace falta para ver la cuenta, que es lo
+ * primero que espera quien escanea el QR.
+ */
+const GuestInvoiceOffer = lazy(() =>
+  import("@/components/GuestInvoiceOffer").then((m) => ({ default: m.GuestInvoiceOffer })),
+);
+const GuestRateMeal = lazy(() =>
+  import("@/components/GuestRateMeal").then((m) => ({ default: m.GuestRateMeal })),
+);
+const GuestReceipt = lazy(() =>
+  import("@/components/GuestReceipt").then((m) => ({ default: m.GuestReceipt })),
+);
 
 /** Referencia visual en Bs de un importe cotizado, a la tasa congelada de la cuenta. */
 function toVes(minor: string, rate: string | null): string {
@@ -577,13 +590,25 @@ export function GuestBillScreen({
           queda. Si la factura no se ofreciera aquí, la promesa de pedirla
           «cuando el restaurante confirme» no tendría dónde cumplirse.
         */}
-        {!demo && <GuestInvoiceOffer />}
+        {!demo && (
+          <Suspense fallback={null}>
+            <GuestInvoiceOffer />
+          </Suspense>
+        )}
         {/* «¿Qué tal todo?» (R20): entre la factura, que caduca, y el recibo,
             que es el registro. */}
-        {!demo && <GuestRateMeal />}
+        {!demo && (
+          <Suspense fallback={null}>
+            <GuestRateMeal />
+          </Suspense>
+        )}
         {/* Debajo de la oferta: primero la acción que caduca -- pedir factura --
             y después el recibo, que es el registro y no se va a ninguna parte. */}
-        {!demo && <GuestReceipt />}
+        {!demo && (
+          <Suspense fallback={null}>
+            <GuestReceipt />
+          </Suspense>
+        )}
       </Shell>
     );
   }
@@ -1170,9 +1195,13 @@ export function GuestBillScreen({
           pantallas hacia abajo justo cuando el comensal esperaba verlo: lo que
           quedaba a la vista era un recibo, que parece que todo terminó, en vez
           de «por verificar». El propio recibo dice que va debajo de todo. */}
-      {!demo && <GuestInvoiceOffer />}
-      {!demo && <GuestRateMeal />}
-      {!demo && <GuestReceipt />}
+      {!demo && (
+        <Suspense fallback={null}>
+          <GuestInvoiceOffer />
+          <GuestRateMeal />
+          <GuestReceipt />
+        </Suspense>
+      )}
 
       {/* ---------------------------------------------------------------
           La barra flotante.

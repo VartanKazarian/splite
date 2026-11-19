@@ -104,7 +104,11 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
       setRole("WAITER");
       setFieldErrors({});
       setAdding(false);
-      toast.success(`${user.email} añadido como ${t(`role${user.role}` as never)}`);
+      toast.success(
+        t("staffAddedAs")
+          .replace("{email}", user.email)
+          .replace("{role}", t(`role${user.role}` as never)),
+      );
       refresh();
     },
     onError: fail,
@@ -148,7 +152,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
       // token que esa persona lleva encima sigue valiendo hasta que caduque.
       toast.success(
         res.sessionsRevoked > 0
-          ? `Guardado. ${res.sessionsRevoked} sesión(es) cerrada(s).`
+          ? t("staffSavedSessions").replace("{n}", String(res.sessionsRevoked))
           : t("staffSaved"),
       );
       refresh();
@@ -161,7 +165,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
     onSuccess: (res) =>
       toast.success(
         res.sessionsRevoked > 0
-          ? `Contraseña cambiada. ${res.sessionsRevoked} sesión(es) cerrada(s).`
+          ? t("staffPasswordChangedSessions").replace("{n}", String(res.sessionsRevoked))
           : t("staffPasswordChanged"),
       ),
     onError: fail,
@@ -197,9 +201,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
     return (
       <section className="surface mt-4 p-6">
         <h2 className="text-xl">{t("staffTitle")}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Sólo el dueño y los encargados pueden gestionar al personal.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("staffOnlyManagers")}</p>
       </section>
     );
   }
@@ -208,7 +210,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
     <section className="surface mt-4 p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="inline-flex items-center gap-2 text-xl">
-          <Users className="h-5 w-5 text-muted-foreground" /> Personal
+          <Users className="h-5 w-5 text-muted-foreground" /> {t("staffHeading")}
         </h2>
         {/* Abierto el formulario, el mismo botón lo cierra, y entonces deja de
             ser verde: el verde es para lo que hace avanzar, y cancelar no. El
@@ -237,10 +239,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
         </button>
       </div>
 
-      <p className="mt-2 text-sm text-muted-foreground">
-        Cada quien entra con su propio correo. Un mesero abre cuentas y añade productos; caja cobra
-        y verifica pagos; el encargado además lleva el menú y las mesas.
-      </p>
+      <p className="mt-2 text-sm text-muted-foreground">{t("staffRolesExplained")}</p>
 
       {adding && !invited && (
         <form
@@ -563,8 +562,7 @@ export function StaffManager({ me }: { me: { id: string; role: StaffRole } }) {
 
       {!list.isLoading && rows.length === 1 && (
         <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
-          Sólo estás tú. Añade a tu equipo para que cada quien entre con su propia cuenta: así las
-          propinas y los cobros quedan a nombre de quien los hizo.
+          {t("staffOnlyYou")}
         </p>
       )}
     </section>

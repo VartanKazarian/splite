@@ -131,9 +131,7 @@ export function GuestPaymentPanel({
   if (!payee) {
     return (
       <div className="surface mt-4 p-6">
-        <p className="text-sm text-muted-foreground">
-          Este restaurante todavía no tiene configurado el pago móvil. Pídele la cuenta al mesero.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("payeeMissing")}</p>
       </div>
     );
   }

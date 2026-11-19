@@ -48,7 +48,7 @@ export function CopyRow({
         <button
           type="button"
           onClick={copy}
-          aria-label={`Copiar ${label}`}
+          aria-label={t("copyField").replace("{label}", label)}
           // 44 px. Copiar el banco, el teléfono y el RIF es literalmente el
           // trámite del Pago Móvil: se hace tres veces seguidas, de pie y con
           // el banco abierto al lado. Fallar el toque cuesta volver a empezar.

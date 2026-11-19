@@ -97,11 +97,9 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
   return (
     <section className="surface mt-6 p-6">
       <h2 className="flex items-center gap-2 text-xl">
-        <ScanText className="h-5 w-5" /> Importar menú desde una foto
+        <ScanText className="h-5 w-5" /> {t("ocrTitle")}
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Sube una foto o PDF de tu carta. Revisa los precios leídos antes de importarlos.
-      </p>
+      <p className="mt-1 text-sm text-muted-foreground">{t("ocrIntro")}</p>
 
       <input
         ref={fileRef}
@@ -144,9 +142,7 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
             alguien lo note, así que la pantalla dice por qué merece la pena
             mirar en lugar de dar por hecho que se mirará.
           */}
-          <p className="mt-1 text-xs text-muted-foreground">
-            Compara cada precio con el de la carta antes de importar.
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{t("ocrCompare")}</p>
 
           <ul className="mt-4 space-y-3 text-sm">
             {rows.map((r, i) => (
@@ -178,13 +174,11 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
                   */}
                   {r.priceText ? (
                     <span className="text-[11px] text-muted-foreground">
-                      En la carta: {r.priceText}
+                      {t("ocrOnMenu")} {r.priceText}
                     </span>
                   ) : (
                     !r.price.trim() && (
-                      <span className="text-[11px] text-destructive">
-                        Sin precio legible en la foto
-                      </span>
+                      <span className="text-[11px] text-destructive">{t("ocrNoPrice")}</span>
                     )
                   )}
                 </div>
@@ -211,9 +205,7 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
                   className="min-h-11 rounded-lg border border-input bg-secondary px-3 text-xs outline-none focus:border-ring sm:col-span-2"
                 />
                 {r.duplicate && (
-                  <p className="text-[11px] text-destructive sm:col-span-3">
-                    Nombre repetido: renómbralo o quítalo antes de importar.
-                  </p>
+                  <p className="text-[11px] text-destructive sm:col-span-3">{t("ocrDuplicate")}</p>
                 )}
               </li>
             ))}
@@ -226,7 +218,7 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
               onClick={() => importRows.mutate(rows)}
               className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
             >
-              Importar {rows.length} productos
+              {t("ocrImport").replace("{n}", String(rows.length))}
             </button>
             <button
               type="button"
@@ -236,7 +228,7 @@ export function MenuOcrImport({ onImported }: { onImported: () => void }) {
               }}
               className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm"
             >
-              Cancelar
+              {t("cancel")}
             </button>
           </div>
         </div>

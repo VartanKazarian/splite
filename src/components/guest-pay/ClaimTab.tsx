@@ -57,7 +57,7 @@ export function ClaimTab({
         >
           <div>
             <label htmlFor="claim-amount" className="field-label">
-              Monto pagado (Bs)
+              {t("claimAmountLabel")}
             </label>
             <input
               id="claim-amount"
@@ -72,13 +72,13 @@ export function ClaimTab({
               className={field}
             />
             <p id="claim-amount-help" className="hint mt-1">
-              Puedes pagar solo tu parte: cambia el monto si pagaste menos.
+              {t("claimAmountHelp")}
             </p>
           </div>
 
           <div className="mt-4">
             <label htmlFor="claim-reference" className="field-label">
-              Referencia de tu pago
+              {t("claimReferenceLabel")}
             </label>
             <input
               id="claim-reference"
@@ -91,13 +91,13 @@ export function ClaimTab({
               className={field}
             />
             <p id="claim-reference-help" className="hint mt-1">
-              El número que te dio tu banco al confirmar el pago móvil.
+              {t("claimReferenceHelp")}
             </p>
           </div>
 
           <div className="mt-4">
             <label htmlFor="claim-phone" className="field-label">
-              Teléfono desde el que pagaste (opcional)
+              {t("claimPhoneLabel")}
             </label>
             <input
               id="claim-phone"
@@ -109,13 +109,13 @@ export function ClaimTab({
               className={field}
             />
             <p id="claim-phone-help" className="hint mt-1">
-              Nos ayuda a encontrar tu pago más rápido.
+              {t("claimPhoneHelp")}
             </p>
           </div>
 
           <div className="mt-4">
             <label htmlFor="claim-bank" className="field-label">
-              Tu banco (opcional)
+              {t("claimBankLabel")}
             </label>
             {/*
               Desplegable y no caja de texto: el servidor valida contra una
@@ -131,7 +131,7 @@ export function ClaimTab({
               disabled={form.banks.isPending || form.banks.isError}
               className={field}
             >
-              <option value="">Sin especificar</option>
+              <option value="">{t("claimBankNone")}</option>
               {(form.banks.data ?? []).map((bank: BankRef) => (
                 <option key={bank.code} value={bank.code}>
                   {bank.name}
@@ -241,7 +241,7 @@ export function ClaimTab({
                   }}
                   className="btn-choice mt-2 min-h-10 px-4 text-sm"
                 >
-                  Usar ese monto
+                  {t("claimUseAmount")}
                 </button>
               )}
               {/* "Referencia: 078ba826-..." se leía como si la referencia

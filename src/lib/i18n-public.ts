@@ -40,6 +40,11 @@ export const publicStrings = defineStrings({
     resetAskAgain: "Pedir otro enlace",
     authBadCode: "Ese código no vale. Puede haber caducado: prueba con el siguiente.",
     authGeneric: "No hemos podido entrar. Vuelve a intentarlo.",
+    mfaLoginTitle: "Código de verificación",
+    mfaLoginBody:
+      "Abre tu app de autenticación y escribe el código de seis dígitos. También sirve uno de tus códigos de recuperación.",
+    mfaLoginCode: "Código",
+    mfaLoginBack: "Volver",
   },
   en: {
     login: "Sign in",
@@ -71,5 +76,10 @@ export const publicStrings = defineStrings({
     resetAskAgain: "Ask for another link",
     authBadCode: "That code is not valid. It may have expired: try the next one.",
     authGeneric: "We could not sign you in. Please try again.",
+    mfaLoginTitle: "Verification code",
+    mfaLoginBody:
+      "Open your authenticator app and enter the six-digit code. One of your recovery codes works too.",
+    mfaLoginCode: "Code",
+    mfaLoginBack: "Back",
   },
 });

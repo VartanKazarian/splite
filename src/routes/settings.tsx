@@ -843,7 +843,7 @@ function ProvidersSection() {
           onClick={() => save.mutate()}
           className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
         >
-          Guardar credenciales
+          {t("c2pSaveCredentials")}
         </button>
         {mercantil?.configured && (
           <ConfirmButton

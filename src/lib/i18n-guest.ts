@@ -377,6 +377,19 @@ export const guestStrings = defineStrings({
     c2pPay: "Pagar con C2P",
     c2pMoneyNote:
       "El débito sale de tu cuenta hacia la del restaurante. Splite no retiene el dinero.",
+    claimAmountLabel: "Monto pagado (Bs)",
+    claimAmountHelp: "Puedes pagar solo tu parte: cambia el monto si pagaste menos.",
+    claimReferenceLabel: "Referencia de tu pago",
+    claimReferenceHelp: "El número que te dio tu banco al confirmar el pago móvil.",
+    claimPhoneLabel: "Teléfono desde el que pagaste (opcional)",
+    claimPhoneHelp: "Nos ayuda a encontrar tu pago más rápido.",
+    claimBankLabel: "Tu banco (opcional)",
+    claimBankNone: "Sin especificar",
+    claimUseAmount: "Usar ese monto",
+    payeeInstructions: "Paga desde tu app del banco y luego confírmanos aquí.",
+    copyField: "Copiar {label}",
+    payeeMissing:
+      "Este restaurante todavía no tiene configurado el pago móvil. Pídele la cuenta al mesero.",
   },
   en: {
     demoBanner: "Demo mode · sample bill, nothing is charged",
@@ -733,5 +746,18 @@ export const guestStrings = defineStrings({
     c2pPay: "Pay with C2P",
     c2pMoneyNote:
       "The debit goes from your account to the restaurant's. Splite does not hold the money.",
+    claimAmountLabel: "Amount paid (Bs)",
+    claimAmountHelp: "You can pay just your share: change the amount if you paid less.",
+    claimReferenceLabel: "Your payment reference",
+    claimReferenceHelp: "The number your bank gave you when it confirmed the mobile payment.",
+    claimPhoneLabel: "Phone you paid from (optional)",
+    claimPhoneHelp: "It helps us find your payment faster.",
+    claimBankLabel: "Your bank (optional)",
+    claimBankNone: "Not specified",
+    claimUseAmount: "Use that amount",
+    payeeInstructions: "Pay from your banking app, then confirm it here.",
+    copyField: "Copy {label}",
+    payeeMissing:
+      "This restaurant hasn't set up mobile payments yet. Ask your waiter for the bill.",
   },
 });

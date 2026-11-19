@@ -72,9 +72,7 @@ export function PayeeTab({
 
       {!blockedByHold && (
         <div className="mt-5">
-          <p className="text-sm text-muted-foreground">
-            Paga desde tu app del banco y luego confírmanos aquí.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("payeeInstructions")}</p>
           {hold.kind === "held" && (
             <p data-testid="guest-hold-held" className="mt-2 text-xs text-muted-foreground">
               {hold.trimmed

@@ -17,6 +17,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { storedLang } from "@/lib/stored-lang";
 import { Toaster } from "@/components/ui/sonner";
 import { installTelemetry, reportError } from "@/lib/telemetry";
+import { ConnectionBanner } from "@/components/ConnectionBanner";
 
 /**
  * Lo que dicen las pantallas de «no existe» y «algo falló», en los dos idiomas.
@@ -193,6 +194,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
+        <ConnectionBanner />
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
         <Toaster position="top-center" />

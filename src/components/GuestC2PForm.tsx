@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 import {
   ApiError,
+  NetworkError,
   formatMinor,
   formatMoney,
   guest,
@@ -157,6 +158,10 @@ export function GuestC2PForm({
     },
     onError: (err) => {
       setResult(null);
+      if (err instanceof NetworkError) {
+        setError({ message: t(err.kind === "timeout" ? "c2pErrTimeout" : "offlineRetry") });
+        return;
+      }
       if (!(err instanceof ApiError)) {
         setError({ message: t("c2pErrNoBank") });
         return;

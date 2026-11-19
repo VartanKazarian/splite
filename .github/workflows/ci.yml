@@ -37,6 +37,10 @@ jobs:
       - name: Tipos
         run: bun run typecheck
 
+      # Los tipos generados son los del contrato guardado en contract/.
+      - name: Tipos del contrato
+        run: bun run api:check
+
       # Lo que decide sin pantalla: cuándo se cierra una sesión, qué cabeceras
       # lleva cada página, qué cifra enseña el panel. Van en `unit/` y no en
       # `tests/`, que son los recorridos de humo contra la API.
@@ -56,6 +60,28 @@ jobs:
       # quien compila y en la de Lovable.
       - name: Dependencias
         run: bun audit --audit-level=high
+
+  # ¿Sigue el frontend al contrato del backend de hoy? Trae el openapi.json
+  # de main del backend, regenera los tipos y compila: si un esquema cambió y
+  # el tipo de api.ts no, falla nombrando las claves (src/lib/api-contract.ts).
+  # Aparte de `checks` a propósito: un cambio del backend no debe tapar los
+  # fallos propios de un PR del frontend, y éste dice exactamente qué sincronizar.
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: VartanKazarian/splite-backend
+          path: .api
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Contrato del backend de hoy
+        run: bun run api:sync .api
+      - name: Los tipos siguen al contrato
+        run: bun run typecheck
 
   # Los seis recorridos, contra la API de verdad.
   smoke:

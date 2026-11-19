@@ -22,7 +22,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
-import { ApiError, bills, staffSession, tables as tablesApi } from "@/lib/api";
+import { ApiError, auth, bills, staffSession, tables as tablesApi } from "@/lib/api";
+import { canManageTables } from "@/lib/roles";
 
 type Search = { filtro?: FloorFilter };
 
@@ -141,6 +142,10 @@ function Mesas() {
   const fail = (error: unknown) =>
     toast.error(error instanceof ApiError ? `${error.code} · ${error.message}` : t("apiDown"));
 
+  // Crear mesas es de dueño y encargado (R11). Hasta saber el rol se ofrece,
+  // como antes; el servidor es el que dice que no.
+  const me = useQuery({ queryKey: ["me"], queryFn: () => auth.me(), enabled: ready, retry: false });
+  const canCreate = !me.data || canManageTables(me.data.user.role);
   const [createOpen, setCreateOpen] = useState(false);
   const [newTableName, setNewTableName] = useState("");
   const createTable = useMutation({
@@ -228,20 +233,22 @@ function Mesas() {
               : undefined
           }
           actions={
-            <>
-              <button
-                onClick={() => setCreateOpen(true)}
-                className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                <Plus className="h-4 w-4" /> {t("createTable")}
-              </button>
-              <button
-                onClick={() => setBulkOpen(true)}
-                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full border border-border px-5 text-sm transition-colors hover:bg-secondary"
-              >
-                {t("bulkCreate")}
-              </button>
-            </>
+            canCreate ? (
+              <>
+                <button
+                  onClick={() => setCreateOpen(true)}
+                  className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  <Plus className="h-4 w-4" /> {t("createTable")}
+                </button>
+                <button
+                  onClick={() => setBulkOpen(true)}
+                  className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full border border-border px-5 text-sm transition-colors hover:bg-secondary"
+                >
+                  {t("bulkCreate")}
+                </button>
+              </>
+            ) : undefined
           }
         />
 
@@ -286,14 +293,16 @@ function Mesas() {
             <div className="surface">
               <EmptyState
                 title={t("noTablesYet")}
-                hint={t("noTablesYetHint")}
+                hint={t(canCreate ? "noTablesYetHint" : "noTablesYetHintStaff")}
                 action={
-                  <button
-                    onClick={() => setCreateOpen(true)}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
-                  >
-                    <Plus className="h-4 w-4" /> {t("createTable")}
-                  </button>
+                  canCreate && (
+                    <button
+                      onClick={() => setCreateOpen(true)}
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
+                    >
+                      <Plus className="h-4 w-4" /> {t("createTable")}
+                    </button>
+                  )
                 }
               />
             </div>

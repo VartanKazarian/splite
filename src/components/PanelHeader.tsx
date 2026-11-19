@@ -16,6 +16,7 @@ import {
 
 import { useI18n } from "@/lib/i18n";
 import { account, auth, payments } from "@/lib/api";
+import { navFor } from "@/lib/roles";
 import { LangToggle } from "@/components/LangToggle";
 import { PlanBanner } from "@/components/PlanBanner";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
@@ -46,9 +47,10 @@ import {
  * los pagos costaba dos saltos pasando por una pantalla que no se quería ver,
  * y ninguna decía en cuál estabas.
  *
- * Se enseñan todos los destinos a todo el mundo aunque el rol no pueda con
- * alguno. El permiso lo decide el servidor, y repetir esa política aquí es
- * tenerla en dos sitios y equivocarse en uno.
+ * Cada rol ve las paradas que puede usar (R11, `lib/roles.ts`): la Carta sólo
+ * para quien la edita. Antes se enseñaban todas a todo el mundo y un mesero
+ * entraba a una carta que el servidor no le dejaba tocar. El permiso lo sigue
+ * decidiendo el servidor; esto sólo deja de ofrecer lo que va a fallar.
  *
  * **Quién manda en la cabecera.** El correo iba en grande al lado del
  * logotipo, así que lo más prominente después de la marca era una dirección de
@@ -113,12 +115,16 @@ export function PanelHeader({
 
   // Configuración sale de la barra y se va al menú del avatar: es un destino de
   // cuenta, no una parada del turno.
-  const items = [
+  const allItems = [
     { key: "dashboard", to: "/dashboard", icon: LayoutGrid, label: t("dashboard") },
     { key: "mesas", to: "/mesas", icon: LayoutPanelTop, label: t("tablesNav") },
     { key: "menu", to: "/menu", icon: UtensilsCrossed, label: t("manageMenu") },
     { key: "pagos", to: "/pagos", icon: BadgeCheck, label: t("paymentsNav"), badge: pending },
   ] as const;
+  // Hasta saber el rol, todas: quitar una cuando llega la respuesta es mejor
+  // que una barra vacía que aparece de golpe.
+  const visible = me.data ? navFor(me.data.user.role) : null;
+  const items = allItems.filter((item) => !visible || visible.includes(item.key));
 
   const email = me.data?.user.email ?? "";
   const initial = (email.trim()[0] ?? "·").toUpperCase();

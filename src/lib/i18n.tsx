@@ -624,6 +624,8 @@ const dict = {
     searchTable: "Buscar mesa…",
     noTablesYet: "Todavía no tienes mesas.",
     noTablesYetHint: "Crea la primera para poder poner códigos en el comedor.",
+    noTablesYetHintStaff: "Las mesas las crea el dueño o el encargado.",
+    payConfirmedByCashier: "Lo confirma caja, contra el banco. Aquí ves cuándo entra.",
     noTablesMatch: "Ninguna mesa coincide.",
     createTableTitle: "Crear mesa",
     bulkTitle: "Crear varias mesas",
@@ -1997,6 +1999,9 @@ const dict = {
     searchTable: "Search table…",
     noTablesYet: "You have no tables yet.",
     noTablesYetHint: "Create the first one so you can put codes on the floor.",
+    noTablesYetHintStaff: "Tables are created by the owner or a manager.",
+    payConfirmedByCashier:
+      "The cashier confirms it against the bank. You will see here when it lands.",
     noTablesMatch: "No table matches.",
     createTableTitle: "Create table",
     bulkTitle: "Create several tables",

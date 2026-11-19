@@ -25,13 +25,18 @@ function ForgotPassword() {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [failed, setFailed] = useState<"invalid" | "other" | null>(null);
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Del formulario y no del estado: si alguien escribe antes de que la página
+    // termine de cargar (un teléfono lento), el estado no se entera y se
+    // mandaría el correo vacío.
+    const typed = String(new FormData(event.currentTarget).get("email") ?? "").trim();
+    setEmail(typed);
     setPending(true);
     setFailed(null);
     try {
-      await auth.forgotPassword(email.trim());
-      setSentTo(email.trim());
+      await auth.forgotPassword(typed);
+      setSentTo(typed);
     } catch (err) {
       setFailed(err instanceof ApiError && err.status === 400 ? "invalid" : "other");
     } finally {

@@ -864,17 +864,28 @@ export function GuestBillScreen({
           {step === 1 && mode === "EQUAL" && (
             <div className="mt-5">
               <p className="field-label">{t("howManyDiners")}</p>
+              {/* Con nombre y con tope: eran «−» y «+» a secas, que un lector
+                  de pantalla lee como «menos» sin decir de qué, y en el mínimo
+                  el «−» seguía pareciendo que hacía algo. */}
               <div className="mt-3 flex items-center gap-4">
                 <button
+                  type="button"
+                  aria-label={t("dinersFewer")}
+                  disabled={diners <= 2}
                   onClick={() => setDiners((n) => Math.max(2, n - 1))}
-                  className="h-11 w-11 rounded-full border-[1.5px] border-border-strong bg-card text-lg text-foreground transition-colors hover:bg-secondary"
+                  className="h-11 w-11 rounded-full border-[1.5px] border-border-strong bg-card text-lg text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
                 >
                   −
                 </button>
-                <span className="figure min-w-8 text-center text-xl">{diners}</span>
+                <span aria-live="polite" className="figure min-w-8 text-center text-xl">
+                  {diners}
+                </span>
                 <button
+                  type="button"
+                  aria-label={t("dinersMore")}
+                  disabled={diners >= 50}
                   onClick={() => setDiners((n) => Math.min(50, n + 1))}
-                  className="h-11 w-11 rounded-full border-[1.5px] border-border-strong bg-card text-lg text-foreground transition-colors hover:bg-secondary"
+                  className="h-11 w-11 rounded-full border-[1.5px] border-border-strong bg-card text-lg text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
                 >
                   +
                 </button>

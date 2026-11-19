@@ -11,7 +11,8 @@ import { LoadFailed } from "@/components/shell/LoadFailed";
 import { TableRow } from "@/components/panel/TableRow";
 import { SwipeRow } from "@/components/panel/SwipeRow";
 import { TableDetailSheet } from "@/components/panel/TableDetailSheet";
-import { FloorFilters, matchesFilter, type FloorFilter } from "@/components/panel/FloorFilters";
+import { FloorFilters } from "@/components/panel/FloorFilters";
+import { matchesFilter, type FloorFilter } from "@/components/panel/tableStatus";
 import { isFree, toneOf } from "@/components/panel/tableStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import {

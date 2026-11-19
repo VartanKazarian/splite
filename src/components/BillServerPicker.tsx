@@ -109,7 +109,3 @@ export function BillServerPicker({
     </label>
   );
 }
-
-/** Los dos roles que el servidor acepta en PATCH /bills/{id}/server. */
-export const canAssignServer = (role: StaffRole | undefined) =>
-  role === "OWNER" || role === "MANAGER";

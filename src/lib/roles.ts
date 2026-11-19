@@ -26,6 +26,9 @@ export const canVerifyPayments = (role: Role) =>
 /** `routes/tables.js`: crear mesas es OWNER y MANAGER. */
 export const canManageTables = (role: Role) => role === "OWNER" || role === "MANAGER";
 
+/** `routes/bills.js`: PATCH /bills/{id}/server acepta OWNER y MANAGER. */
+export const canAssignServer = (role: Role) => role === "OWNER" || role === "MANAGER";
+
 export type PanelPage = "dashboard" | "mesas" | "menu" | "pagos";
 
 /**

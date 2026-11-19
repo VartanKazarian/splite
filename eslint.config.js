@@ -32,7 +32,13 @@ export default tseslint.config(
           ],
         },
       ],
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "react-refresh/only-export-components": [
+        "warn",
+        // El hook del idioma vive con su proveedor, y las variantes del botón
+        // con el botón: separarlos sólo para el recargado en caliente no
+        // compensa.
+        { allowConstantExport: true, allowExportNames: ["useI18n", "buttonVariants"] },
+      ],
       "@typescript-eslint/no-unused-vars": "off",
     },
   },

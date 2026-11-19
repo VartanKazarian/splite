@@ -47,12 +47,20 @@ function Login() {
     if (staffSession.get()) navigate({ to: "/dashboard" });
   }, [navigate]);
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Del formulario y no del estado: quien escribe antes de que la página
+    // termine de cargar (un teléfono lento) tiene el texto en los campos, pero
+    // el estado sigue vacío, y le diríamos «correo o contraseña incorrectos».
+    const form = new FormData(event.currentTarget);
+    const typedEmail = String(form.get("email") ?? "").trim();
+    const typedPassword = String(form.get("password") ?? "");
+    setEmail(typedEmail);
+    setPassword(typedPassword);
     setPending(true);
     setError(null);
     try {
-      const result = await auth.login(email, password);
+      const result = await auth.login(typedEmail, typedPassword);
       // Con segundo factor no llega sesión, llega un reto. Navegar aquí sería
       // mandar al panel a alguien que no tiene tokens, y el panel lo devolvería
       // al login: la cuenta quedaría inaccesible por haberse protegido mejor.

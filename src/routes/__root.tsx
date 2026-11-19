@@ -16,6 +16,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { I18nProvider } from "@/lib/i18n";
 import { storedLang } from "@/lib/stored-lang";
 import { Toaster } from "@/components/ui/sonner";
+import { installTelemetry, reportError } from "@/lib/telemetry";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 
 /**
@@ -94,6 +95,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const copy = useFallbackCopy();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportError(error);
   }, [error]);
 
   return (
@@ -187,6 +189,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => installTelemetry(), []);
 
   return (
     <QueryClientProvider client={queryClient}>

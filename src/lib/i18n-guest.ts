@@ -43,10 +43,10 @@ export const guestStrings = defineStrings({
     paidThanksBody: "Tu pago quedó registrado y la cuenta de la mesa está cerrada.",
     yourNameOptional: "Tu nombre (opcional)",
     yourNamePlaceholder: "Ana",
-    yourNameWhy: "Sólo para que los demás de la mesa vean quién ya pagó.",
+    yourNameWhy: "Solo para que los demás de la mesa vean quién ya pagó.",
     marketingOptIn: "Quiero recibir promociones de este restaurante",
     marketingWhy:
-      "Aparte de la factura, y sólo de este restaurante. Puedes darte de baja cuando quieras.",
+      "Aparte de la factura, y solo de este restaurante. Puedes darte de baja cuando quieras.",
     errorTitle: "Algo falló",
     errorOfflineTitle: "Sin conexión",
     noOpenBill: "Sin cuenta abierta",
@@ -75,7 +75,7 @@ export const guestStrings = defineStrings({
       "Precios en {currency}. Pagas en bolívares, a la tasa BCV del día que se abrió la cuenta.",
     ofLineTotal: "de {total}",
     rateTitle: "¿Qué tal todo?",
-    rateHint: "Tu opinión le llega al restaurante. Sólo la ven ellos.",
+    rateHint: "Tu opinión le llega al restaurante. Solo la ven ellos.",
     rateStars: "{n} de 5",
     rateCommentLabel: "¿Algo que contarles? (opcional)",
     rateSend: "Enviar",
@@ -179,7 +179,7 @@ export const guestStrings = defineStrings({
       "En cuanto el restaurante añada lo que has pedido, aparecerá aquí y podrás pagar o dividir.",
     billEmptyMenu: "Mientras tanto, mira la carta",
     splitTheBill: "Dividir la cuenta",
-    splitTheBillHint: "Sólo lo tuyo",
+    splitTheBillHint: "Solo lo tuyo",
     /* El pago en tres actos. Ver `GuestBillScreen`. */
     payMyShare: "Pagar mi parte",
     dockPickItems: "Marca lo que consumiste",
@@ -224,7 +224,7 @@ export const guestStrings = defineStrings({
     // Avisos de otros en la mesa que el restaurante todavía no verificó.
     guestPendingSomeTitle: "Ya hay {amount} en verificación en esta mesa",
     guestPendingSomeBody:
-      "Alguien ya avisó de un pago. Te sugerimos sólo lo que queda; si ya transferiste, avisa igual.",
+      "Alguien ya avisó de un pago. Te sugerimos solo lo que queda; si ya transferiste, avisa igual.",
     guestPendingCoversTitle: "Ya avisaron {amount}: cubre lo que queda",
     guestPendingCoversBody:
       "Espera a que el restaurante lo verifique antes de transferir. Si ya transferiste, avisa igual con tu referencia.",
@@ -321,7 +321,7 @@ export const guestStrings = defineStrings({
     invoicePending: "Tu factura está en camino",
     invoicePendingBody:
       "No pudimos confirmarla ahora mismo. El restaurante la está resolviendo y no hace falta que lo intentes otra vez.",
-    invoicePaymentIntact: "Tu pago está hecho. Esto sólo afecta al documento.",
+    invoicePaymentIntact: "Tu pago está hecho. Esto solo afecta al documento.",
     invoiceWaitForPayment: "Podrás pedir la factura cuando el restaurante confirme tu pago.",
     invoiceTaxIdBad: "Revisa la cédula o el RIF: por ejemplo V12345678.",
     invoiceEmailBad: "Revisa el correo: no parece una dirección válida.",
@@ -333,7 +333,7 @@ export const guestStrings = defineStrings({
     splitConfirm: "Confirmar división",
     payerEmailLabel: "Tu correo (opcional)",
     payerEmailWhyInvoice: "Para enviarte la factura fiscal, si la pides aquí abajo.",
-    payerEmailWhyContact: "Opcional. Sólo se usa si marcas la casilla de abajo.",
+    payerEmailWhyContact: "Opcional. Solo se usa si marcas la casilla de abajo.",
     claimInvoiceAsk: "Envíame la factura fiscal a este correo",
     claimInvoiceWhen:
       "Te llega sola cuando el restaurante confirme tu pago. No hace falta que esperes aquí.",
@@ -346,7 +346,7 @@ export const guestStrings = defineStrings({
     splitAgreed: "División acordada",
     splitReplace: "Reemplazar la división",
     splitReplaceNote:
-      "Sustituye la división acordada. Sólo se puede mientras nadie haya pagado su parte.",
+      "Sustituye la división acordada. Solo se puede mientras nadie haya pagado su parte.",
     copied: "Copiado",
     c2pErrNoBank: "No pudimos contactar al banco. Intenta de nuevo.",
     c2pErrTooMuch: "Ese monto supera lo que falta por pagar.",

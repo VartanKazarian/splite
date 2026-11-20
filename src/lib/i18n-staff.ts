@@ -104,7 +104,7 @@ export const staffStrings = defineStrings({
     pushUnsupported:
       "Este navegador no puede recibir avisos con la pantalla bloqueada. Prueba con Chrome en Android o con Safari en iPhone.",
     pushIosInstall:
-      "En iPhone, los avisos sólo llegan si Splite está en tu pantalla de inicio: toca Compartir, luego «Añadir a pantalla de inicio», y entra al panel desde ese icono. Aquí aparecerá el botón para activarlos.",
+      "En iPhone, los avisos solo llegan si Splite está en tu pantalla de inicio: toca Compartir, luego «Añadir a pantalla de inicio», y entra al panel desde ese icono. Aquí aparecerá el botón para activarlos.",
     pushDenied:
       "Los avisos de esta web están bloqueados en este navegador. Permítelos en los ajustes del navegador (el candado junto a la dirección) y vuelve aquí.",
     pushServerOff: "Los avisos no están disponibles en este momento.",
@@ -159,9 +159,9 @@ export const staffStrings = defineStrings({
     confirmRemoveStaffCta: "Quitar del equipo",
     confirmDisableMfa: "Desactivar la verificación en dos pasos",
     confirmDisableMfaBody:
-      "Tu cuenta vuelve a estar protegida sólo por la contraseña. Los códigos de recuperación que tengas apuntados dejan de servir.",
+      "Tu cuenta vuelve a estar protegida solo por la contraseña. Los códigos de recuperación que tengas apuntados dejan de servir.",
     confirmDisableMfaCta: "Desactivarla",
-    pdfOnlyPdf: "Sólo se aceptan archivos PDF",
+    pdfOnlyPdf: "Solo se aceptan archivos PDF",
     pdfUploaded: "Carta subida",
     pdfDeleted: "Carta eliminada",
     pdfUploading: "Subiendo…",
@@ -229,7 +229,7 @@ export const staffStrings = defineStrings({
     staffInviteWhatsappCta: "Enviar por WhatsApp",
     staffInviteDone: "Listo",
     staffInviteOnce:
-      "El enlace sirve una vez y caduca en 7 días. Sólo se ve ahora: si lo pierdes, vuelve a invitar y el anterior deja de valer.",
+      "El enlace sirve una vez y caduca en 7 días. Solo se ve ahora: si lo pierdes, vuelve a invitar y el anterior deja de valer.",
     staffPendingTitle: "Invitaciones pendientes",
     staffPendingExpires: "caduca el {date}",
     staffPendingResend: "Reenviar",
@@ -284,7 +284,7 @@ export const staffStrings = defineStrings({
     orderApprovalLabel: "Aprobar el primer pedido de cada teléfono",
     orderApprovalOn: "Aprobación activada",
     orderApprovalOff: "Aprobación desactivada",
-    orderApprovalReadOnly: "Sólo el dueño o el encargado pueden cambiarlo.",
+    orderApprovalReadOnly: "Solo el dueño o el encargado pueden cambiarlo.",
     floorNeedsAttention: "Por atender",
     seeAll: "Ver todas",
     displayNameHint: "Cómo te saluda el panel. Si lo dejas vacío, te saluda sin nombre.",
@@ -322,7 +322,7 @@ export const staffStrings = defineStrings({
     c2pAmbiguous: "Ambiguo",
     waitUnderMinute: "menos de un minuto",
     myTips: "Tus propinas",
-    myTipsSub: "Sólo las tuyas, por las cuentas que atendiste tú.",
+    myTipsSub: "Solo las tuyas, por las cuentas que atendiste tú.",
     myTipsAmount: "Propinas",
     myTipsBilled: "Facturado",
     myTipsRate: "Sobre lo facturado",
@@ -379,7 +379,7 @@ export const staffStrings = defineStrings({
       "Ya has emitido con esta serie, así que el formato y el primer número no se pueden cambiar: hacerlo contradiría las facturas ya emitidas. El tope y la referencia sí, para cuando te amplíen el rango.",
     fiscalSeriesLockedError:
       "Eso no se puede cambiar después de emitir. Si el prefijo salió mal, se corrige con una nota de crédito, no reescribiendo la serie.",
-    fiscalSeriesOwnerOnly: "Sólo el dueño puede escribir la serie.",
+    fiscalSeriesOwnerOnly: "Solo el dueño puede escribir la serie.",
     productPhotoAdd: "Añadir foto",
     productPhotoReplace: "Cambiar foto",
     productPhotoRemove: "Quitar foto",
@@ -482,7 +482,7 @@ export const staffStrings = defineStrings({
       "Hasta que escribas un código válido no queda activada, así que puedes cerrar esto sin bloquearte.",
     mfaSaveCodes: "Guarda estos códigos de recuperación ahora.",
     mfaSaveCodesWhy:
-      "Son la única forma de entrar si pierdes el móvil. No se pueden volver a ver: el servidor sólo guarda un resumen de cada uno. Cada código sirve una vez.",
+      "Son la única forma de entrar si pierdes el móvil. No se pueden volver a ver: el servidor solo guarda un resumen de cada uno. Cada código sirve una vez.",
     mfaCodesSaved: "Ya los guardé",
     pwTitle: "Tu contraseña",
     pwChangeIt: "Cambiarla",
@@ -505,7 +505,7 @@ export const staffStrings = defineStrings({
     sectionsEmpty: "Todavía no hay secciones. Sin ellas la carta es una sola lista alfabética.",
     sectionsLoose: "{count} producto(s) sin sección. Aparecen al final de la carta, bajo «Otros».",
     sectionsLegacy:
-      "Hay {count} sección(es) guardada(s) sólo en este navegador: {names}. Antes no se enviaban al servidor, así que ni tu equipo ni los comensales las veían.",
+      "Hay {count} sección(es) guardada(s) solo en este navegador: {names}. Antes no se enviaban al servidor, así que ni tu equipo ni los comensales las veían.",
     sectionAdd: "Añadir sección",
     sectionMoveUp: "Subir",
     sectionMoveDown: "Bajar",
@@ -519,7 +519,7 @@ export const staffStrings = defineStrings({
     menuSetup: "Montar la carta",
     productDeleted: "Producto eliminado",
     nameTaken: "Ya existe un producto con ese nombre",
-    menuForbidden: "Sólo el dueño y los encargados pueden editar el menú.",
+    menuForbidden: "Solo el dueño y los encargados pueden editar el menú.",
     settingsTitle: "Configuración",
     settingsSub: "Tu restaurante, dónde cobras, tu equipo y tu cuenta.",
     vatLabel: "IVA (%)",
@@ -547,16 +547,16 @@ export const staffStrings = defineStrings({
     bankLastMovement: "Último movimiento recibido: {when}",
     bankNoMovementsYet: "Aún no ha llegado ningún movimiento.",
     bankAutoConfirmIsOn: "Confirma sola",
-    bankAutoConfirmIsOff: "Sólo sugiere",
+    bankAutoConfirmIsOff: "Solo sugiere",
     bankAutoConfirmOn:
       "Si un movimiento casa sin dudas con un aviso, el cobro se confirma sin que nadie lo toque.",
     bankAutoConfirmOff:
       "Si un movimiento casa con un aviso, se marca en Pagos y alguien del equipo lo confirma con un toque.",
-    bankAutoConfirmDisable: "Volver a sólo sugerir",
+    bankAutoConfirmDisable: "Volver a solo sugerir",
     bankAutoConfirmEnable: "Dejar que confirme sola",
     bankAutoConfirmTitle: "¿Confirmar cobros sin revisarlos?",
     bankAutoConfirmBody:
-      "Cuando la referencia y el importe coincidan exactamente con un movimiento de esta conexión, el cobro quedará confirmado sin que lo mire nadie. Enciéndelo sólo si confías en esta fuente.",
+      "Cuando la referencia y el importe coincidan exactamente con un movimiento de esta conexión, el cobro quedará confirmado sin que lo mire nadie. Enciéndelo solo si confías en esta fuente.",
     bankRotate: "Rotar la firma",
     bankRotateTitle: "¿Rotar la firma?",
     bankRotateBody:
@@ -571,7 +571,7 @@ export const staffStrings = defineStrings({
     bankSecretUrl: "Dirección",
     bankSecretKey: "Clave de firma",
     bankSecretOnce:
-      "La clave sólo se ve ahora. Si la pierdes, rota la firma y la anterior deja de valer.",
+      "La clave solo se ve ahora. Si la pierdes, rota la firma y la anterior deja de valer.",
     bankAddStatement: "Subir estados de cuenta",
     bankAddWebhook: "Conectar un servicio (webhook)",
     bankAddMercantil: "Conectar Mercantil",
@@ -676,19 +676,19 @@ export const staffStrings = defineStrings({
     staffSavedSessions: "Guardado. Sesiones cerradas: {n}.",
     staffPasswordChangedSessions: "Contraseña cambiada. Sesiones cerradas: {n}.",
     staffAddedAs: "{email} añadido como {role}",
-    staffOnlyManagers: "Sólo el dueño y los encargados pueden gestionar al personal.",
+    staffOnlyManagers: "Solo el dueño y los encargados pueden gestionar al personal.",
     staffHeading: "Personal",
     staffRolesExplained:
       "Cada quien entra con su propio correo. Un mesero abre cuentas y añade productos; caja cobra y verifica pagos; el encargado además lleva el menú y las mesas.",
     staffOnlyYou:
-      "Sólo estás tú. Añade a tu equipo para que cada quien entre con su propia cuenta: así las propinas y los cobros quedan a nombre de quien los hizo.",
+      "Solo estás tú. Añade a tu equipo para que cada quien entre con su propia cuenta: así las propinas y los cobros quedan a nombre de quien los hizo.",
     mfaTitle: "Verificación en dos pasos",
     mfaOn: "Activada",
     mfaOff: "Desactivada",
     mfaUnavailable:
       "El servidor todavía no tiene configurada la clave con la que se guardan los segundos factores, así que esto no se puede activar. Falta una variable de entorno en el despliegue.",
     mfaIntro:
-      "Además de la contraseña, un código de tu móvil. Protege tu cuenta aunque alguien averigüe la contraseña. Sólo afecta a la tuya: nadie puede activarla ni quitarla por ti.",
+      "Además de la contraseña, un código de tu móvil. Protege tu cuenta aunque alguien averigüe la contraseña. Solo afecta a la tuya: nadie puede activarla ni quitarla por ti.",
     mfaStep1: "1. Añádelo a tu app de autenticación (Google Authenticator, 1Password, Aegis…).",
     mfaOpenInApp: "Abrir en la app",
     mfaEnabledToast: "Segundo factor activado",

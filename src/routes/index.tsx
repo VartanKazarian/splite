@@ -37,7 +37,7 @@ import { TryDemo } from "@/components/marketing/TryDemo";
  */
 const TITLE = "Splite — El QR que divide la cuenta y cobra por mesa";
 const DESC =
-  "Con un QR por mesa, cada comensal ve la cuenta, elige lo que consumió y paga su parte desde su banco. Tu equipo deja de dividir cuentas.";
+  "Para restaurantes en Venezuela. Con un QR por mesa, cada comensal ve la cuenta, elige lo que consumió y paga su parte con Pago Móvil desde su banco. Tu equipo deja de dividir cuentas.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -167,6 +167,7 @@ function Landing() {
             Lo único nuevo que traía -- que se monta en una tarde y con
             acompañamiento -- vive ahora en el cierre, junto al botón. */}
         <Trust />
+        <Faq />
         <FinalCta />
       </main>
       <Footer />
@@ -281,7 +282,10 @@ function Hero() {
     <Section id="hero" className="pt-12 md:pt-20">
       <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="rise">
-          <Eyebrow>Para restaurantes</Eyebrow>
+          {/* El país, dicho una vez y arriba. Pago Móvil y BCV solo se lo
+              insinuaban a quien ya los conoce, y es lo primero que busca quien
+              llega desde fuera o desde un buscador. */}
+          <Eyebrow>Para restaurantes en Venezuela</Eyebrow>
           <h1 className="mt-4 text-[40px] leading-[1.03] md:text-[64px]">
             Cada cliente paga lo suyo.
             <br />
@@ -357,7 +361,7 @@ function Problem() {
   const despues = [
     "Cada uno ve en su teléfono lo que le toca",
     "Paga su parte desde su banco, sin esperar al mesero",
-    "Tu equipo sólo confirma que llegó",
+    "Tu equipo solo confirma que llegó",
     "La mesa se libera antes",
   ];
 
@@ -771,6 +775,70 @@ function Trust() {
   );
 }
 
+/*
+ * Lo que pregunta un dueño antes de rellenar un formulario.
+ *
+ * Con `<details>` y no con un acordeón de JavaScript: se abre con el teclado y
+ * con un lector de pantalla sin hacer nada, funciona aunque el script no
+ * llegue, y el buscador ve las respuestas. Cada respuesta repite lo que la
+ * página ya dice en otro sitio, en una frase: aquí no se promete nada nuevo.
+ *
+ * Falta «¿Cuánto cuesta?» a propósito, hasta que haya una respuesta que dar.
+ */
+const FAQ = [
+  [
+    "¿Mis clientes tienen que instalar algo?",
+    "No. Escanean el QR de la mesa con la cámara y la cuenta se abre en el navegador del teléfono.",
+  ],
+  [
+    "¿Splite se queda con el dinero?",
+    "No. El comensal paga con Pago Móvil directo a la cuenta del restaurante. Splite no cobra ni retiene el pago.",
+  ],
+  [
+    "¿Con qué bancos funciona?",
+    "Pago Móvil, desde cualquier banco. Clave 2 Pagos para cuentas Mercantil llega próximamente. Lo que se paga en caja (efectivo, tarjeta o transferencia) queda registrado en la misma cuenta.",
+  ],
+  [
+    "¿Cómo sé que el pago llegó de verdad?",
+    "Subes tu estado de cuenta y Splite te dice qué avisos de pago llegaron. No hace falta revisar la app del banco mesa por mesa.",
+  ],
+  [
+    "¿Tengo que cambiar mi TPV?",
+    "No. Splite funciona al margen del TPV que ya tienes; no hay que tocarlo.",
+  ],
+  [
+    "¿Puedo tener la carta en dólares?",
+    "Sí. Pon los precios en dólares o en bolívares, como los tengas. El cobro es siempre en bolívares, a la tasa del día.",
+  ],
+] as const;
+
+function Faq() {
+  return (
+    <Section id="preguntas">
+      <div className="mx-auto max-w-3xl">
+        <Eyebrow>Preguntas frecuentes</Eyebrow>
+        <h2 className={H2.sm}>Lo que suelen preguntar antes de empezar.</h2>
+        <div className="mt-8 divide-y divide-border border-y border-border">
+          {FAQ.map(([q, a]) => (
+            <details key={q} className="group py-1">
+              <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between gap-4 py-3 text-[17px] font-medium [&::-webkit-details-marker]:hidden">
+                {q}
+                <span
+                  aria-hidden="true"
+                  className="text-xl leading-none text-muted-foreground transition-transform group-open:rotate-45"
+                >
+                  +
+                </span>
+              </summary>
+              <p className="pb-4 text-[15px] leading-relaxed text-muted-foreground">{a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 function FinalCta() {
   return (
     <Section>
@@ -847,6 +915,11 @@ function Footer() {
               </a>
             </li>
             <li>
+              <a className="hover:text-foreground" href="#preguntas">
+                Preguntas frecuentes
+              </a>
+            </li>
+            <li>
               <Link className="hover:text-foreground" to="/tpv-hosteleria">
                 TPV para hostelería
               </Link>
@@ -913,8 +986,11 @@ function MobileStickyCta() {
     return () => io.disconnect();
   }, []);
 
+  // Un `aside` con nombre: fuera de un punto de referencia, quien salta entre
+  // ellos con el lector de pantalla no llegaba nunca a esta barra.
   return (
-    <div
+    <aside
+      aria-label="Solicitar acceso"
       hidden={!show}
       className="sticky bottom-0 z-40 border-t border-border bg-background/95 px-5 py-3 backdrop-blur md:hidden"
     >
@@ -924,6 +1000,6 @@ function MobileStickyCta() {
       >
         {CTA_PRIMARY}
       </Link>
-    </div>
+    </aside>
   );
 }

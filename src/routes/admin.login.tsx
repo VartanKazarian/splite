@@ -57,7 +57,7 @@ function AdminLogin() {
           <span className="font-normal tracking-normal text-muted-foreground">· Consola</span>
         </p>
         <h1 className="mt-3 text-2xl">Entrar</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Sólo para el equipo de Splite.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Solo para el equipo de Splite.</p>
         <div className="mt-5 grid gap-3">
           <label className="grid gap-1 text-sm">
             Correo

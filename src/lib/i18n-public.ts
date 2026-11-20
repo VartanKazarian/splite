@@ -62,7 +62,7 @@ export const publicStrings = defineStrings({
     verifySubmit: "Activar cuenta",
     verifyErrNetwork: "No pudimos contactar con el servidor. Intenta de nuevo.",
     verifyErrTokenInvalid:
-      "Este enlace ya no sirve: caduca a las pocas horas y sólo se puede usar una vez. Si ya activaste la cuenta, entra con tu contraseña. Si no, escríbenos y te mandamos otro.",
+      "Este enlace ya no sirve: caduca a las pocas horas y solo se puede usar una vez. Si ya activaste la cuenta, entra con tu contraseña. Si no, escríbenos y te mandamos otro.",
     verifyErrPassword: "La contraseña no cumple el mínimo de {min} caracteres.",
     verifyErrRateLimited: "Demasiados intentos. Espera unos minutos y vuelve a probar.",
     verifyErrUnavailable:

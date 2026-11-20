@@ -516,7 +516,7 @@ function PlanDialog({
             role="alert"
             className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
           >
-            Esta bajada le quita algo que ya usa: {blocked}. Confírmalo sólo si lo acordaste con el
+            Esta bajada le quita algo que ya usa: {blocked}. Confírmalo solo si lo acordaste con el
             cliente.
           </p>
         )}
@@ -608,7 +608,7 @@ function BillingDialog({
             <option value="CANCELLED">Cancelada</option>
           </select>
           <span className="text-xs text-muted-foreground">
-            Por ahora sólo queda registrado: suspender no apaga nada en el panel del restaurante.
+            Por ahora solo queda registrado: suspender no apaga nada en el panel del restaurante.
           </span>
         </label>
         <label className="grid gap-1 text-sm">

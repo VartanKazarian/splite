@@ -13,7 +13,7 @@ import {
 
 const TITLE = "TPV para hostelería: cobra por mesa sin fricción — Splite";
 const DESC =
-  "Splite complementa tu TPV de hostelería: un QR por mesa, cada comensal elige lo que consumió y paga su parte desde el móvil. Menos esperas, más rotación de mesas.";
+  "Splite complementa tu TPV de hostelería en Venezuela: un QR por mesa y cada comensal paga su parte desde el móvil con Pago Móvil. Menos esperas, más rotación de mesas.";
 
 export const Route = createFileRoute("/tpv-hosteleria")({
   head: () => ({

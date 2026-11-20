@@ -2061,6 +2061,16 @@
             "type": "boolean",
             "description": "Whether this restaurant can issue a fiscal invoice from the app — the same answer as\n`canRequestInvoice` on `GET /guest/payments/{id}`, available here before anything is paid.\n**Offer \"send me the invoice\" on the payment claim only when this is true.**\n\nThe payment status keeps its own copy because the bill stops being readable the moment\nit closes, which is exactly when a manually requested invoice becomes possible."
           },
+          "defaultTipPct": {
+            "type": "integer",
+            "enum": [
+              0,
+              10,
+              15,
+              20
+            ],
+            "description": "The tip to pre-select on the tip step, as a percentage, set by the restaurant. 0 pre-selects \"no tip\". The diner can always change it."
+          },
           "updatedAt": {
             "type": "string",
             "format": "date-time"
@@ -3511,6 +3521,16 @@
             ],
             "format": "uri",
             "description": "Where diners are invited to leave a Google review after rating their meal (R20). Offered to everyone who rates, whatever the stars. Null when not set."
+          },
+          "defaultTipPct": {
+            "type": "integer",
+            "enum": [
+              0,
+              10,
+              15,
+              20
+            ],
+            "description": "The tip a diner finds pre-selected on the bill, as a percentage of their share. 0 means \"no tip\" is pre-selected. The restaurant decides, because whether a tip on top of the service charge fits local custom is its call. 10 until changed."
           },
           "menuCurrency": {
             "type": "string",
@@ -6489,6 +6509,16 @@
               "https://g.page/r/CasaSetentaYDos/review"
             ],
             "description": "The restaurant's Google review page. Only https Google addresses are accepted (g.page, maps.app.goo.gl, google.com, search.google.com, maps.google.com): it is a link a diner's phone opens. The same three states as `fiscalAddress`."
+          },
+          "defaultTipPct": {
+            "type": "integer",
+            "enum": [
+              0,
+              10,
+              15,
+              20
+            ],
+            "description": "The tip diners find pre-selected: one of the four the bill screen offers, since any other value would match no button. 0 pre-selects \"no tip\". Cannot be cleared, only changed."
           }
         }
       },
@@ -11986,10 +12016,24 @@
         ],
         "summary": "Order from the table",
         "operationId": "placeGuestOrder",
-        "description": "The lines go straight onto the table's bill and the floor is told by the notice the order\nleaves behind (`GET /api/v1/orders`) — unless the restaurant turned on approval of new phones\n(`PATCH /api/v1/orders/settings`). Then the **first** order from a session is held\n(`status: HELD`): nothing reaches a bill and no bill is opened until someone on the floor\napproves it. Once one is approved, that session orders without waiting. Follow a held order with\n`GET /api/v1/guest/bill/orders/{id}`.\n\n`409 GUEST_ORDER_AWAITING_APPROVAL` while the session already has one held. `403\nGUEST_ORDERS_BLOCKED` after the floor rejected one: the diner has to scan again.\n\nNeither the table nor the restaurant is in the body: both come from the guest session, which was\ncreated by verifying the QR signature. There is no field in which to name somebody else's table.\n\nIf the table has no open bill, the first order opens one, exactly as a waiter taking the first\norder does. `served_by` stays null: nobody from the house took this order, and putting a name\nthere would move tips toward someone who did not.\n\nBounded harder than the staff order endpoint — 20 lines of up to 20 units, against 50 of 999.\nThe QR is stuck to the table and anyone who photographs it can open a session, so the room worth\nleaving is a table's order, not four hundred portions. Rate limited to 10 per minute per session.\n\n`403 SUBSCRIPTION_SUSPENDED` when the order would open a new bill and Splite suspended the\nrestaurant's subscription. A table that already has a bill keeps ordering and paying.",
+        "description": "The lines go straight onto the table's bill and the floor is told by the notice the order\nleaves behind (`GET /api/v1/orders`) — unless the restaurant turned on approval of new phones\n(`PATCH /api/v1/orders/settings`). Then the **first** order from a session is held\n(`status: HELD`): nothing reaches a bill and no bill is opened until someone on the floor\napproves it. Once one is approved, that session orders without waiting. Follow a held order with\n`GET /api/v1/guest/bill/orders/{id}`.\n\n`409 GUEST_ORDER_AWAITING_APPROVAL` while the session already has one held. `403\nGUEST_ORDERS_BLOCKED` after the floor rejected one: the diner has to scan again.\n\nNeither the table nor the restaurant is in the body: both come from the guest session, which was\ncreated by verifying the QR signature. There is no field in which to name somebody else's table.\n\nIf the table has no open bill, the first order opens one, exactly as a waiter taking the first\norder does. `served_by` stays null: nobody from the house took this order, and putting a name\nthere would move tips toward someone who did not.\n\nBounded harder than the staff order endpoint — 20 lines of up to 20 units, against 50 of 999.\nThe QR is stuck to the table and anyone who photographs it can open a session, so the room worth\nleaving is a table's order, not four hundred portions. Rate limited to 10 per minute per session.\n\n`403 SUBSCRIPTION_SUSPENDED` when the order would open a new bill and Splite suspended the\nrestaurant's subscription. A table that already has a bill keeps ordering and paying.\n\nSend an `Idempotency-Key` to make a retry safe. A phone that lost the response does not know\nwhether the kitchen got the order; retrying with the same key and body returns the first response\ninstead of ordering twice. Keys are scoped to the guest session. `409 IDEMPOTENCY_IN_FLIGHT` while\nthe first attempt is still running; `409 IDEMPOTENCY_KEY_REUSED` for the same key with a different\norder. Optional, so older clients keep working.",
         "security": [
           {
             "guestAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 80,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            },
+            "description": "One per order attempt. Replaying it returns the stored response instead of ordering again."
           }
         ],
         "requestBody": {
@@ -17614,7 +17658,7 @@
           "OWNER",
           "MANAGER"
         ],
-        "description": "Roles: OWNER, MANAGER. Partial update; at least one field is required. Omitting a field\nleaves it as it is — in particular, changing the invoicing policy does not require\nresending the name, which is how a restaurant gets renamed by accident.\n\n`name` is what a diner reads on their phone the moment they scan the code on the table,\nabove the table number. It could previously only be set during onboarding, which left\nwhatever was typed that day in front of every customer with no way to correct it.\n\n`fiscalInvoicePolicy` is **OWNER only**, and answers with 403 `FORBIDDEN_ROLE` for a\nMANAGER. It is not profile editing: it decides how the restaurant declares, so it sits\nwith the money decisions and is audited separately as `FISCAL_POLICY_CHANGED`.\n\nMenu currency, charges and the payee each still have their own endpoint, because each is\na different decision with a different reach.",
+        "description": "Roles: OWNER, MANAGER. Partial update; at least one field is required. Omitting a field\nleaves it as it is — in particular, changing the invoicing policy does not require\nresending the name, which is how a restaurant gets renamed by accident.\n\n`name` is what a diner reads on their phone the moment they scan the code on the table,\nabove the table number. It could previously only be set during onboarding, which left\nwhatever was typed that day in front of every customer with no way to correct it.\n\n`fiscalInvoicePolicy` is **OWNER only**, and answers with 403 `FORBIDDEN_ROLE` for a\nMANAGER. It is not profile editing: it decides how the restaurant declares, so it sits\nwith the money decisions and is audited separately as `FISCAL_POLICY_CHANGED`.\n\n`defaultTipPct` is the tip diners find pre-selected on the bill (0 = \"no tip\"). It is\naudited as `DEFAULT_TIP_CHANGED`.\n\nMenu currency, charges and the payee each still have their own endpoint, because each is\na different decision with a different reach.",
         "security": [
           {
             "staffAuth": []

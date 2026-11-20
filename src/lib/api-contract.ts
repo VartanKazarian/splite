@@ -44,6 +44,7 @@ type KNOWN = {
     | "myHold"
     | "c2pAvailable"
     | "canRequestInvoice"
+    | "defaultTipPct"
     | "itemCount"
     | "openedAt"
     | "openMinutes";

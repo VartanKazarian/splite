@@ -16,6 +16,7 @@ import {
   type StaffRole,
 } from "@/lib/api";
 
+import { DefaultTipSetting } from "@/components/DefaultTipSetting";
 import { ErrorBox } from "@/components/ErrorBox";
 import { StaffManager } from "@/components/StaffManager";
 import { ChangePassword } from "@/components/ChangePassword";
@@ -487,6 +488,10 @@ function SettingsPage() {
                   </button>
                 </div>
               </section>
+
+              {/* Junto a los cargos y no en el perfil: es la otra mitad de lo
+                  que paga la mesa encima del subtotal. */}
+              <DefaultTipSetting />
 
               {(role === "OWNER" || role === "MANAGER") && <PayoutSection />}
               {role === "OWNER" && <ProvidersSection />}

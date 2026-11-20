@@ -3267,6 +3267,12 @@ export interface paths {
          *
          *     `403 SUBSCRIPTION_SUSPENDED` when the order would open a new bill and Splite suspended the
          *     restaurant's subscription. A table that already has a bill keeps ordering and paying.
+         *
+         *     Send an `Idempotency-Key` to make a retry safe. A phone that lost the response does not know
+         *     whether the kitchen got the order; retrying with the same key and body returns the first response
+         *     instead of ordering twice. Keys are scoped to the guest session. `409 IDEMPOTENCY_IN_FLIGHT` while
+         *     the first attempt is still running; `409 IDEMPOTENCY_KEY_REUSED` for the same key with a different
+         *     order. Optional, so older clients keep working.
          */
         post: operations["placeGuestOrder"];
         delete?: never;
@@ -4965,6 +4971,9 @@ export interface paths {
          *     MANAGER. It is not profile editing: it decides how the restaurant declares, so it sits
          *     with the money decisions and is audited separately as `FISCAL_POLICY_CHANGED`.
          *
+         *     `defaultTipPct` is the tip diners find pre-selected on the bill (0 = "no tip"). It is
+         *     audited as `DEFAULT_TIP_CHANGED`.
+         *
          *     Menu currency, charges and the payee each still have their own endpoint, because each is
          *     a different decision with a different reach.
          */
@@ -6020,6 +6029,11 @@ export interface components {
              *     it closes, which is exactly when a manually requested invoice becomes possible.
              */
             canRequestInvoice?: boolean;
+            /**
+             * @description The tip to pre-select on the tip step, as a percentage, set by the restaurant. 0 pre-selects "no tip". The diner can always change it.
+             * @enum {integer}
+             */
+            defaultTipPct?: 0 | 10 | 15 | 20;
             /** Format: date-time */
             updatedAt?: string;
         };
@@ -6595,6 +6609,11 @@ export interface components {
              * @description Where diners are invited to leave a Google review after rating their meal (R20). Offered to everyone who rates, whatever the stars. Null when not set.
              */
             googleReviewUrl?: string | null;
+            /**
+             * @description The tip a diner finds pre-selected on the bill, as a percentage of their share. 0 means "no tip" is pre-selected. The restaurant decides, because whether a tip on top of the service charge fits local custom is its call. 10 until changed.
+             * @enum {integer}
+             */
+            defaultTipPct?: 0 | 10 | 15 | 20;
             /** @enum {string} */
             menuCurrency?: "VES" | "USD" | "EUR";
             vatBps?: number;
@@ -7811,6 +7830,11 @@ export interface components {
              * @example https://g.page/r/CasaSetentaYDos/review
              */
             googleReviewUrl?: string;
+            /**
+             * @description The tip diners find pre-selected: one of the four the bill screen offers, since any other value would match no button. 0 pre-selects "no tip". Cannot be cleared, only changed.
+             * @enum {integer}
+             */
+            defaultTipPct?: 0 | 10 | 15 | 20;
         };
         FiscalRifRequest: {
             /**
@@ -9588,7 +9612,10 @@ export interface operations {
     placeGuestOrder: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description One per order attempt. Replaying it returns the stored response instead of ordering again. */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };

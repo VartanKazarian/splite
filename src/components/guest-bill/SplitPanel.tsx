@@ -3,6 +3,7 @@ import type { Ref } from "react";
 import { useI18n } from "@/lib/i18n";
 import {
   formatMoney,
+  TIP_OPTIONS,
   type Bill,
   type BillSplit,
   type SplitMode,
@@ -274,9 +275,11 @@ function TipPicker({
           Es la pantalla que usa quien paga; no es donde se ahorra
           altura. */}
       <div className="mt-3 grid grid-cols-6 gap-2">
-        {[0, 10, 15, 20].map((p) => (
+        {TIP_OPTIONS.map((p) => (
           <button
             key={p}
+            type="button"
+            aria-pressed={tipPct === p}
             onClick={() => {
               setTipPct(p);
               setTipCustom("");
@@ -293,6 +296,8 @@ function TipPicker({
           </button>
         ))}
         <button
+          type="button"
+          aria-pressed={tipPct === null}
           onClick={() => setTipPct(null)}
           className={`min-h-11 rounded-lg border-[1.5px] px-2 text-sm font-medium text-foreground transition-colors ${
             tipPct === null

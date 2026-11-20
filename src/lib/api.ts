@@ -1265,6 +1265,11 @@ export type Bill = {
    * de pago ofrece «envíame la factura». Sólo en la cuenta del invitado.
    */
   canRequestInvoice?: boolean;
+  /**
+   * La propina que el restaurante quiere marcada (0 = «Sin propina»). Sólo en
+   * la cuenta del invitado; sin ella, 10.
+   */
+  defaultTipPct?: DefaultTipPct;
   itemCount?: number;
   /**
    * Los tres de abajo sólo vienen en el resumen de `/tables/floor`, no en
@@ -1767,6 +1772,10 @@ export type PaymentProviderConfig = {
 
 export type BankRef = { code: string; name: string; chargeable: boolean };
 
+/** Las propinas que ofrece la mesa; la que trae marcada es una de ellas. */
+export const TIP_OPTIONS = [0, 10, 15, 20] as const;
+export type DefaultTipPct = (typeof TIP_OPTIONS)[number];
+
 export type Account = {
   id: string;
   name: string;
@@ -1798,6 +1807,8 @@ export type Account = {
   fiscalAddress?: string | null;
   /** Adónde se invita a dejar una reseña después de pagar (R20). */
   googleReviewUrl?: string | null;
+  /** La propina que la mesa trae marcada. */
+  defaultTipPct?: DefaultTipPct;
   createdAt?: string;
   /** Adónde responden los clientes a su factura (Reply-To). */
   contactEmail?: string | null;
@@ -2799,8 +2810,12 @@ export const account = {
    * es como se renombra un restaurante sin querer al corregir su dirección.
    * `fiscalAddress: ""` **borra** la dirección; omitirlo la deja como estaba.
    */
-  updateProfile: (body: { name?: string; fiscalAddress?: string; googleReviewUrl?: string }) =>
-    apiRequest<Account>("/api/v1/account", { method: "PATCH", auth: "staff", body }),
+  updateProfile: (body: {
+    name?: string;
+    fiscalAddress?: string;
+    googleReviewUrl?: string;
+    defaultTipPct?: DefaultTipPct;
+  }) => apiRequest<Account>("/api/v1/account", { method: "PATCH", auth: "staff", body }),
   /**
    * La serie autorizada. `null` significa «todavía no la ha configurado», que
    * es una respuesta y no un error: es lo que hace pintar el formulario vacío.

@@ -166,8 +166,9 @@ export function GuestBillScreen({
   const [amount, setAmount] = useState("");
   const [preview, setPreview] = useState<SplitPreview | null>(null);
   // Propina opcional del comensal, encima del cargo por servicio de la cuenta.
-  // Preseleccionada al 10%. Es lo que hacen Sunday, Toast y Square, y es de
-  // lejos lo que más mueve lo que acaba cobrando el personal. Se mantiene
+  // La que viene marcada la elige el restaurante (`defaultTipPct`): si una
+  // propina encima del servicio encaja con la costumbre del local lo sabe él,
+  // no nosotros. 10 % mientras no diga otra cosa, y en la demo. Se mantiene
   // honesta porque el importe está siempre a la vista y "Sin propina" es el
   // primer botón de la fila: un toque, sin buscarlo y sin explicaciones.
   const [tipPct, setTipPct] = useState<number | null>(10);
@@ -180,6 +181,17 @@ export function GuestBillScreen({
   const demoBillData = useMemo(() => (demo ? demoBill() : null), [demo]);
   const bill = demo ? demoBillData : (billQuery.data ?? null);
   const rateStr = bill?.fxRateVesPerUnit ?? bill?.fxRate ?? null;
+
+  // La del restaurante, una vez: cuando llega la cuenta. No en cada recarga --
+  // la cuenta se vuelve a pedir sola cada pocos segundos, y lo que el comensal
+  // haya elegido entretanto no se le cambia por debajo.
+  const defaultTip = bill?.defaultTipPct;
+  const tipApplied = useRef(false);
+  useEffect(() => {
+    if (defaultTip === undefined || tipApplied.current) return;
+    tipApplied.current = true;
+    setTipPct(defaultTip);
+  }, [defaultTip]);
   const showVes = Boolean(bill && bill.currency !== "VES" && rateStr);
 
   const splitBody = () => buildSplitBody({ bill, mode, diners, myName, mine, amount });

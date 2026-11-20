@@ -527,6 +527,11 @@ export const staffStrings = defineStrings({
     ratesHint:
       "El servicio es un cargo fijo del restaurante, no una propina. Escribe el porcentaje (por ejemplo 10 = 10%). El IVA se aplica al subtotal, y el servicio también se aplica al subtotal y no lleva impuesto. Un subtotal de 10.000 al 16/10 da IVA 1.600 + Servicio 1.000 = 12.600.",
     saveRates: "Guardar tarifas",
+    defaultTipTitle: "Propina sugerida",
+    defaultTipHint:
+      "La que el cliente encuentra marcada al pagar. Siempre puede cambiarla o elegir «Sin propina». Va aparte del servicio, que es un cargo del restaurante.",
+    defaultTipNone: "Sin propina",
+    defaultTipSaved: "Propina sugerida guardada",
     ratesSaved: "Guardado",
     openBillsUnaffected:
       "Guardado. {n} cuenta(s) abierta(s) mantienen las tarifas anteriores. Ciérralas para aplicar las nuevas.",
@@ -1221,6 +1226,11 @@ export const staffStrings = defineStrings({
     ratesHint:
       "The service charge is a fixed restaurant fee, not a tip. Enter the percentage (e.g. 10 = 10%). VAT applies to the subtotal, and the service charge applies to the subtotal too and is not taxed. A 10.000 subtotal at 16/10 gives VAT 1.600 + Service 1.000 = 12.600.",
     saveRates: "Save rates",
+    defaultTipTitle: "Suggested tip",
+    defaultTipHint:
+      "The tip diners find pre-selected when they pay. They can always change it or choose “No tip”. It is separate from the service charge, which is a restaurant fee.",
+    defaultTipNone: "No tip",
+    defaultTipSaved: "Suggested tip saved",
     ratesSaved: "Saved",
     openBillsUnaffected:
       "Saved. {n} open bill(s) keep the previous rates. Close them to apply the new ones.",

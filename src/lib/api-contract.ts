@@ -23,8 +23,8 @@ type S = components["schemas"];
 
 /** Las diferencias conocidas hoy: clave que sobra en un lado u otro. */
 type KNOWN = {
-  /** Lo añade R20 en el backend (#127). */
-  Account: "googleReviewUrl";
+  /** Lo añade R20 en el backend (#127); la propina sugerida, splite-backend#133. */
+  Account: "googleReviewUrl" | "defaultTipPct";
   /** El tipo de la cuenta del comensal y el del personal son uno aquí. */
   Bill:
     | "restaurantId"

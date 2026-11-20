@@ -17,11 +17,19 @@ export function vesEquivalent(
   }
 }
 
-/** "757.54060000" -> "757,54": la tasa como se lee en Venezuela, con dos decimales. */
+/**
+ * "236.45670000" -> "236,4567": la tasa del comensal, igual en la carta y en la
+ * cuenta.
+ *
+ * La carta la recortaba a dos decimales y la cuenta la daba entera, así que el
+ * mismo número salía distinto en dos pantallas seguidas. Ahora entre dos y
+ * cuatro decimales, sin ceros de relleno a partir del tercero: con cuatro se
+ * reconoce la del BCV y no se llena la línea de ceros.
+ */
 export function formatRate(rate: string): string {
   const [whole = "0", fraction = ""] = rate.split(".");
-  const cents = (fraction + "00").slice(0, 2);
-  return `${Number(whole).toLocaleString("es-VE")},${cents}`;
+  const digits = (fraction + "00").slice(0, 4).replace(/(\d{2}\d*?)0+$/, "$1");
+  return `${Number(whole).toLocaleString("es-VE")},${digits}`;
 }
 
 /** "2026-10-02" -> "2 oct." en el idioma del panel, sin pasar por la zona horaria del teléfono. */

@@ -5,6 +5,7 @@ import { MessageCircle } from "lucide-react";
 import { guest, formatMoney, type GuestReceipt as Receipt } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/dates";
+import { groupLines } from "@/components/guest-bill/helpers";
 import { useRememberedPayment } from "@/lib/guest-payment";
 import "@/lib/i18n-guest";
 
@@ -163,7 +164,7 @@ export function ReceiptView({
           <p className="mt-3 text-sm text-muted-foreground">{t("receiptNoLines")}</p>
         ) : (
           <ul className="mt-3 divide-y divide-border">
-            {bill.lines.map((line) => (
+            {groupLines(bill.lines, (line) => line.taxCategory).map((line) => (
               <li key={line.id} className="flex items-baseline justify-between gap-4 py-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm">{line.name}</p>

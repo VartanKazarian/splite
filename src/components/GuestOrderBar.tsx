@@ -179,7 +179,9 @@ export function GuestOrderBar({
         <div className="mx-auto w-full max-w-md px-5 pb-5 pt-3">
           <div className="mb-2 flex items-baseline justify-between gap-3">
             <span className="text-sm text-muted-foreground">
-              {units === 1 ? t("cartUnitsOne") : t("cartUnits").replace("{n}", String(units))}
+              {units === 1
+                ? t("guestCartCountOne")
+                : t("guestCartCount").replace("{n}", String(units))}
             </span>
             <span className="money-md">{formatMoney(total.toString(), currency)}</span>
           </div>
@@ -261,7 +263,9 @@ export function GuestOrderBar({
               rows={2}
               onChange={(e) => setNote(e.target.value)}
               placeholder={t("guestNotePlaceholder")}
-              className="mt-1.5 w-full resize-none rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
+              // Como los demás campos de la mesa: blanco con borde, y a 16 px,
+              // que por debajo Safari en iPhone acerca la página al escribir.
+              className="mt-1.5 w-full resize-none rounded-lg border border-border-strong bg-card px-3 py-2.5 text-base outline-none focus:border-ring"
             />
           </div>
 

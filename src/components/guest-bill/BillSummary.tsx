@@ -1,6 +1,7 @@
 import { useI18n } from "@/lib/i18n";
-import { formatBps, formatFxRate, formatMoney, type Bill, type MenuCurrency } from "@/lib/api";
-import { toVes } from "@/components/guest-bill/helpers";
+import { formatBps, formatMoney, type Bill, type MenuCurrency } from "@/lib/api";
+import { groupLines, toVes } from "@/components/guest-bill/helpers";
+import { formatRate } from "@/lib/menu-price";
 import "@/lib/i18n-guest";
 
 /** La tarjeta de la cuenta: las líneas, los impuestos y la cifra que se paga. */
@@ -35,7 +36,7 @@ export function BillSummary({
           nada dentro. Una cuenta sin líneas no dibuja la lista. */}
       {(bill.items ?? []).length > 0 && (
         <ul className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
-          {(bill.items ?? []).map((item) => (
+          {groupLines(bill.items ?? []).map((item) => (
             <li key={item.id} className="flex justify-between gap-3">
               <span>
                 {item.quantity} × {item.name}
@@ -134,7 +135,7 @@ export function BillSummary({
         )}
         {bill.currency !== "VES" && (bill.fxRateVesPerUnit ?? bill.fxRate) && (
           <span className="money-sm mt-1 text-muted-foreground">
-            {t("bcvRate")} {formatFxRate(bill.fxRateVesPerUnit ?? bill.fxRate!)}
+            {t("bcvRate")} {formatRate(bill.fxRateVesPerUnit ?? bill.fxRate!)}
           </span>
         )}
       </div>

@@ -23,8 +23,12 @@ describe("vesEquivalent", () => {
 });
 
 describe("formatRate", () => {
-  test("dos decimales y miles a la venezolana", () => {
-    expect(formatRate("757.54060000")).toBe("757,54");
+  test("entre dos y cuatro decimales, y miles a la venezolana", () => {
+    expect(formatRate("757.54060000")).toBe("757,5406");
+    expect(formatRate("236.45670000")).toBe("236,4567");
+    expect(formatRate("236.45000000")).toBe("236,45");
+    expect(formatRate("236.40000000")).toBe("236,40");
+    expect(formatRate("236.45678912")).toBe("236,4567");
     expect(formatRate("1234.5")).toBe("1.234,50");
   });
 });

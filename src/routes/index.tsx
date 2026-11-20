@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL, jsonLd, landingStructuredData } from "@/lib/site";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -51,6 +51,7 @@ export const Route = createFileRoute("/")({
       { property: "og:url", content: `${SITE_URL}/` },
     ],
     links: [{ rel: "canonical", href: `${SITE_URL}/` }],
+    scripts: [jsonLd(landingStructuredData(DESC))],
   }),
   component: Landing,
 });

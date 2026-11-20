@@ -41,3 +41,57 @@ export function robotsTag(pathname: string): string | null {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   return INDEXABLE_PAGES.some((page) => page.path === path) ? null : "noindex, nofollow";
 }
+
+/**
+ * Datos estructurados (schema.org) de la página comercial.
+ *
+ * Es lo que lee Google para poner el nombre del sitio y el logo en los
+ * resultados, y para saber qué es Splite sin adivinarlo del texto. Sin precio
+ * ni valoraciones a propósito: solo lo que se puede afirmar hoy (no hay una
+ * cifra pública, y unas estrellas inventadas son motivo de penalización).
+ */
+export function landingStructuredData(description: string) {
+  const org = {
+    "@type": "Organization",
+    "@id": `${SITE_URL}/#organization`,
+    name: "Splite",
+    url: `${SITE_URL}/`,
+    logo: `${SITE_URL}/icon-512.png`,
+  };
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      org,
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        name: "Splite",
+        url: `${SITE_URL}/`,
+        inLanguage: "es",
+        publisher: { "@id": org["@id"] },
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: "Splite",
+        url: `${SITE_URL}/`,
+        description,
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        areaServed: { "@type": "Country", name: "Venezuela" },
+        inLanguage: "es",
+        publisher: { "@id": org["@id"] },
+      },
+    ],
+  };
+}
+
+/**
+ * Un bloque JSON-LD para `head().scripts`. `<` escapado: un texto con
+ * «</script>» no puede cerrar la etiqueta antes de tiempo.
+ */
+export function jsonLd(data: unknown) {
+  return {
+    type: "application/ld+json",
+    children: JSON.stringify(data).replace(/</g, "\\u003c"),
+  };
+}

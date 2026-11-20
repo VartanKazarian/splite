@@ -3,20 +3,23 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "@/lib/api";
 
+// Su propia descripción: antes repetía la de la portada palabra por palabra, y
+// dos páginas con la misma descripción compiten entre sí en el buscador.
+const REGISTRO_DESC =
+  "Registra tu restaurante en Splite: un QR por mesa y cada comensal paga su parte con Pago Móvil. Para restaurantes en Venezuela, 30 días gratis y sin comisión por pago.";
+
 export const Route = createFileRoute("/registro")({
   head: () => ({
     meta: [
       { title: "Registra tu restaurante — Splite" },
       {
         name: "description",
-        content:
-          "Con un QR por mesa, cada comensal ve la cuenta, elige lo que consumió y paga su parte desde su banco. Tu equipo deja de dividir cuentas.",
+        content: REGISTRO_DESC,
       },
       { property: "og:title", content: "Registra tu restaurante — Splite" },
       {
         property: "og:description",
-        content:
-          "Con un QR por mesa, cada comensal ve la cuenta, elige lo que consumió y paga su parte desde su banco. Tu equipo deja de dividir cuentas.",
+        content: REGISTRO_DESC,
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

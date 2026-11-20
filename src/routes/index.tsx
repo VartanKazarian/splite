@@ -312,7 +312,11 @@ function Hero() {
                 el mejor activo de la página está dentro de la página. */}
             <GhostCta href={DEMO_ANCHOR}>{CTA_SECONDARY} →</GhostCta>
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">Sin app para tus clientes.</p>
+          {/* El precio, en pequeño y sin cifra: lo que un dueño quiere saber
+              primero es si le quitamos un porcentaje de cada venta. No. */}
+          <p className="mt-4 text-sm text-muted-foreground">
+            Sin app para tus clientes · Sin comisión por pago · 30&nbsp;días gratis
+          </p>
         </div>
 
         {/* En el teléfono no había QR. `QrCardMockup` mide 220px y vivía en un
@@ -783,9 +787,16 @@ function Trust() {
  * llegue, y el buscador ve las respuestas. Cada respuesta repite lo que la
  * página ya dice en otro sitio, en una frase: aquí no se promete nada nuevo.
  *
- * Falta «¿Cuánto cuesta?» a propósito, hasta que haya una respuesta que dar.
+ * «¿Cuánto cuesta?» sin cifra, a propósito: el precio se acuerda con cada
+ * restaurante. Lo que sí se dice es lo que se puede prometer -- cuota fija, sin
+ * comisión por pago (la plataforma no cobra nada por transacción) y 30 días de
+ * prueba, que es `TRIAL_DAYS` en el backend.
  */
 const FAQ = [
+  [
+    "¿Cuánto cuesta?",
+    "Una cuota fija al mes según el tamaño de tu local, sin comisión por cada pago. Los primeros 30 días son gratis, y te damos el precio cuando hablamos.",
+  ],
   [
     "¿Mis clientes tienen que instalar algo?",
     "No. Escanean el QR de la mesa con la cámara y la cuenta se abre en el navegador del teléfono.",
@@ -873,6 +884,10 @@ function FinalCta() {
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
           Te pedimos solo lo necesario: nombre, restaurante, contacto y tamaño del salón.
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Cuota fija al mes según el tamaño de tu local, sin comisión por pago. Los primeros 30 días
+          son gratis.
         </p>
       </div>
     </Section>

@@ -57,7 +57,9 @@ export default defineConfig({
       // el personal lleva el panel en la mano. Probar esto a 1280 px es probar
       // una pantalla que casi nadie usa.
       name: "phone",
-      use: { ...devices["Pixel 7"] },
+      // En español de Venezuela: la mesa elige el idioma del teléfono, y el
+      // Chromium de CI viene en inglés.
+      use: { ...devices["Pixel 7"], locale: "es-VE" },
     },
   ],
   // Reutiliza el servidor que ya esté escuchando -- en local casi siempre lo

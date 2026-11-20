@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { ApiError, guest, guestSession, menu, scannedQr, type GuestOrderStatus } from "@/lib/api";
 import { GuestError } from "@/components/GuestError";
 import { GuestBillScreen } from "@/components/GuestBillScreen";
+import { LangToggle } from "@/components/LangToggle";
 import { RestaurantHero } from "@/components/RestaurantHero";
 import type { GuestView } from "@/lib/guest-view";
 import "@/lib/i18n-guest";
@@ -39,7 +40,13 @@ type View = GuestView | "landing";
  * La sesión se sigue gastando sólo en la rama de la cuenta.
  */
 export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean }) {
-  const { t } = useI18n();
+  const { t, adoptBrowserLang } = useI18n();
+  // Quien escanea la mesa no ha elegido idioma en esta web: se le habla en el
+  // de su teléfono. La demo de la página comercial sigue la de la página.
+  useEffect(() => {
+    if (!demo) adoptBrowserLang();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo]);
   const navigate = useNavigate();
   // La pantalla vive en la URL, no en un estado interno.
   //
@@ -330,6 +337,9 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
           Ya no lleva a ningún sitio tampoco -- el enlace a la página comercial
           se quitó antes, por lo mismo --, así que era una línea que ocupaba el
           sitio de la portada del local. */}
+      <div className="flex justify-end">
+        <LangToggle />
+      </div>
       <RestaurantHero
         branding={context.restaurant}
         name={context.restaurant.name}
@@ -414,6 +424,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           página comercial no ayuda a eso. */}
       <header className="flex items-center justify-between py-5">
         <span className="text-sm text-muted-foreground">{t("brand")}</span>
+        <LangToggle />
       </header>
       <div className="surface p-6">{children}</div>
     </div>

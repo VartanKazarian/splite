@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { PublicMenuScreen, type Cart } from "@/components/PublicMenuScreen";
+import { LangToggle } from "@/components/LangToggle";
 import { RestaurantHero } from "@/components/RestaurantHero";
 import type { Branding } from "@/lib/api";
 
@@ -45,7 +46,12 @@ export function GuestMenuView({
       {/* Sólo si hay algo que poner. Un `<header>` vacío sigue ocupando su
           alto: en la vista previa del panel, donde no hay a dónde volver,
           dejaba un dedo de hueco encima de la portada. */}
-      {back && <header className="flex items-center justify-between px-5 py-5">{back}</header>}
+      {back && (
+        <header className="flex items-center justify-between px-5 py-5">
+          {back}
+          <LangToggle />
+        </header>
+      )}
       <div className="px-5 pb-3">
         <RestaurantHero branding={branding} name={name} above={above} />
       </div>

@@ -1,4 +1,4 @@
-import { storedLang } from "@/lib/stored-lang";
+import { browserLang, storedLang } from "@/lib/stored-lang";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 export type Lang = "es" | "en";
@@ -592,11 +592,14 @@ const Ctx = createContext<{
   t: (k: Key) => string;
   plural: (n: number, k: CountKey) => string;
   setLang: (l: Lang) => void;
+  /** Para quien no ha elegido idioma: el del teléfono, sin guardarlo. */
+  adoptBrowserLang: () => void;
 }>({
   lang: "es",
   t: (k) => lookup("es", k),
   plural: (n, k) => lookup("es", `${k}_${n === 1 ? "one" : "other"}`),
   setLang: () => {},
+  adoptBrowserLang: () => {},
 });
 
 export function I18nProvider({ children }: { children: ReactNode }) {
@@ -623,6 +626,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       value={{
         lang,
         setLang: update,
+        // Sin guardar a propósito: es una suposición, no una elección. Quien
+        // pulse ES o EN la convierte en elección y entonces sí se guarda.
+        adoptBrowserLang: () => {
+          if (!storedLang()) setLang(browserLang());
+        },
         t: (k) => lookup(lang, k),
         plural: (n, k) => lookup(lang, `${k}_${n === 1 ? "one" : "other"}`),
       }}

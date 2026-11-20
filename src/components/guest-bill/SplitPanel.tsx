@@ -11,7 +11,7 @@ import {
 import { GuestError } from "@/components/GuestError";
 import { GuestItemSelector } from "@/components/GuestItemSelector";
 import { GuestSplitModeSelector } from "@/components/GuestSplitModeSelector";
-import { myShare } from "@/components/guest-bill/helpers";
+import { groupLines, mineInGroup, myShare, spreadInGroup } from "@/components/guest-bill/helpers";
 import "@/lib/i18n-guest";
 
 /**
@@ -65,6 +65,7 @@ export function SplitPanel({
   confirm: ConfirmProps;
 }) {
   const { t } = useI18n();
+  const groups = groupLines(bill.items ?? []);
   return (
     <div ref={panelRef} className={`surface mt-4 p-6 ${hidden ? "hidden" : ""}`}>
       {/* Las cuatro formas de repartir, sólo una vez que se ha elegido
@@ -89,10 +90,15 @@ export function SplitPanel({
 
       {step === 1 && mode === "ITEMS" && (
         <GuestItemSelector
-          items={bill.items ?? []}
-          mine={mine}
+          items={groups}
+          mine={Object.fromEntries(groups.map((g) => [g.id, mineInGroup(g, mine)]))}
           currency={bill.currency}
-          onChange={setMineQty}
+          onChange={(groupId, qty) => {
+            const group = groups.find((g) => g.id === groupId);
+            if (!group) return;
+            for (const [lineId, take, max] of spreadInGroup(group, qty))
+              setMineQty(lineId, take, max);
+          }}
         />
       )}
 
@@ -225,20 +231,41 @@ function ShareFigures({
           y la tarjeta enseñaba el mismo importe tres veces seguidas -- en
           serif arriba y en la fuente del texto justo debajo, que parecía
           un fallo de composición más que una jerarquía. */}
-      {(preview.outstandingVes !== share || preview.totalAllocatedVes !== share) && (
-        <>
-          <div className="mt-3 flex justify-between gap-3 text-xs text-muted-foreground">
-            <span>{t("outstanding")}</span>
-            <span className="money-sm">{formatMoney(preview.outstandingVes, "VES")}</span>
-          </div>
-          <div className="flex justify-between gap-3 text-xs text-muted-foreground">
-            <span>{t("allocated")}</span>
-            <span className="money-sm">{formatMoney(preview.totalAllocatedVes, "VES")}</span>
-          </div>
-        </>
+      {mode === "ITEMS" || mode === "CUSTOM" ? (
+        /*
+         * Por platos o por monto, el reparto es «lo tuyo» y «lo de los demás»:
+         * el resto se apunta entero a los demás. «Ya repartido» salía igual a
+         * la cuenta entera y, debajo de «Tu parte», no se entendía. Lo que sí
+         * ayuda es cuánto queda para el resto de la mesa.
+         */
+        <div className="mt-3 flex justify-between gap-3 text-xs text-muted-foreground">
+          <span>{t("othersShare")}</span>
+          <span className="money-sm">{formatMoney(othersOf(preview, share), "VES")}</span>
+        </div>
+      ) : (
+        (preview.outstandingVes !== share || preview.totalAllocatedVes !== share) && (
+          <>
+            <div className="mt-3 flex justify-between gap-3 text-xs text-muted-foreground">
+              <span>{t("outstanding")}</span>
+              <span className="money-sm">{formatMoney(preview.outstandingVes, "VES")}</span>
+            </div>
+            <div className="flex justify-between gap-3 text-xs text-muted-foreground">
+              <span>{t("allocated")}</span>
+              <span className="money-sm">{formatMoney(preview.totalAllocatedVes, "VES")}</span>
+            </div>
+          </>
+        )
       )}
     </>
   );
+}
+
+/** Lo que queda para el resto de la mesa: su parte, o lo que falta menos la tuya. */
+function othersOf(preview: SplitPreview, share: string): string {
+  const others = preview.allocations.find((a) => a.participantId === "others");
+  if (others) return others.amountVes;
+  const rest = BigInt(preview.outstandingVes) - BigInt(share);
+  return (rest > 0n ? rest : 0n).toString();
 }
 
 export type TipProps = {

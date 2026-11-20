@@ -102,3 +102,64 @@ export function buildSplitBody({
     ],
   };
 }
+
+type Line = {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPriceMinor: string;
+  subtotalMinor: string;
+};
+
+/** Varias líneas de la cuenta que son el mismo plato al mismo precio. */
+export type Grouped<T extends Line> = T & { lines: { id: string; quantity: number }[] };
+
+/**
+ * Una línea por plato, no por pedido.
+ *
+ * Cada pedido de la mesa entra como líneas propias, así que unos tequeños
+ * pedidos dos veces salían dos veces: «1 × Tequeños» arriba y otra vez abajo.
+ * Para quien lee la cuenta -- y sobre todo para quien marca «lo mío» -- es un
+ * plato con dos unidades. Se juntan las de mismo nombre y mismo precio (y lo
+ * que diga `extraKey`, p. ej. el tipo de IVA en el recibo), en el orden en que
+ * aparece cada plato por primera vez. El id del grupo es el de su primera
+ * línea; `lines` guarda las de verdad, que son las que entiende el servidor.
+ */
+export function groupLines<T extends Line>(
+  items: readonly T[],
+  extraKey: (item: T) => string = () => "",
+): Grouped<T>[] {
+  const groups = new Map<string, Grouped<T>>();
+  for (const item of items) {
+    const key = `${item.name}\u0000${item.unitPriceMinor}\u0000${extraKey(item)}`;
+    const found = groups.get(key);
+    if (!found) {
+      groups.set(key, { ...item, lines: [{ id: item.id, quantity: item.quantity }] });
+      continue;
+    }
+    found.quantity += item.quantity;
+    found.subtotalMinor = (BigInt(found.subtotalMinor) + BigInt(item.subtotalMinor)).toString();
+    found.lines.push({ id: item.id, quantity: item.quantity });
+  }
+  return [...groups.values()];
+}
+
+/** Las unidades de un grupo que el comensal se ha marcado, sumando sus líneas. */
+export function mineInGroup(group: Grouped<Line>, mine: Record<string, number>): number {
+  return group.lines.reduce((sum, line) => sum + (mine[line.id] ?? 0), 0);
+}
+
+/**
+ * Repartir lo marcado en un grupo entre sus líneas: llenando la primera y
+ * pasando a la siguiente. Al servidor le da igual de qué pedido salga cada
+ * unidad -- mismo plato, mismo precio --, y así el reparto se sigue mandando
+ * por líneas, como siempre.
+ */
+export function spreadInGroup(group: Grouped<Line>, qty: number): [string, number, number][] {
+  let left = Math.max(0, qty);
+  return group.lines.map((line) => {
+    const take = Math.min(line.quantity, left);
+    left -= take;
+    return [line.id, take, line.quantity];
+  });
+}

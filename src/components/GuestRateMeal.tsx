@@ -115,7 +115,7 @@ export function GuestRateMeal() {
             maxLength={500}
             rows={3}
             onChange={(e) => setComment(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
+            className="mt-1.5 w-full rounded-lg border border-border-strong bg-card px-3 py-2.5 text-base outline-none focus:border-ring"
           />
           <button
             type="submit"

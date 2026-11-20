@@ -391,6 +391,12 @@ export function GuestBillScreen({
           <GuestStepIndicator current={step === 3 ? 3 : step === 2 ? 2 : 1} />
         </div>
       )}
+      {/* El paso 1 se titula «Tu cuenta» en la tarjeta; los otros dos no tenían
+          título y el lector de pantalla no anunciaba en qué pantalla se está.
+          Se ven ya en el indicador de arriba, así que el título es sólo para él. */}
+      {!nothingToPay && step !== 1 && (
+        <h1 className="sr-only">{step === 2 ? t("stepTip") : t("stepPayHeading")}</h1>
+      )}
 
       <BillSummary
         bill={bill}

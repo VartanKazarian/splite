@@ -75,6 +75,7 @@ export function ConfigurationCard() {
       label: t("setupPayout"),
       why: t("setupPayoutWhy"),
       to: "/settings" as const,
+      hash: "cobros",
     },
   ];
 
@@ -132,6 +133,7 @@ export function ConfigurationCard() {
 
       <Link
         to={next.to}
+        {...("hash" in next ? { hash: next.hash } : {})}
         className="mt-3 inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
       >
         {t("setupConfigure")}

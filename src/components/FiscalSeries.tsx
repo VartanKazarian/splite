@@ -2,10 +2,20 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { SaveRow } from "@/components/settings/SaveRow";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, account, type FiscalSeries as Series } from "@/lib/api";
 import "@/lib/i18n-staff";
 import { staffErrorText } from "@/lib/staff-errors";
+
+const EMPTY = {
+  controlPrefix: "",
+  documentPrefix: "",
+  padTo: "8",
+  controlFirst: "1",
+  controlLast: "",
+  authorisationRef: "",
+};
 
 /**
  * La serie fiscal autorizada.
@@ -34,19 +44,24 @@ export function FiscalSeries({ canEdit }: { canEdit: boolean }) {
     retry: false,
   });
 
-  const [form, setForm] = useState({
-    controlPrefix: "",
-    documentPrefix: "",
-    padTo: "8",
-    controlFirst: "1",
-    controlLast: "",
-    authorisationRef: "",
-  });
+  const [form, setForm] = useState(EMPTY);
   // Qué campos señaló el servidor al rechazar. Se limpian al volver a mandar:
   // un campo en rojo por un error ya resuelto miente igual que no marcarlo.
   const [rejected, setRejected] = useState<string[]>([]);
 
   const saved = query.data ?? null;
+  // Con qué se compara lo escrito para saber si hay cambios: lo guardado, o
+  // el formulario en blanco si todavía no hay serie.
+  const baseline = saved
+    ? {
+        controlPrefix: saved.controlPrefix,
+        documentPrefix: saved.documentPrefix,
+        padTo: String(saved.padTo),
+        controlFirst: saved.controlFirst,
+        controlLast: saved.controlLast ?? "",
+        authorisationRef: saved.authorisationRef ?? "",
+      }
+    : EMPTY;
 
   // El servidor manda mientras no se esté escribiendo.
   useEffect(() => {
@@ -178,14 +193,14 @@ export function FiscalSeries({ canEdit }: { canEdit: boolean }) {
         {t("fiscalSeriesNext").replace("{number}", preview)}
       </p>
 
-      <button
-        data-testid="fiscal-series-save"
-        disabled={!canEdit || save.isPending || query.isLoading}
-        onClick={() => save.mutate()}
-        className="mt-4 min-h-11 self-start whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
-      >
-        {t("save")}
-      </button>
+      {canEdit && (
+        <SaveRow
+          testId="fiscal-series-save"
+          dirty={!query.isLoading && JSON.stringify(form) !== JSON.stringify(baseline)}
+          pending={save.isPending}
+          onSave={() => save.mutate()}
+        />
+      )}
 
       {!canEdit && (
         <p className="mt-2 text-xs text-muted-foreground">{t("fiscalSeriesOwnerOnly")}</p>

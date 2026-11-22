@@ -17,6 +17,7 @@ import {
 } from "@/lib/api";
 
 import { DefaultTipSetting } from "@/components/DefaultTipSetting";
+import { SaveRow } from "@/components/settings/SaveRow";
 import { ErrorBox } from "@/components/ErrorBox";
 import { StaffManager } from "@/components/StaffManager";
 import { ChangePassword } from "@/components/ChangePassword";
@@ -570,19 +571,15 @@ function SettingsPage() {
                   </label>
                 </div>
                 <p className="mt-3 text-[11px] text-muted-foreground">{t("ratesHint")}</p>
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <button
-                    disabled={
-                      saveCharges.isPending ||
-                      bpsFromInput(vat) === null ||
-                      bpsFromInput(service) === null
-                    }
-                    onClick={() => saveCharges.mutate()}
-                    className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
-                  >
-                    {t("saveRates")}
-                  </button>
-                </div>
+                <SaveRow
+                  dirty={
+                    bpsFromInput(vat) !== (settings.data?.vatBps ?? 0) ||
+                    bpsFromInput(service) !== (settings.data?.serviceChargeBps ?? 0)
+                  }
+                  valid={bpsFromInput(vat) !== null && bpsFromInput(service) !== null}
+                  pending={saveCharges.isPending}
+                  onSave={() => saveCharges.mutate()}
+                />
               </section>
 
               {/* Junto a los cargos y no en el perfil: es la otra mitad de lo
@@ -682,6 +679,7 @@ function PayoutSection() {
   const [phone, setPhone] = useState("");
   const [holderId, setHolderId] = useState("");
 
+  const saved = accountQuery.data?.payout ?? null;
   useEffect(() => {
     const p = accountQuery.data?.payout;
     if (!p) return;
@@ -798,14 +796,17 @@ function PayoutSection() {
         </label>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          disabled={!complete || save.isPending}
-          onClick={() => save.mutate()}
-          className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
-        >
-          {t("save")}
-        </button>
+      <SaveRow
+        dirty={
+          bankCode !== (saved?.bankCode ?? "") ||
+          accountNumber.replace(/\D/g, "") !== (saved?.accountNumber ?? "") ||
+          phone.replace(/\D/g, "") !== (saved?.phone ?? "") ||
+          holderId.trim().toUpperCase() !== (saved?.holderId ?? "")
+        }
+        valid={complete}
+        pending={save.isPending}
+        onSave={() => save.mutate()}
+      >
         {/* Sin estos datos ningún comensal puede pagar por Pago Móvil, así
             que borrarlos pregunta antes, como el resto de borrados del panel. */}
         {accountQuery.data?.payout && (
@@ -821,7 +822,7 @@ function PayoutSection() {
             {t("deleteForever")}
           </ConfirmButton>
         )}
-      </div>
+      </SaveRow>
     </section>
   );
 }
@@ -934,14 +935,14 @@ function ProvidersSection() {
         ))}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          disabled={!filled || save.isPending}
-          onClick={() => save.mutate()}
-          className="rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
-        >
-          {t("c2pSaveCredentials")}
-        </button>
+      {/* Las credenciales no se vuelven a enseñar nunca: «cambiado» es que
+          hay algo escrito, y válido, que están las cinco. */}
+      <SaveRow
+        dirty={Object.values(values).some((v) => v.trim() !== "")}
+        valid={filled}
+        pending={save.isPending}
+        onSave={() => save.mutate()}
+      >
         {mercantil?.configured && (
           <ConfirmButton
             title={t("c2pDeleteTitle")}
@@ -954,7 +955,7 @@ function ProvidersSection() {
             {t("deleteForever")}
           </ConfirmButton>
         )}
-      </div>
+      </SaveRow>
     </section>
   );
 }

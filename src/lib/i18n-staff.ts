@@ -534,6 +534,8 @@ export const staffStrings = defineStrings({
     ratesHint:
       "Los dos se calculan sobre el subtotal. El servicio es un cargo del restaurante, no una propina, y no lleva IVA.",
     saveRates: "Guardar tarifas",
+    saving: "Guardando…",
+    unsavedChanges: "Cambios sin guardar",
     defaultTipTitle: "Propina sugerida",
     defaultTipHint:
       "La que el cliente encuentra marcada al pagar. Siempre puede cambiarla o elegir «Sin propina». Va aparte del servicio, que es un cargo del restaurante.",
@@ -1241,6 +1243,8 @@ export const staffStrings = defineStrings({
     ratesHint:
       "Both are worked out on the subtotal. The service charge is a restaurant fee, not a tip, and carries no VAT.",
     saveRates: "Save rates",
+    saving: "Saving…",
+    unsavedChanges: "Unsaved changes",
     defaultTipTitle: "Suggested tip",
     defaultTipHint:
       "The tip diners find pre-selected when they pay. They can always change it or choose “No tip”. It is separate from the service charge, which is a restaurant fee.",

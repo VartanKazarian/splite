@@ -145,6 +145,41 @@ function PlanSection() {
 }
 
 /**
+ * El plan en una línea, debajo del título: en qué plan estás, hasta cuándo, y
+ * el enlace al detalle. Lo que antes ocupaba una tarjeta en Cobros.
+ */
+function PlanLine() {
+  const { t, lang } = useI18n(staffStrings);
+  const accountQuery = useQuery({
+    queryKey: ["account"],
+    queryFn: () => account.get(),
+    retry: false,
+  });
+  const plan = accountQuery.data?.plan;
+  if (!plan) return null;
+  const endsOn = plan.trialEndsAt
+    ? new Date(plan.trialEndsAt).toLocaleDateString(lang === "en" ? "en-GB" : "es-VE", {
+        day: "numeric",
+        month: "long",
+      })
+    : null;
+  const ended = (plan.trialDaysRemaining ?? 1) <= 0;
+  const tier = t(`planTier${plan.tier}` as never);
+  const text =
+    plan.tier === "TRIAL" && endsOn
+      ? (ended ? t("planLineTrialEnded") : t("planLineTrial")).replace("{date}", endsOn)
+      : t("planLine").replace("{tier}", tier);
+  return (
+    <p className="mt-3 text-sm text-muted-foreground">
+      {text} ·{" "}
+      <a href="#suscripcion" className="underline underline-offset-2 hover:text-foreground">
+        {t("planLineLink")}
+      </a>
+    </p>
+  );
+}
+
+/**
  * Uno de los cuatro grupos de Configuración, y sólo se pinta si está elegido.
  *
  * Los cuatro salían a la vez, uno detrás de otro: 4.690 px de una sola tirada
@@ -294,30 +329,65 @@ function SettingsPage() {
       (settings.error.code === "FORBIDDEN_ROLE" || settings.error.status === 403));
   const loading = settings.isLoading;
 
-  // Los grupos que existen para quien está mirando. Mientras carga tampoco hay
-  // a dónde saltar todavía.
-  const jumps: Array<[string, string]> =
+  /*
+   * Cuatro pestañas, por tarea. Eran siete, y «Cobros» mezclaba seis cosas:
+   * el plan de Splite, la moneda de la carta, IVA y servicio, la propina, el
+   * Pago Móvil y las credenciales C2P.
+   *
+   * - Facturación y Banco van juntas: las dos se configuran una vez, con
+   *   papeles delante, y no se vuelven a tocar.
+   * - «Tu cuenta» es de la persona, no del restaurante: se abre desde el menú
+   *   del avatar. «Suscripción», desde la línea del plan bajo el título.
+   *   Las dos siguen en `#cuenta` y `#suscripcion`, sin ocupar la fila.
+   * - Los enlaces viejos siguen valiendo: `#banco` abre «Facturación y banco».
+   */
+  const tabs: Array<[string, string]> =
     forbidden || loading
-      ? [["cuenta", t("settingsGroupAccount")]]
+      ? []
       : [
           ["restaurante", t("settingsGroupRestaurant")],
           ["cobros", t("settingsGroupMoney")],
-          ["facturacion", t("fiscalTab")],
-          ["banco", t("settingsJumpBank")],
-          ["suscripcion", t("settingsJumpSubscription")],
+          ["facturacion", t("settingsGroupBilling")],
           ["equipo", t("settingsGroupTeam")],
-          ["cuenta", t("settingsGroupAccount")],
         ];
-
-  const current = jumps.some(([id]) => id === tab) ? tab : (jumps[0]?.[0] ?? "cuenta");
+  const hidden = forbidden || loading ? ["cuenta"] : ["suscripcion", "cuenta"];
+  const wanted = ({ banco: "facturacion" } as Record<string, string>)[tab] ?? tab;
+  const current =
+    tabs.some(([id]) => id === wanted) || hidden.includes(wanted)
+      ? wanted
+      : (tabs[0]?.[0] ?? "cuenta");
 
   return (
     <div className="min-h-screen">
       <PanelHeader current="settings" />
 
       <main className="mx-auto max-w-3xl px-5 py-8">
-        <h1 className="text-3xl">{t("settingsTitle")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("settingsSub")}</p>
+        {/* «Tu cuenta» y «Suscripción» no son pestañas: se llega desde el
+            avatar y desde la línea del plan, y se titulan con su nombre, con
+            la vuelta a Configuración encima. A quien sólo tiene su cuenta (un
+            mesero, caja) no se le habla del restaurante. */}
+        {(current === "suscripcion" || current === "cuenta") && tabs.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setTab("restaurante");
+              window.history.replaceState(null, "", "#restaurante");
+            }}
+            className="-ml-1 mb-2 inline-flex min-h-11 items-center gap-1.5 px-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            ← {t("settingsTitle")}
+          </button>
+        )}
+        <h1 className="text-3xl">
+          {current === "cuenta"
+            ? t("myAccount")
+            : current === "suscripcion"
+              ? t("settingsJumpSubscription")
+              : t("settingsTitle")}
+        </h1>
+        {current !== "cuenta" && current !== "suscripcion" && (
+          <p className="mt-1 text-sm text-muted-foreground">{t("settingsSub")}</p>
+        )}
 
         {/* La fila de saltos. Con cuatro grupos y una pantalla larga, encontrar
             "dónde cobro" no debería ser cuestión de recorrerla entera.
@@ -331,12 +401,18 @@ function SettingsPage() {
             En el teléfono se parte en dos líneas en vez de desplazarse: con la
             barra de desplazamiento oculta, "Tu cuenta" quedaba fuera de la
             pantalla sin nada que dijera que estaba ahí. */}
-        {jumps.length > 1 && (
+        {/* Lo que el restaurante le paga a Splite, en una línea: antes era una
+            tarjeta entera dentro de Cobros y otra en Suscripción. */}
+        {!forbidden && !loading && current !== "suscripcion" && current !== "cuenta" && (
+          <PlanLine />
+        )}
+
+        {tabs.length > 1 && current !== "suscripcion" && current !== "cuenta" && (
           <nav
             aria-label={t("settingsTitle")}
             className="sticky top-0 z-10 -mx-5 mt-4 flex flex-wrap gap-1.5 border-b border-border bg-background/95 px-5 py-3 backdrop-blur"
           >
-            {jumps.map(([id, label]) => (
+            {tabs.map(([id, label]) => (
               <button
                 key={id}
                 type="button"
@@ -361,11 +437,7 @@ function SettingsPage() {
           </nav>
         )}
 
-        {forbidden ? (
-          <section className="surface mt-6 p-6">
-            <p className="text-sm text-muted-foreground">{t("menuForbidden")}</p>
-          </section>
-        ) : loading ? (
+        {forbidden ? null : loading ? (
           <div className="mt-6 space-y-6">
             {[0, 1].map((i) => (
               <section key={i} className="surface p-6">
@@ -396,8 +468,6 @@ function SettingsPage() {
                 cargos aquí, y los datos de cobro al final de la pantalla,
                 debajo del equipo. Son la misma decisión. */}
             <Group id="cobros" title={t("settingsGroupMoney")} active={current === "cobros"}>
-              <PlanSection />
-
               <section className="surface mt-4 p-6">
                 <h2 className="text-xl">{t("menuCurrency")}</h2>
                 {settings.isError && <ErrorBox error={settings.error} fallback={t("apiDown")} />}
@@ -502,7 +572,11 @@ function SettingsPage() {
                 Pagos → Facturación a buscar por qué no se emitía no lo
                 encontraba. La lista de facturas sigue en Pagos: aquí se
                 configura, allí se consulta. */}
-            <Group id="facturacion" title={t("fiscalTab")} active={current === "facturacion"}>
+            <Group
+              id="facturacion"
+              title={t("settingsGroupBilling")}
+              active={current === "facturacion"}
+            >
               {/* Antes que la serie, y a propósito: el RIF es quién emite y la
                   serie es con qué números. Configurar la segunda sin el primero
                   deja una serie que no puede numerar nada. */}
@@ -512,13 +586,14 @@ function SettingsPage() {
                   el personal puede necesitar saber por qué número va -- y sólo
                   el dueño la escribe. */}
               <FiscalSeries canEdit={role === "OWNER"} />
-            </Group>
 
-            {/* De dónde llegan los movimientos de la cuenta, para comprobar
-                los avisos de Pago Móvil. Aparte de Cobros porque no es cómo
-                se cobra sino cómo se verifica lo cobrado. */}
-            <Group id="banco" title={t("settingsJumpBank")} active={current === "banco"}>
-              <BankConnections canEdit={role === "OWNER"} />
+              {/* De dónde llegan los movimientos de la cuenta, para comprobar
+                  los avisos de Pago Móvil. Aquí y no en Cobros porque no es
+                  cómo se cobra sino cómo se verifica lo cobrado; y junto a la
+                  facturación porque las dos se montan una vez y ya. */}
+              <div id="banco" className="scroll-mt-24">
+                <BankConnections canEdit={role === "OWNER"} />
+              </div>
             </Group>
 
             {/* Lo que el restaurante le paga a Splite. Dueño y encargado: la
@@ -528,6 +603,7 @@ function SettingsPage() {
               title={t("settingsJumpSubscription")}
               active={current === "suscripcion"}
             >
+              <PlanSection />
               <SubscriptionPanel />
             </Group>
 

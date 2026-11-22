@@ -262,6 +262,7 @@ const dict = {
     deleteTableConfirm: "La mesa se desactivará y dejará de aparecer en el panel. ¿Continuar?",
     tableDeleted: "Mesa eliminada",
     settings: "Configuración",
+    myAccount: "Tu cuenta",
     charges: "Tarifas",
     currencyBlocked:
       "{n} producto(s) activo(s) tienen precio en otra moneda. Desactívalos o elimínalos para cambiar.",
@@ -525,6 +526,7 @@ const dict = {
     deleteTableConfirm: "The table will be deactivated and hidden from the panel. Continue?",
     tableDeleted: "Table deleted",
     settings: "Settings",
+    myAccount: "Your account",
     charges: "Charge rates",
     currencyBlocked:
       "{n} active product(s) are priced in another currency. Deactivate or delete them to switch.",

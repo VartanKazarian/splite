@@ -159,6 +159,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      // La API está en otro dominio: sin esto, la primera petición de la mesa
+      // paga la búsqueda DNS, la conexión y el cifrado (unas tres idas y
+      // vueltas, ~0,45 s en un teléfono con 150 ms de latencia) justo cuando
+      // el comensal está esperando. «anonymous» porque así salen las
+      // peticiones del comensal (sin cookies): la conexión abierta es la que
+      // reutilizan. Leído de la variable y no de `@/lib/api`, para no meter
+      // ese módulo en el arranque de todas las páginas.
+      {
+        rel: "preconnect",
+        href: new URL(import.meta.env["VITE_API_BASE_URL"] ?? "https://api.splite.lat").origin,
+        crossOrigin: "anonymous",
+      },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Instrument+Sans:wght@400..700&family=Instrument+Serif&display=swap",

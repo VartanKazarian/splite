@@ -6,7 +6,6 @@ import { ArrowLeft, BookOpen, Receipt } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, guest, guestSession, menu, scannedQr, type GuestOrderStatus } from "@/lib/api";
 import { GuestError } from "@/components/GuestError";
-import { GuestBillScreen } from "@/components/GuestBillScreen";
 import { LangToggle } from "@/components/LangToggle";
 import { RestaurantHero } from "@/components/RestaurantHero";
 import type { GuestView } from "@/lib/guest-view";
@@ -20,12 +19,49 @@ import "@/lib/i18n-guest";
 const GuestMenuView = lazy(() =>
   import("@/components/GuestMenuView").then((m) => ({ default: m.GuestMenuView })),
 );
+/*
+ * La cuenta, igual: se descarga cuando hace falta, no antes de la portada.
+ *
+ * Importada de forma estática, la pantalla de la cuenta (15 KB comprimidos,
+ * más sus iconos y ayudantes) iba entera en el arranque de la mesa, y el
+ * navegador no pedía los datos de la mesa hasta haberla descargado: medido en
+ * un teléfono lento, la petición salía a los 1,6 s y los botones a los 2 s.
+ * Ahora la portada pide sus datos antes, y la cuenta se trae en segundo plano
+ * en cuanto la portada ya está pintada (`prefetchBill`), así que al tocar «Tu
+ * cuenta» casi siempre está ya en el teléfono.
+ */
+const billScreen = () => import("@/components/GuestBillScreen");
+const LazyBillScreen = lazy(() => billScreen().then((m) => ({ default: m.GuestBillScreen })));
+
+/** Cuando el navegador esté libre; en Safari, que no tiene `requestIdleCallback`, al rato. */
+function whenIdle(run: () => void) {
+  if (typeof window === "undefined") return;
+  if ("requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 3000 });
+  else setTimeout(run, 1200);
+}
+
 const orderBar = () => import("@/components/GuestOrderBar");
 const GuestOrderBar = lazy(() => orderBar().then((m) => ({ default: m.GuestOrderBar })));
 const GuestOrderSent = lazy(() => orderBar().then((m) => ({ default: m.GuestOrderSent })));
 const FixedBottomBar = lazy(() => orderBar().then((m) => ({ default: m.FixedBottomBar })));
 
 type View = GuestView | "landing";
+
+/** La cuenta, con la misma pantalla de «Cargando…» mientras llega su código. */
+function GuestBillScreen(props: { demo?: boolean; onBack?: () => void }) {
+  const { t } = useI18n();
+  return (
+    <Suspense
+      fallback={
+        <Shell>
+          <p className="text-sm text-muted-foreground">{t("loading")}</p>
+        </Shell>
+      }
+    >
+      <LazyBillScreen {...props} />
+    </Suspense>
+  );
+}
 
 /**
  * Lo que se ve al escanear el QR de una mesa.
@@ -167,6 +203,10 @@ export function TableLanding({ qr, demo = false }: { qr?: string; demo?: boolean
     staleTime: 30_000,
     queryFn: () => guest.qrContext(token as string),
   });
+  // La portada ya tiene lo suyo: ahora, sin prisa, la pantalla de la cuenta.
+  useEffect(() => {
+    if (contextQuery.isSuccess) whenIdle(() => void billScreen().catch(() => undefined));
+  }, [contextQuery.isSuccess]);
 
   // La misma clave que usa la carta por dentro, así que esto no es otra
   // petición: react-query devuelve la que ya está en memoria. La barra necesita

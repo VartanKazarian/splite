@@ -15,8 +15,8 @@ import zlib from "node:zlib";
 const KB = 1024;
 const BUDGETS = {
   __root__: 140 * KB,
-  "/t/": 180 * KB,
-  "/t/$": 180 * KB,
+  "/t/": 160 * KB,
+  "/t/$": 160 * KB,
   "/recibo/$token": 160 * KB,
   "/": 170 * KB,
   "/dashboard": 240 * KB,

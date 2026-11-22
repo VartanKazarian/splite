@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { SaveRow } from "@/components/settings/SaveRow";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, account } from "@/lib/api";
 import "@/lib/i18n-staff";
@@ -152,15 +153,12 @@ export function FiscalRif({ canEdit }: { canEdit: boolean }) {
           )}
 
           {canEdit && (
-            <button
-              type="button"
-              data-testid="fiscal-rif-save"
-              onClick={() => save.mutate()}
-              disabled={unchanged || save.isPending}
-              className="mt-4 min-h-11 rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
-            >
-              {save.isPending ? t("loading") : t("fiscalRifSave")}
-            </button>
+            <SaveRow
+              testId="fiscal-rif-save"
+              dirty={!unchanged}
+              pending={save.isPending}
+              onSave={() => save.mutate()}
+            />
           )}
         </>
       )}

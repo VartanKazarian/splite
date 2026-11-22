@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { SaveRow } from "@/components/settings/SaveRow";
 import { useI18n } from "@/lib/i18n";
 import { ApiError, account, type Account } from "@/lib/api";
 import { isGoogleReviewUrl } from "@/lib/feedback";
@@ -143,13 +144,18 @@ export function RestaurantName({ canEdit }: { canEdit: boolean }) {
         <p id="restaurant-google-review-hint" className="text-xs text-muted-foreground">
           {reviewOk ? t("googleReviewUrlHint") : t("googleReviewUrlInvalid")}
         </p>
-        <button
-          disabled={!canEdit || !dirty || save.isPending}
-          onClick={() => save.mutate()}
-          className="mt-1 self-start whitespace-nowrap rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
-        >
-          {t("save")}
-        </button>
+        {canEdit && (
+          <SaveRow
+            dirty={
+              trimmed !== savedName ||
+              address.trim() !== savedAddress ||
+              review.trim() !== savedReview
+            }
+            valid={nameOk && reviewOk}
+            pending={save.isPending}
+            onSave={() => save.mutate()}
+          />
+        )}
       </div>
 
       {/* Lo que va a ver la mesa, con el mismo texto que pinta la pantalla del

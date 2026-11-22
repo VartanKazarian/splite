@@ -433,28 +433,110 @@ function Dashboard() {
           <ConfigurationCard />
         </div>
 
-        {/* Lo primero que se mira, y sólo si existe. Ver `ToAttend`.
+        {/* El turno, en una columna y en el orden en que se trabaja: lo que
+            pide algo (Por atender), los pedidos que acaban de entrar, y las
+            mesas abiertas. Al lado, sólo lo que se mira de reojo: las cifras
+            y las opiniones.
 
-            En un teléfono, una columna y en este orden: lo que hay que
-            atender, las cifras, los pedidos nuevos, las mesas. En una pantalla
-            ancha la columna medía 670 px en 1.366 y el resto era margen: ahí
-            lo que se trabaja (atender y mesas) va a la izquierda, y lo que se
-            consulta de reojo (cifras y pedidos) a la derecha, fijo al bajar. */}
-        <div className="mt-6 space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6 lg:space-y-0">
-          <ToAttend
-            orders={newOrders}
-            tables={tableList}
-            unresolvedC2P={inDoubt}
-            pendingClaims={claimsSummary.data?.pending}
-            openedAtByBill={openedAtByBill}
-            onOrders={() =>
-              document
-                .getElementById("order-tray-heading")
-                ?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-          />
+            Los pedidos vivían en la columna estrecha, con las cifras, aunque
+            son trabajo -- «Lo atiendo yo», «Visto» -- y «Por atender» mandaba
+            a buscarlos a un lado. Y las dos columnas compartían filas de una
+            rejilla: la de la derecha, más alta, estiraba la primera fila y
+            dejaba un hueco enorme entre «Por atender» y «Mesas abiertas».
+            Ahora cada columna es una pila con su propia altura.
 
-          <aside className="min-w-0 space-y-6 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+            En un teléfono: atender, pedidos, mesas, y las cifras al final. */}
+        <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
+          <div className="min-w-0 space-y-6">
+            <ToAttend
+              orders={newOrders}
+              tables={tableList}
+              unresolvedC2P={inDoubt}
+              pendingClaims={claimsSummary.data?.pending}
+              openedAtByBill={openedAtByBill}
+              onOrders={() =>
+                document
+                  .getElementById("order-tray-heading")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+            />
+
+            <OrderTray onOpenTable={(tableId) => setSelectedId(tableId)} />
+
+            <section aria-labelledby="live-tables-heading" className="min-w-0">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
+                <h2 id="live-tables-heading" className="text-lg">
+                  {t("liveTables")}
+                </h2>
+                {/* La salida al plano completo. Las fichas de filtro se han ido
+                      con él: filtrar una lista que ya sólo trae lo abierto es
+                      filtrar por lo único que hay. */}
+                {tableList.length > 0 && (
+                  <Link
+                    to="/mesas"
+                    className="inline-flex min-h-11 items-center gap-1.5 text-sm text-primary"
+                  >
+                    {t("allTablesLink").replace("{n}", String(tableList.length))}
+                    <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+                  </Link>
+                )}
+              </div>
+
+              {tablesQuery.isLoading ? (
+                <div className="surface divide-y divide-border">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="px-4 py-3">
+                      <Skeleton className="h-5 w-40" />
+                    </div>
+                  ))}
+                </div>
+              ) : openTables.length === 0 ? (
+                <div className="surface">
+                  <EmptyState title={t("noOpenTables")} hint={t("noOpenTablesHint")} />
+                </div>
+              ) : (
+                <div className="surface divide-y divide-border overflow-hidden">
+                  {/* Las primeras, no todas. Esto es por dónde empezar, y la
+                        lista ya viene ordenada por urgencia: con 48 abiertas se
+                        pintaban 48 filas y el panel repetía Mesas entera. El
+                        resto está a un toque, en Mesas con el filtro puesto. */}
+                  {openTables.slice(0, DASHBOARD_TABLES).map((tb) => (
+                    <Fragment key={tb.id}>
+                      <TableRow
+                        table={tb}
+                        selected={selected?.id === tb.id}
+                        onSelect={() => setSelectedId(tb.id)}
+                        fallbackOpenedAt={
+                          tb.openBill ? openedAtByBill.get(tb.openBill.id) : undefined
+                        }
+                      />
+                      {/* El detalle va justo debajo de su mesa. Con una sola
+                            columna ya no hace falta medir en qué fila cae la
+                            tarjeta elegida. */}
+                      {/* El detalle, dentro de la misma tarjeta que la lista.
+                            Con su propio `surface` eran tres tarjetas anidadas:
+                            la lista, la banda del detalle y el detalle. */}
+                    </Fragment>
+                  ))}
+                  {openTables.length > DASHBOARD_TABLES && (
+                    <Link
+                      to="/mesas"
+                      search={{ filtro: "BUSY" as const }}
+                      data-testid="dashboard-more-tables"
+                      className="flex min-h-12 items-center justify-between gap-2 px-4 text-sm text-primary hover:bg-secondary"
+                    >
+                      {t("moreOpenTables")
+                        .replace("{shown}", String(DASHBOARD_TABLES))
+                        .replace("{n}", String(openTables.length))}
+                      <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+                    </Link>
+                  )}
+                </div>
+              )}
+            </section>
+          </div>
+
+          <aside className="mt-6 min-w-0 space-y-6 lg:sticky lg:top-4 lg:mt-0">
             {/* Tres cifras de contexto, y ninguna pide nada: son el fondo del
                 turno. Lo que pide algo está arriba, en la franja, con una
                 línea y un destino por tipo.
@@ -505,86 +587,10 @@ function Dashboard() {
               />
             </div>
 
-            {/* Encima de las mesas: es lo que acaba de pasar, y lo de abajo es
-                el estado. Desaparece sola cuando no hay nada. */}
-            <OrderTray onOpenTable={(tableId) => setSelectedId(tableId)} />
-
             {/* Lo que dicen los comensales (R20). Sólo dueño y encargado:
                 es lo que el servidor les deja leer. */}
             {canReadFeedback && <FeedbackCard />}
           </aside>
-
-          <section aria-labelledby="live-tables-heading" className="min-w-0 lg:col-start-1">
-            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
-              <h2 id="live-tables-heading" className="text-lg">
-                {t("liveTables")}
-              </h2>
-              {/* La salida al plano completo. Las fichas de filtro se han ido
-                    con él: filtrar una lista que ya sólo trae lo abierto es
-                    filtrar por lo único que hay. */}
-              {tableList.length > 0 && (
-                <Link
-                  to="/mesas"
-                  className="inline-flex min-h-11 items-center gap-1.5 text-sm text-primary"
-                >
-                  {t("allTablesLink").replace("{n}", String(tableList.length))}
-                  <ArrowRight aria-hidden className="h-3.5 w-3.5" />
-                </Link>
-              )}
-            </div>
-
-            {tablesQuery.isLoading ? (
-              <div className="surface divide-y divide-border">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="px-4 py-3">
-                    <Skeleton className="h-5 w-40" />
-                  </div>
-                ))}
-              </div>
-            ) : openTables.length === 0 ? (
-              <div className="surface">
-                <EmptyState title={t("noOpenTables")} hint={t("noOpenTablesHint")} />
-              </div>
-            ) : (
-              <div className="surface divide-y divide-border overflow-hidden">
-                {/* Las primeras, no todas. Esto es por dónde empezar, y la
-                      lista ya viene ordenada por urgencia: con 48 abiertas se
-                      pintaban 48 filas y el panel repetía Mesas entera. El
-                      resto está a un toque, en Mesas con el filtro puesto. */}
-                {openTables.slice(0, DASHBOARD_TABLES).map((tb) => (
-                  <Fragment key={tb.id}>
-                    <TableRow
-                      table={tb}
-                      selected={selected?.id === tb.id}
-                      onSelect={() => setSelectedId(tb.id)}
-                      fallbackOpenedAt={
-                        tb.openBill ? openedAtByBill.get(tb.openBill.id) : undefined
-                      }
-                    />
-                    {/* El detalle va justo debajo de su mesa. Con una sola
-                          columna ya no hace falta medir en qué fila cae la
-                          tarjeta elegida. */}
-                    {/* El detalle, dentro de la misma tarjeta que la lista.
-                          Con su propio `surface` eran tres tarjetas anidadas:
-                          la lista, la banda del detalle y el detalle. */}
-                  </Fragment>
-                ))}
-                {openTables.length > DASHBOARD_TABLES && (
-                  <Link
-                    to="/mesas"
-                    search={{ filtro: "BUSY" as const }}
-                    data-testid="dashboard-more-tables"
-                    className="flex min-h-12 items-center justify-between gap-2 px-4 text-sm text-primary hover:bg-secondary"
-                  >
-                    {t("moreOpenTables")
-                      .replace("{shown}", String(DASHBOARD_TABLES))
-                      .replace("{n}", String(openTables.length))}
-                    <ArrowRight aria-hidden className="h-3.5 w-3.5" />
-                  </Link>
-                )}
-              </div>
-            )}
-          </section>
         </div>
       </main>
 

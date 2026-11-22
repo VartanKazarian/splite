@@ -175,7 +175,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Instrument+Sans:wght@400..700&family=Instrument+Serif&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      // El icono de Splite (la «S» verde). `favicon.ico` era el corazón de
+      // Lovable que trae la plantilla y salía en la pestaña y junto al
+      // resultado de Google. El PNG, para pantallas que piden más nitidez.
+      { rel: "icon", href: "/favicon.ico", sizes: "any" },
+      { rel: "icon", href: "/icon-192.png", type: "image/png", sizes: "192x192" },
       // Para añadir el panel a la pantalla de inicio. En el iPhone es lo que
       // hace falta para recibir avisos con el teléfono bloqueado (R19).
       { rel: "manifest", href: "/manifest.webmanifest" },

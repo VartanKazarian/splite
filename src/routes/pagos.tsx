@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MyTipsCard } from "@/components/MyTipsCard";
 import { BillServerPicker } from "@/components/BillServerPicker";
 import { canAssignServer } from "@/lib/roles";
-import { FxRatesCard } from "@/components/panel/FxRatesCard";
+import { FxRateLine } from "@/components/panel/FxRateLine";
 import { FiscalPanel } from "@/components/panel/FiscalPanel";
 import { PanelHeader } from "@/components/PanelHeader";
 import { PageHeader } from "@/components/shell/PageHeader";
@@ -205,6 +205,8 @@ function PaymentsPage() {
     queryClient.invalidateQueries({ queryKey: ["payment-tips-today"] });
     queryClient.invalidateQueries({ queryKey: ["c2p-unresolved"] });
     queryClient.invalidateQueries({ queryKey: ["floor"] });
+    // La línea de la tasa no lleva botón propio: la recarga este.
+    queryClient.invalidateQueries({ queryKey: ["fx"] });
   };
 
   // Confirmar acredita el dinero: sólo después de verlo en el banco.
@@ -242,8 +244,9 @@ function PaymentsPage() {
     onError: fail,
   });
 
-  // Tres pestañas y el hash manda, igual que en Configuración: `/pagos#tasas`
-  // es a donde redirige la ruta vieja de Tasas.
+  // Las pestañas y el hash manda, igual que en Configuración. La tasa ya no es
+  // una: es una línea encima (`FxRateLine`), y `/pagos#tasas` -- a donde
+  // redirige la ruta vieja de Tasas -- abre Cobros, donde esa línea se ve.
   // Facturación sólo aparece si el plan la incluye. No se esconde por vergüenza
   // -- una pestaña que contesta 403 al pulsarla es peor que una que no está --
   // y se lee de `plan.capabilities` en vez de codificar aquí la tabla de
@@ -253,7 +256,6 @@ function PaymentsPage() {
   const TABS = [
     ["cobros", t("payTabCollections")],
     ["propinas", t("payTabTips")],
-    ["tasas", t("fxRates")],
     ...(canInvoice ? ([["facturacion", t("fiscalTab")]] as const) : []),
   ] as const;
   const current = TABS.some(([id]) => id === tab) ? tab : "cobros";
@@ -274,20 +276,16 @@ function PaymentsPage() {
           title={
             current === "propinas"
               ? t("payTabTips")
-              : current === "tasas"
-                ? t("fxRates")
-                : current === "facturacion"
-                  ? t("fiscalTab")
-                  : t("payVerifyTitle")
+              : current === "facturacion"
+                ? t("fiscalTab")
+                : t("payVerifyTitle")
           }
           meta={
             current === "propinas"
               ? t("payTipsSub")
-              : current === "tasas"
-                ? t("payRatesSub")
-                : current === "facturacion"
-                  ? t("payInvoicesSub")
-                  : t("payVerifySub")
+              : current === "facturacion"
+                ? t("payInvoicesSub")
+                : t("payVerifySub")
           }
           actions={
             current === "cobros" ? (
@@ -300,6 +298,8 @@ function PaymentsPage() {
             ) : null
           }
         />
+
+        <FxRateLine />
 
         {/* Tres pestañas, y no un solo rollo de 3.210 px. Movimiento, avisos y
             C2P responden a "¿ha entrado ya ese cobro?"; las propinas son otra
@@ -752,8 +752,6 @@ function PaymentsPage() {
             {canAssign && <MyTipsCard from={todayFrom} to={todayTo} />}
           </>
         )}
-
-        {current === "tasas" && <FxRatesCard />}
 
         {current === "facturacion" && <FiscalPanel canExport={canAssign} />}
       </main>

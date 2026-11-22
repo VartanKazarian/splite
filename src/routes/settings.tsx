@@ -518,29 +518,55 @@ function SettingsPage() {
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <label className="text-sm">
                     <span className="text-muted-foreground">{t("vatLabel")}</span>
-                    <input
-                      value={vat}
-                      inputMode="decimal"
-                      onChange={(e) => setVat(e.target.value)}
-
-                      className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
-                    />
-                    <span className="mt-1 block text-[11px] figure text-muted-foreground">
-                      {formatBps(bpsFromInput(vat) ?? 0)}
+                    {/* El «%» dentro de la caja, y el número una sola vez: antes
+                        salía «16» en la caja y «16%» debajo. Debajo sólo se
+                        escribe algo cuando lo tecleado no es un porcentaje. */}
+                    <span className="relative mt-1 block">
+                      <input
+                        value={vat}
+                        inputMode="decimal"
+                        onChange={(e) => setVat(e.target.value)}
+                        aria-invalid={bpsFromInput(vat) === null}
+                        className="w-full rounded-lg border border-input bg-secondary py-3 pl-4 pr-10 text-sm outline-none focus:border-ring aria-[invalid=true]:border-destructive"
+                      />
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-muted-foreground"
+                      >
+                        %
+                      </span>
                     </span>
+                    {bpsFromInput(vat) === null && (
+                      <span className="mt-1 block text-xs text-destructive">
+                        {t("percentInvalid")}
+                      </span>
+                    )}
                   </label>
                   <label className="text-sm">
                     <span className="text-muted-foreground">{t("serviceLabel")}</span>
-                    <input
-                      value={service}
-                      inputMode="decimal"
-                      onChange={(e) => setService(e.target.value)}
-
-                      className="mt-1 w-full rounded-lg border border-input bg-secondary px-4 py-3 text-sm outline-none focus:border-ring"
-                    />
-                    <span className="mt-1 block text-[11px] figure text-muted-foreground">
-                      {formatBps(bpsFromInput(service) ?? 0)}
+                    {/* El «%» dentro de la caja, y el número una sola vez: antes
+                        salía «16» en la caja y «16%» debajo. Debajo sólo se
+                        escribe algo cuando lo tecleado no es un porcentaje. */}
+                    <span className="relative mt-1 block">
+                      <input
+                        value={service}
+                        inputMode="decimal"
+                        onChange={(e) => setService(e.target.value)}
+                        aria-invalid={bpsFromInput(service) === null}
+                        className="w-full rounded-lg border border-input bg-secondary py-3 pl-4 pr-10 text-sm outline-none focus:border-ring aria-[invalid=true]:border-destructive"
+                      />
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-muted-foreground"
+                      >
+                        %
+                      </span>
                     </span>
+                    {bpsFromInput(service) === null && (
+                      <span className="mt-1 block text-xs text-destructive">
+                        {t("percentInvalid")}
+                      </span>
+                    )}
                   </label>
                 </div>
                 <p className="mt-3 text-[11px] text-muted-foreground">{t("ratesHint")}</p>

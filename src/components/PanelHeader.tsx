@@ -9,6 +9,7 @@ import {
   LayoutPanelTop,
   LogOut,
   Settings as SettingsIcon,
+  UserRound,
   Tablet,
   Volume2,
   UtensilsCrossed,
@@ -245,6 +246,13 @@ export function PanelHeader({
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                {/* «Tu cuenta» es de la persona (nombre, avisos, contraseña,
+                    segundo factor): sale aquí y no como pestaña del restaurante. */}
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" hash="cuenta" className="cursor-pointer">
+                    <UserRound className="h-4 w-4" /> {t("myAccount")}
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/settings" className="cursor-pointer">
                     <SettingsIcon className="h-4 w-4" /> {t("settings")}

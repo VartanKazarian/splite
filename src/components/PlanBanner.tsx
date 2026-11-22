@@ -76,7 +76,7 @@ export function PlanBanner() {
         )}
         <p className="min-w-0">
           {message}{" "}
-          <Link to="/settings" hash="cobros" className="underline underline-offset-2">
+          <Link to="/settings" hash="suscripcion" className="underline underline-offset-2">
             {t("planSeePlan")}
           </Link>
         </p>

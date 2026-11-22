@@ -125,7 +125,12 @@ export const staffStrings = defineStrings({
     payoutReady: "Configurado",
     payoutMissing: "Sin configurar",
     settingsGroupRestaurant: "Tu restaurante",
-    settingsGroupMoney: "Cobros",
+    settingsGroupMoney: "Precios y cobros",
+    settingsGroupBilling: "Facturación y banco",
+    planLine: "Plan {tier}",
+    planLineTrial: "Plan de prueba hasta el {date}",
+    planLineTrialEnded: "La prueba terminó el {date}",
+    planLineLink: "Ver suscripción",
     settingsGroupTeam: "Equipo",
     settingsGroupAccount: "Tu cuenta",
     planTitle: "Tu plan",
@@ -351,7 +356,7 @@ export const staffStrings = defineStrings({
     c2pDeleteBody:
       "El cobro C2P deja de funcionar hasta que las vuelvas a poner. Los cobros ya hechos no se tocan.",
     chargesInMenuHint: "El IVA y el servicio se configuran en",
-    chargesInMenuLink: "Configuración → Cobros",
+    chargesInMenuLink: "Configuración → Precios y cobros",
     restaurantNameHint:
       "Es lo primero que lee un comensal al escanear el código de la mesa, encima del número de mesa.",
     restaurantAddress: "Domicilio del local",
@@ -521,7 +526,7 @@ export const staffStrings = defineStrings({
     nameTaken: "Ya existe un producto con ese nombre",
     menuForbidden: "Solo el dueño y los encargados pueden editar el menú.",
     settingsTitle: "Configuración",
-    settingsSub: "Tu restaurante, dónde cobras, tu equipo y tu cuenta.",
+    settingsSub: "Tu restaurante, precios y cobros, facturación y tu equipo.",
     vatLabel: "IVA (%)",
     serviceLabel: "Servicio (%)",
     ratesHint:
@@ -601,7 +606,8 @@ export const staffStrings = defineStrings({
       "Dásela a Mercantil para pruebas y para producción. Al pasar a producción, cambia aquí la llave de pruebas por la definitiva.",
     bankMercantilRifTaken: "Ese RIF ya está conectado en otro restaurante de Splite.",
     bankImportButton: "Importar movimientos del banco",
-    bankImportSetup: "Para cruzar los avisos con el banco, actívalo en Configuración → Banco.",
+    bankImportSetup:
+      "Para cruzar los avisos con el banco, actívalo en Configuración → Facturación y banco.",
     bankImportTitle: "Importar movimientos del banco",
     bankImportHint:
       "Descarga el estado de cuenta de tu banco en CSV o TXT y súbelo aquí. Splite busca cada aviso pendiente entre los abonos.",
@@ -823,7 +829,12 @@ export const staffStrings = defineStrings({
     payoutReady: "Configured",
     payoutMissing: "Not set up",
     settingsGroupRestaurant: "Restaurant",
-    settingsGroupMoney: "Money",
+    settingsGroupMoney: "Prices & payments",
+    settingsGroupBilling: "Invoicing & bank",
+    planLine: "{tier} plan",
+    planLineTrial: "Trial until {date}",
+    planLineTrialEnded: "Trial ended on {date}",
+    planLineLink: "See subscription",
     settingsGroupTeam: "Team",
     settingsGroupAccount: "Account",
     planTitle: "Your plan",
@@ -1050,7 +1061,7 @@ export const staffStrings = defineStrings({
     c2pDeleteBody:
       "C2P payments stop working until you add them again. Payments already made are not affected.",
     chargesInMenuHint: "VAT and service are configured in",
-    chargesInMenuLink: "Settings → Getting paid",
+    chargesInMenuLink: "Settings → Prices & payments",
     restaurantNameHint:
       "The first thing a diner reads after scanning the table code, above the table number.",
     restaurantAddress: "Premises address",
@@ -1220,7 +1231,7 @@ export const staffStrings = defineStrings({
     nameTaken: "A product with that name already exists",
     menuForbidden: "Only the owner and managers can edit the menu.",
     settingsTitle: "Settings",
-    settingsSub: "Your restaurant, where you get paid, your team and your account.",
+    settingsSub: "Your restaurant, prices and payments, invoicing and your team.",
     vatLabel: "VAT (%)",
     serviceLabel: "Service charge (%)",
     ratesHint:
@@ -1301,7 +1312,8 @@ export const staffStrings = defineStrings({
       "Give it to Mercantil for testing and for production. When you go live, replace the test key here with the production one.",
     bankMercantilRifTaken: "That RIF is already connected to another Splite restaurant.",
     bankImportButton: "Import bank movements",
-    bankImportSetup: "To check notices against the bank, turn it on in Settings → Bank.",
+    bankImportSetup:
+      "To check notices against the bank, turn it on in Settings → Invoicing & bank.",
     bankImportTitle: "Import bank movements",
     bankImportHint:
       "Download your bank statement as CSV or TXT and upload it here. Splite looks for every pending notice among the credits.",

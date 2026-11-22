@@ -90,7 +90,7 @@ export function SubscriptionPanel() {
       <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
         <div>
           <dt className="text-xs text-muted-foreground">{t("subPlan")}</dt>
-          <dd className="mt-0.5 font-medium">{sub.tier}</dd>
+          <dd className="mt-0.5 font-medium">{t(`planTier${sub.tier}` as never)}</dd>
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">{t("subPrice")}</dt>

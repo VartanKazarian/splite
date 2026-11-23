@@ -84,3 +84,18 @@ export function formatWhen(value: string | null | undefined, lang: string): stri
   const sameDay = day(d) === day(new Date());
   return sameDay ? formatTime(value, lang) : formatDateTime(value, lang);
 }
+
+/** El día del calendario en el local, como clave: "2026-11-23". */
+export function businessDayKey(value: string): string {
+  return new Date(value).toLocaleDateString("en-CA", { timeZone: BUSINESS_TIME_ZONE });
+}
+
+/** Cabecera de un día en un listado: "sábado, 21 de noviembre". */
+export function formatWeekday(value: string, lang: string): string {
+  return new Date(value).toLocaleDateString(locale(lang), {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: BUSINESS_TIME_ZONE,
+  });
+}

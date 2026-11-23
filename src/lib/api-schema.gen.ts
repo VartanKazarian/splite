@@ -3623,6 +3623,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every payment of the last few days, newest first
+         * @description Any authenticated staff role. A rolling window of `days` × 24 h back from now (default 7,
+         *     at most 90), every method and every status, newest first.
+         *
+         *     Page with `nextCursor`: pass it back as `cursor` until it comes back `null`. The cursor is
+         *     opaque; an unreadable one returns the first page.
+         *
+         *     `totals` cover the **whole window**, not the page, and count only `SUCCEEDED` money — so
+         *     the figure at the top does not move as more pages load.
+         */
+        get: operations["getPaymentHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/claims/summary": {
         parameters: {
             query?: never;
@@ -6897,6 +6924,58 @@ export interface components {
                 paymentMethod?: string;
             }[];
         };
+        PaymentHistory: {
+            days: number;
+            /**
+             * Format: date-time
+             * @description Where the window starts.
+             */
+            from: string;
+            totals: {
+                /** @description Every payment in the window, any status. */
+                count: number;
+                succeededCount: number;
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                succeededVes: string;
+                /**
+                 * @description Tips on SUCCEEDED payments only.
+                 * @example 756710
+                 */
+                tipVes: string;
+            };
+            /** @description Pass back as `cursor` for the next page; `null` when there is none. */
+            nextCursor: string | null;
+            data: {
+                /** Format: uuid */
+                paymentId: string;
+                /** Format: date-time */
+                at: string;
+                /** Format: uuid */
+                billId: string;
+                /** Format: uuid */
+                tableId?: string | null;
+                tableName?: string | null;
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                amountVes: string;
+                /**
+                 * @description Integer minor units (céntimos) as a string, so values beyond 2^53 survive JSON.
+                 * @example 756710
+                 */
+                tipVes: string;
+                /** @enum {string} */
+                paymentMethod: "CASH" | "CARD" | "TRANSFER" | "PAGO_MOVIL" | "C2P" | "SPLITE" | "OTHER";
+                /** @enum {string} */
+                status: "PENDING" | "IN_DOUBT" | "AMBIGUOUS" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "REFUNDED" | "PARTIALLY_REFUNDED";
+                /** @description The reference the diner declared, for Pago Móvil. */
+                reference?: string | null;
+            }[];
+        };
         /** @description Where restaurants pay Splite. Shown to them on purpose; nothing here is secret. */
         PaymentDetails: {
             holder?: string | null;
@@ -10072,6 +10151,34 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    getPaymentHistory: {
+        parameters: {
+            query?: {
+                days?: number;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of the window, newest first, with the window's totals. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentHistory"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["ServerError"];
         };

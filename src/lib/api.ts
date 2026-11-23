@@ -1534,6 +1534,29 @@ export type ActivityEntry = {
   paymentMethod: string | null;
 };
 
+/** Un cobro del historial: cualquier método y cualquier estado. */
+export type PaymentHistoryEntry = {
+  paymentId: string;
+  at: string;
+  billId: string;
+  tableId: string | null;
+  tableName: string | null;
+  amountVes: Money;
+  tipVes: Money;
+  paymentMethod: string;
+  status: string;
+  reference: string | null;
+};
+
+/** Una página del historial, con los totales de todo el periodo. */
+export type PaymentHistory = {
+  days: number;
+  from: string;
+  totals: { count: number; succeededCount: number; succeededVes: Money; tipVes: Money };
+  nextCursor: string | null;
+  data: PaymentHistoryEntry[];
+};
+
 /** Las propinas de quien pregunta. Cualquier rol: un mesero mira las suyas. */
 export type MyTips = {
   from: string;
@@ -2764,6 +2787,18 @@ export const payments = {
   activity: (since?: string, limit = 50) =>
     apiRequest<{ asOf: string; since: string | null; data: ActivityEntry[] }>(
       `/api/v1/payments/activity?limit=${limit}${since ? `&since=${encodeURIComponent(since)}` : ""}`,
+      { auth: "staff" },
+    ),
+
+  /**
+   * Los cobros de los últimos `days` días, del más nuevo al más viejo.
+   *
+   * Los totales son de todo el periodo, no de la página: la cifra de arriba no
+   * cambia al pulsar «Cargar más».
+   */
+  history: (days = 7, cursor?: string | null, limit = 50) =>
+    apiRequest<PaymentHistory>(
+      `/api/v1/payments/history?days=${days}&limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
       { auth: "staff" },
     ),
 

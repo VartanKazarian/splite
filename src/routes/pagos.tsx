@@ -20,7 +20,7 @@ import {
   type StaffPaymentClaim,
 } from "@/lib/api";
 import { ErrorBox } from "@/components/ErrorBox";
-import { ActivityFeed } from "@/components/ActivityFeed";
+import { PaymentHistory } from "@/components/panel/PaymentHistory";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MyTipsCard } from "@/components/MyTipsCard";
 import { BillServerPicker } from "@/components/BillServerPicker";
@@ -205,6 +205,8 @@ function PaymentsPage() {
     queryClient.invalidateQueries({ queryKey: ["payment-tips-today"] });
     queryClient.invalidateQueries({ queryKey: ["c2p-unresolved"] });
     queryClient.invalidateQueries({ queryKey: ["floor"] });
+    // Confirmar o rechazar cambia el estado de una fila del historial.
+    queryClient.invalidateQueries({ queryKey: ["payments-history"] });
     // La línea de la tasa no lleva botón propio: la recarga este.
     queryClient.invalidateQueries({ queryKey: ["fx"] });
   };
@@ -640,7 +642,7 @@ function PaymentsPage() {
             </section>
 
             <div className="mt-6">
-              <ActivityFeed />
+              <PaymentHistory />
             </div>
           </>
         )}

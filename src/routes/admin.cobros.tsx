@@ -8,6 +8,7 @@ import { admin, formatDay, METHOD_LABEL, type AdminNotice } from "@/lib/adminApi
 import { AdminShell } from "@/components/admin/AdminShell";
 import { adminHead } from "@/lib/adminHead";
 import { ChargeStatus } from "@/components/admin/ChargeStatus";
+import { AgingBreakdown } from "@/components/admin/AgingBreakdown";
 
 export const Route = createFileRoute("/admin/cobros")({
   head: adminHead("Cobros"),
@@ -53,6 +54,8 @@ function Charges({ canEdit }: { canEdit: boolean }) {
       </p>
 
       <Notices canEdit={canEdit} />
+
+      <Aging />
 
       <div className="mt-6 flex flex-wrap items-center gap-1.5">
         {FILTERS.map(([value, label]) => (
@@ -265,5 +268,22 @@ function NoticeRow({ n, canEdit }: { n: AdminNotice; canEdit: boolean }) {
         </div>
       )}
     </li>
+  );
+}
+
+/**
+ * La deuda por antigüedad, arriba de la lista.
+ *
+ * Misma consulta que el resumen -- comparte la caché --, y no se pinta si el
+ * servidor todavía no manda el desglose.
+ */
+function Aging() {
+  const q = useQuery({ queryKey: ["admin", "metrics"], queryFn: () => admin.metrics() });
+  if (!q.data?.aging) return null;
+  return (
+    <section className="surface mt-6 p-5">
+      <h2 className="text-lg">Deuda por antigüedad</h2>
+      <AgingBreakdown aging={q.data.aging} />
+    </section>
   );
 }

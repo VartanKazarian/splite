@@ -43,6 +43,7 @@ const dict = {
     methodCARD: "Tarjeta",
     methodTRANSFER: "Transferencia",
     methodPAGO_MOVIL: "Pago Móvil",
+    methodC2P: "C2P",
     methodSPLITE: "Splite",
     methodOTHER: "Otro",
     // Un solo vocabulario. La cabecera decía "Propietario / Gerente / Cajero /
@@ -311,6 +312,7 @@ const dict = {
     methodCARD: "Card",
     methodTRANSFER: "Transfer",
     methodPAGO_MOVIL: "Pago Móvil",
+    methodC2P: "C2P",
     methodSPLITE: "Splite",
     methodOTHER: "Other",
     roleOWNER: "Owner",

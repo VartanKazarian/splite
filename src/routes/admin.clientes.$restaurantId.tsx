@@ -23,6 +23,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { adminHead } from "@/lib/adminHead";
 import { StateBadge } from "@/components/admin/StateBadge";
 import { ChargeStatus } from "@/components/admin/ChargeStatus";
+import { ClientUsage } from "@/components/admin/ClientUsage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDateTime } from "@/lib/dates";
 
@@ -298,19 +299,7 @@ function Client({ id, canEdit }: { id: string; canEdit: boolean }) {
         </div>
 
         <div className="space-y-6">
-          <section className="surface p-5">
-            <h2 className="text-lg">Uso · 30 días</h2>
-            <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-              <Item label="Cuentas atendidas">{usage.bills30d}</Item>
-              <Item label="Cobrado">{formatMoney(usage.collectedVes30d, "VES")}</Item>
-              <Item label="Mesas">{usage.tables}</Item>
-              <Item label="Equipo">{usage.staff}</Item>
-              <Item label="Productos">{usage.products}</Item>
-              <Item label="Última actividad">
-                {formatDateTime(c.lastActivityAt, "es") ?? "Nunca"}
-              </Item>
-            </dl>
-          </section>
+          <ClientUsage detail={query.data} />
 
           <section className="surface p-5">
             <h2 className="text-lg">Puesta en marcha</h2>

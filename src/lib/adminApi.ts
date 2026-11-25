@@ -117,7 +117,37 @@ export type AdminClient = {
   lastActivityAt: string | null;
   createdAt: string;
   notes: string | null;
+  /** Opcionales: un backend sin #136 no los manda, y la consola no debe romperse. */
+  activity30d?: ClientActivity | null;
+  health?: ClientHealth | null;
 };
+
+/** Lo que hizo el restaurante en los últimos 30 días. Bs. en céntimos; USD en centavos. */
+export type ClientActivity = {
+  volumeVes: string;
+  volumeUsd: string;
+  previousVolumeVes: string;
+  bills: number;
+  activeDays: number;
+  payments: number;
+  guestShareBps: number | null;
+  failedPayments: number;
+};
+
+export type HealthLevel = "GOOD" | "WATCH" | "RISK";
+export type HealthReason =
+  | "INACTIVE_14D"
+  | "INACTIVE_7D"
+  | "VOLUME_DROP_50"
+  | "VOLUME_DROP_25"
+  | "OVERDUE"
+  | "SUSPENDED"
+  | "TRIAL_EXPIRED"
+  | "NO_TABLES"
+  | "NO_MENU"
+  | "NO_BANK"
+  | "PAYMENT_FAILURES";
+export type ClientHealth = { score: number; level: HealthLevel; reasons: HealthReason[] };
 
 export type AdminCharge = {
   id: string;
@@ -167,6 +197,12 @@ export type ClientDetail = {
     bankConnections: number;
   };
   setup: { menuLoaded: boolean; tablesCreated: boolean; rifSet: boolean; bankConnected: boolean };
+  trend?: {
+    daily: { date: string; bills: number; volumeVes: string }[];
+    methods: { method: string; payments: number; volumeVes: string }[];
+    tipsVes: string;
+    averageBillVes: string | null;
+  };
   history: {
     action: string;
     details: Record<string, unknown> | null;
@@ -221,7 +257,38 @@ export type Metrics = {
   pendingNotices: number;
   trialConversion: { windowDays: number; started: number; paying: number; rateBps: number | null };
   cancelledLast30Days: number;
-  months: { month: string; newClients: number; chargedUsd: string; collectedUsd: string }[];
+  months: {
+    month: string;
+    newClients: number;
+    chargedUsd: string;
+    collectedUsd: string;
+    processedUsd?: string;
+    activeRestaurants?: number;
+    guestShareBps?: number | null;
+  }[];
+  byHealth?: Record<HealthLevel, number>;
+  payingClients?: number;
+  averageRevenueUsd?: string | null;
+  processed30d?: {
+    volumeUsd: string;
+    previousVolumeUsd: string;
+    payments: number;
+    guestShareBps: number | null;
+  };
+  funnel?: {
+    windowDays: number;
+    signedUp: number;
+    setUp: number;
+    firstBill: number;
+    firstQrPayment: number;
+    paying: number;
+  };
+  aging?: {
+    currentUsd: string;
+    days1to30Usd: string;
+    days31to60Usd: string;
+    days61PlusUsd: string;
+  };
 };
 
 export type LeadStatus = "NEW" | "CONTACTED" | "INVITED" | "ONBOARDED" | "REJECTED";
@@ -272,6 +339,7 @@ export const admin = {
         byState: Partial<Record<ClientState, number>>;
         monthlyRecurringUsd: string;
         outstandingUsd: string;
+        byHealth?: Record<HealthLevel, number>;
       };
     }>(`/clients${suffix}`);
   },
@@ -372,6 +440,33 @@ export const STATE_TONE: Record<ClientState, string> = {
   OVERDUE: "border-destructive/40 bg-destructive/10 text-destructive",
   SUSPENDED: "border-border bg-secondary text-muted-foreground",
   CANCELLED: "border-border bg-secondary text-muted-foreground line-through",
+};
+
+export const HEALTH_LABEL: Record<HealthLevel, string> = {
+  GOOD: "Bien",
+  WATCH: "Vigilar",
+  RISK: "En riesgo",
+};
+
+export const HEALTH_TONE: Record<HealthLevel, string> = {
+  GOOD: "border-primary/40 bg-primary/10 text-primary-ink",
+  WATCH: "border-amber-500/50 bg-amber-500/10 text-amber-800",
+  RISK: "border-destructive/40 bg-destructive/10 text-destructive",
+};
+
+/** Cada motivo dicho como lo que hay que hacer con él. */
+export const REASON_LABEL: Record<HealthReason, string> = {
+  INACTIVE_14D: "Más de 14 días sin abrir cuentas",
+  INACTIVE_7D: "Más de 7 días sin abrir cuentas",
+  VOLUME_DROP_50: "Cobra menos de la mitad que el mes anterior",
+  VOLUME_DROP_25: "Cobra un 25 % menos que el mes anterior",
+  OVERDUE: "Tiene un cargo vencido",
+  SUSPENDED: "Suscripción suspendida",
+  TRIAL_EXPIRED: "La prueba venció sin plan",
+  NO_TABLES: "No ha creado mesas",
+  NO_MENU: "No ha cargado la carta",
+  NO_BANK: "Sin banco conectado",
+  PAYMENT_FAILURES: "Muchos cobros fallidos o en duda",
 };
 
 export const CYCLE_LABEL: Record<Cycle, string> = { MONTHLY: "Mensual", ANNUAL: "Anual" };
